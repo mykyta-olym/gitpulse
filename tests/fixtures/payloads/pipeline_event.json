@@ -1,0 +1,165 @@
+{
+  "object_kind": "pipeline",
+  "object_attributes": {
+    "id": 456,
+    "iid": 23,
+    "ref": "feature/user-auth",
+    "tag": false,
+    "sha": "a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+    "before_sha": "0000000000000000000000000000000000000000",
+    "source": "merge_request_event",
+    "status": "success",
+    "detailed_status": "passed",
+    "stages": ["lint", "test", "build"],
+    "created_at": "2025-01-30 14:41:00 UTC",
+    "finished_at": "2025-01-30 14:48:00 UTC",
+    "duration": 420,
+    "queued_duration": 12,
+    "variables": [],
+    "url": "https://gitlab.example.com/zsi-2025/team-alpha-project/-/pipelines/456"
+  },
+  "merge_request": {
+    "id": 789,
+    "iid": 5,
+    "title": "Add user authentication module",
+    "source_branch": "feature/user-auth",
+    "target_branch": "main",
+    "source_project_id": 123,
+    "target_project_id": 123,
+    "state": "opened",
+    "url": "https://gitlab.example.com/zsi-2025/team-alpha-project/-/merge_requests/5"
+  },
+  "user": {
+    "id": 42,
+    "name": "Jan Novak",
+    "username": "jnovak",
+    "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/42/avatar.png",
+    "email": "jan.novak@student.university.edu"
+  },
+  "project": {
+    "id": 123,
+    "name": "team-alpha-project",
+    "description": "ZSI course project - Team Alpha",
+    "web_url": "https://gitlab.example.com/zsi-2025/team-alpha-project",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "git_http_url": "https://gitlab.example.com/zsi-2025/team-alpha-project.git",
+    "namespace": "zsi-2025",
+    "visibility_level": 0,
+    "path_with_namespace": "zsi-2025/team-alpha-project",
+    "default_branch": "main",
+    "ci_config_path": ".gitlab-ci.yml"
+  },
+  "commit": {
+    "id": "a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+    "message": "Add user authentication module\n\nImplements JWT-based auth with refresh tokens.",
+    "title": "Add user authentication module",
+    "timestamp": "2025-01-30T14:35:00+01:00",
+    "url": "https://gitlab.example.com/zsi-2025/team-alpha-project/-/commit/a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+    "author": {
+      "name": "Jan Novak",
+      "email": "jan.novak@student.university.edu"
+    }
+  },
+  "builds": [
+    {
+      "id": 1001,
+      "stage": "lint",
+      "name": "ruff-check",
+      "status": "success",
+      "created_at": "2025-01-30 14:41:00 UTC",
+      "started_at": "2025-01-30 14:41:15 UTC",
+      "finished_at": "2025-01-30 14:42:00 UTC",
+      "duration": 45.0,
+      "queued_duration": 3.0,
+      "failure_reason": null,
+      "when": "on_success",
+      "manual": false,
+      "allow_failure": false,
+      "user": {
+        "id": 42,
+        "name": "Jan Novak",
+        "username": "jnovak",
+        "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/42/avatar.png"
+      },
+      "runner": {
+        "id": 10,
+        "description": "shared-runner-01",
+        "runner_type": "instance_type",
+        "active": true,
+        "tags": ["docker", "linux"]
+      },
+      "artifacts_file": {
+        "filename": null,
+        "size": null
+      },
+      "environment": null
+    },
+    {
+      "id": 1002,
+      "stage": "test",
+      "name": "unit-tests",
+      "status": "success",
+      "created_at": "2025-01-30 14:41:00 UTC",
+      "started_at": "2025-01-30 14:42:05 UTC",
+      "finished_at": "2025-01-30 14:45:30 UTC",
+      "duration": 205.0,
+      "queued_duration": 5.0,
+      "failure_reason": null,
+      "when": "on_success",
+      "manual": false,
+      "allow_failure": false,
+      "user": {
+        "id": 42,
+        "name": "Jan Novak",
+        "username": "jnovak",
+        "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/42/avatar.png"
+      },
+      "runner": {
+        "id": 11,
+        "description": "shared-runner-02",
+        "runner_type": "instance_type",
+        "active": true,
+        "tags": ["docker", "linux"]
+      },
+      "artifacts_file": {
+        "filename": "coverage.xml",
+        "size": 12345
+      },
+      "environment": null
+    },
+    {
+      "id": 1003,
+      "stage": "build",
+      "name": "docker-build",
+      "status": "success",
+      "created_at": "2025-01-30 14:41:00 UTC",
+      "started_at": "2025-01-30 14:45:35 UTC",
+      "finished_at": "2025-01-30 14:48:00 UTC",
+      "duration": 145.0,
+      "queued_duration": 5.0,
+      "failure_reason": null,
+      "when": "on_success",
+      "manual": false,
+      "allow_failure": false,
+      "user": {
+        "id": 42,
+        "name": "Jan Novak",
+        "username": "jnovak",
+        "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/42/avatar.png"
+      },
+      "runner": {
+        "id": 12,
+        "description": "docker-runner-01",
+        "runner_type": "instance_type",
+        "active": true,
+        "tags": ["docker", "dind"]
+      },
+      "artifacts_file": {
+        "filename": null,
+        "size": null
+      },
+      "environment": null
+    }
+  ]
+}

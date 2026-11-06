@@ -1,0 +1,14 @@
+{{ define "main" }}
+  <div class="landing-div">
+    <!-- Search section -->
+    {{ partial "landing-page/search.html" . }}
+    <!-- Tab section -->
+    {{ partial "landing-page/site-sections.html" . }}
+    <!-- Get started section -->
+    {{ partial "landing-page/get-started.html" . }}
+  </div>
+{{ end }}
+
+{{ define "page-specific-styles" }}
+  <link rel="stylesheet" href="{{ relURL "" }}vite/landing.css">
+{{ end }}

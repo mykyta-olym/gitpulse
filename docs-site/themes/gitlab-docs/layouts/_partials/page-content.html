@@ -1,0 +1,35 @@
+<div class="template-single gl-flex gl-h-full">
+  <div data-vue-app="sidebar-menu" data-ga-section="side-nav" class="sidebar-container">{{ partial "sidebar-nav.html" . }}</div>
+  {{ $sectionCrumb := partial "functions/page-metadata" (dict "Context" . "field" "section") }}
+  <div data-pagefind-body class="main-content" data-pagefind-weight="2"
+       data-pagefind-filter="section:{{ with $sectionCrumb }}{{ . }}{{ else }}Ostatné{{ end }}, language:{{ if hasPrefix .RelPermalink (printf "%sen/" (relURL "")) }}English{{ else }}Slovensky{{ end }}">
+    <div class="docs-content">
+      <div class="gl-flex gl-h-5 gl-items-center gl-my-6">
+        <div data-vue-app="open-sidebar"></div> <div data-vue-app="breadcrumb-nav">{{ partial "breadcrumbs.html" . }}</div>
+      </div>
+      {{ partial "banner.html" (dict "Context" . "type" "survey") }}
+      {{/* Filled by static/js/reader-role.js once it has asked the
+           application who is reading. Hidden until then, so a page never
+           flashes an empty notice. */}}
+      <div data-reader-role hidden></div>
+      <hr class="gl-border-t gl-px-5 lg:gl-hidden"  />
+      <div class="gl-pt-4 gl-mt-4 gl-mb-4 lg:gl-pt-0 lg:gl-mt-0 lg:gl-border-t-0">
+        {{ partial "title-header.html" . }}
+      </div>
+
+      <div {{ if eq .Params.noindex true }}data-pagefind-ignore="all"{{ end }}>
+        {{- .Content -}}
+      </div>
+      <div data-vue-app="back-to-top-button"></div>
+    </div>
+  </div>
+
+  {{ if ne .Params.toc false }}
+    <aside class="sidebar-right">
+      <div data-vue-app="edit-menu" class="edit-menu gl-inline-block gl-pb-4 gl-mt-11-5 gl-ml-8"></div>
+      <div data-vue-app="copy-for-llm" class="copy-for-llm gl-inline-block gl-border-b gl-pb-4 gl-ml-8"></div>
+      <div data-ga-section="toc" data-vue-app="toc">{{ partial "sidebar-toc.html" . }}</div>
+    </aside>
+  {{ end }}
+</div>
+<script type="module" src="{{ relURL "" }}vite/page_content.js"></script>

@@ -1,0 +1,38 @@
+{{/*
+  Process image paths for translated content
+  
+  This partial handles the special processing needed for image paths in translated content.
+  It ensures images reference the correct location regardless of language.
+  
+  @param . The context containing:
+    - .src: The source path to process
+    - .page: The current page context
+  
+  @returns The processed image path
+*/}}
+
+{{- $src := .src -}}
+{{- $page := .page -}}
+
+{{- /* Determine if this is translated content by checking language */ -}}
+{{- $isDefaultLanguage := eq $page.Lang $page.Site.Params.defaultContentLanguage -}}
+{{- $isTranslated := not $isDefaultLanguage -}}
+{{- $langCode := $page.Language.LanguageCode -}}
+
+{{/* Process the path for translated content */}}
+{{- if $isTranslated -}}
+  {{/* First ensure we have an absolute path */}}
+  {{- if not (strings.HasPrefix (printf "%s" $src) "/") -}}
+    {{- $src = relURL (printf "%s/%s" $page.RelPermalink $src) -}}
+  {{- end -}}
+  
+  {{/* Then remove the language prefix - handle both cases */}}
+  {{- $langPrefix := printf "/%s/" $langCode -}}
+  {{- $langPrefixLower := printf "/%s/" (lower $langCode) -}}
+  
+  {{/* Try the exact case first, then lowercase */}}
+  {{- $src = strings.Replace $src $langPrefix "/" 1 -}}
+  {{- $src = strings.Replace $src $langPrefixLower "/" 1 -}}
+{{- end -}}
+
+{{- return $src -}}

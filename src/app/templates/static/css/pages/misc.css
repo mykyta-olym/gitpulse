@@ -1,0 +1,10 @@
+/* -- MR history modal (JS-built) -- */
+.modal-content-scroll { max-width: 720px; max-height: 80vh; overflow-y: auto; }
+.mr-history-card { margin-bottom: var(--gl-spacing-3); }
+.mr-history-card-header { padding: var(--gl-spacing-3); }
+.mr-history-card-header-inner { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.mr-history-card-body { padding: var(--gl-spacing-4) var(--gl-spacing-5); font-size: var(--font-size-sm); }
+
+
+/* -- Clickable generic -- */
+.clickable { cursor: pointer; }

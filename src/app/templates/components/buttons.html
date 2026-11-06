@@ -1,0 +1,178 @@
+{#
+  Button Components - Reusable button macros
+  
+  Usage:
+    from "components/buttons.html" import btn, btn_icon, btn_link
+    btn('Save', variant='primary')
+    btn_icon('Edit', 'edit', variant='secondary', size='sm')
+#}
+
+{% from "components/icons.html" import icon %}
+{# The ONE loading mark, shared with every other loading state in the app. #}
+{% from "components/spinner.html" import spinner %}
+
+{#
+  Every attribute a <button> in this app can carry, in ONE place.
+
+  The three button macros each wrote this plumbing out - about fifteen lines
+  apiece - and they had drifted into different capability sets: only `btn_icon`
+  accepted `disabled_reason` (the tooltip that says WHY a control is off), only
+  `btn` accepted `aria_pressed`, and `btn_icon_only` accepted neither, nor
+  `form` or `x_bind_disabled`. Which explanation a disabled
+  control could give therefore depended on which macro happened to draw it.
+
+  `size_class` / `variant_class` stay with each macro: those decide the shape,
+  which is the one thing the three genuinely differ on.
+#}
+{% macro button_attrs(type='button', id='', name='', value='', form='', disabled=false, loading=false,
+                      title='', data_attrs={}, x_click='', x_bind_disabled='', aria_pressed=none,
+                      aria_label='', aria_expanded=none, aria_controls='') -%}
+type="{{ type }}"
+{%- if disabled or loading %} disabled{% endif %}
+{%- if id %} id="{{ id }}"{% endif %}
+{%- if name %} name="{{ name }}"{% endif %}
+{%- if value %} value="{{ value }}"{% endif %}
+{%- if form %} form="{{ form }}"{% endif %}
+{%- if x_click %} @click="{{ x_click }}"{% endif %}
+{%- if x_bind_disabled %} :disabled="{{ x_bind_disabled }}"{% endif %}
+{%- if aria_pressed is not none %} aria-pressed="{{ 'true' if aria_pressed else 'false' }}"{% endif %}
+{%- if aria_label %} aria-label="{{ aria_label }}"{% endif %}
+{%- if aria_expanded is not none %} aria-expanded="{{ 'true' if aria_expanded else 'false' }}"{% endif %}
+{%- if aria_controls %} aria-controls="{{ aria_controls }}"{% endif %}
+{#- Component (tippy) tooltip only - never a native title= (double tooltip,
+    and it cannot be themed). -#}
+{%- if title %} data-tippy-content="{{ title }}"{% endif %}
+{%- for k, v in data_attrs.items() %} data-{{ k }}="{{ v|force_escape }}"{% endfor %}
+{%- endmacro %}
+
+{# Main button #}
+{% macro btn(text, variant='primary', size='md', type='button', class='', disabled=false, loading=false, id='', name='', value='', form='', title='', data_attrs={}, x_click='', x_bind_disabled='', aria_pressed=none, aria_label='', disabled_reason='') %}
+  {% set size_class = {'xs': 'btn-xs', 'sm': 'btn-sm', 'md': '', 'lg': 'btn-lg'}.get(size, '') %}
+  {% set full_class = ['btn', 'btn-' ~ variant, size_class, 'loading' if loading else '', class]|select|join(' ') %}
+  {# A disabled button emits no hover events, so a reason tooltip ON it never
+     shows. The wrapper owns the hover instead (the button inside is
+     pointer-events:none). Only btn_icon used to offer this. #}
+  {% if disabled_reason %}<span class="gl-tip-wrap" data-tippy-content="{{ disabled_reason }}">{% endif %}
+  <button class="{{ full_class }}" {{ button_attrs(type=type, id=id, name=name, value=value, form=form,
+      disabled=disabled, loading=loading, title=title,
+      data_attrs=data_attrs, x_click=x_click, x_bind_disabled=x_bind_disabled,
+      aria_pressed=aria_pressed, aria_label=aria_label) }}>
+    {% if loading %}{{ spinner(size='xs') }}{% endif %}
+    <span class="btn-text">{{ text }}</span>
+  </button>
+  {% if disabled_reason %}</span>{% endif %}
+{% endmacro %}
+
+{# Button with icon #}
+{% macro btn_icon(text, icon_name, variant='primary', size='md', icon_pos='left', type='button', class='', disabled=false, loading=false, id='', name='', value='', form='', title='', data_attrs={}, x_click='', x_bind_disabled='', aria_pressed=none, aria_label='', disabled_reason='') %}
+  {% set size_class = {'xs': 'btn-xs', 'sm': 'btn-sm', 'md': '', 'lg': 'btn-lg'}.get(size, '') %}
+  {% set full_class = ['btn', 'btn-icon', 'btn-' ~ variant, size_class, 'loading' if loading else '', class]|select|join(' ') %}
+  {# 16px at every size but xs, as GlButton draws it; layout.css sizes the box the same way. #}
+  {% set icon_size = {'xs': 'xs', 'sm': 'sm', 'md': 'sm', 'lg': 'md'}.get(size, 'sm') %}
+  {% if disabled_reason %}<span class="gl-tip-wrap" data-tippy-content="{{ disabled_reason }}">{% endif %}
+  <button class="{{ full_class }}" {{ button_attrs(type=type, id=id, name=name, value=value, form=form,
+      disabled=disabled, loading=loading, title=title,
+      data_attrs=data_attrs, x_click=x_click, x_bind_disabled=x_bind_disabled,
+      aria_pressed=aria_pressed, aria_label=aria_label) }}>
+    {# A loading button shows a spinner where its leading icon was and KEEPS its
+       label - GlButton's own contract (see buttons.css). CSS hides the icon
+       while `.loading` is on, so the icon is still rendered: that way the
+       server-rendered loading state and the one setButtonLoading() paints are
+       the same DOM. #}
+    {% if loading %}{{ spinner(size='xs') }}{% endif %}
+    {% if icon_pos == 'left' %}{{ icon(icon_name, size=icon_size) }}{% endif %}
+    <span class="btn-text">{{ text }}</span>
+    {% if icon_pos == 'right' %}{{ icon(icon_name, size=icon_size) }}{% endif %}
+  </button>
+  {% if disabled_reason %}</span>{% endif %}
+{% endmacro %}
+
+{# Icon-only button #}
+{% macro btn_icon_only(icon_name, variant='secondary', size='md', type='button', class='', disabled=false, loading=false, id='', name='', value='', form='', title='', aria_label='', data_attrs={}, x_click='', x_bind_disabled='', aria_pressed=none, disabled_reason='', aria_expanded=none, aria_controls='') %}
+  {% set size_class = {'xs': 'btn-xs', 'sm': 'btn-sm', 'md': '', 'lg': 'btn-lg'}.get(size, '') %}
+  {% set full_class = ['btn', 'btn-icon-only', 'btn-' ~ variant, size_class, 'loading' if loading else '', class]|select|join(' ') %}
+  {# 16px at every size but xs, as GlButton draws it; layout.css sizes the box the same way. #}
+  {% set icon_size = {'xs': 'xs', 'sm': 'sm', 'md': 'sm', 'lg': 'md'}.get(size, 'sm') %}
+  {# An icon-only control has no visible label, so it always needs an accessible
+     one: fall back to the tooltip text rather than shipping a nameless button. #}
+  {% set effective_aria = aria_label or (data_attrs.get('tippy-content', '') if data_attrs is mapping else '') or title %}
+  {% if disabled_reason %}<span class="gl-tip-wrap" data-tippy-content="{{ disabled_reason }}">{% endif %}
+  <button class="{{ full_class }}" {{ button_attrs(type=type, id=id, name=name, value=value, form=form,
+      disabled=disabled, loading=loading, title=title,
+      data_attrs=data_attrs, x_click=x_click, x_bind_disabled=x_bind_disabled,
+        aria_pressed=aria_pressed, aria_label=effective_aria, aria_expanded=aria_expanded, aria_controls=aria_controls) }}>
+    {% if loading %}{{ spinner(size='xs') }}{% endif %}
+    {{ icon(icon_name, size=icon_size) }}
+  </button>
+  {% if disabled_reason %}</span>{% endif %}
+{% endmacro %}
+
+{# THE close button - GitLab's CloseButton: a small tertiary icon button, the
+   same in a dialog, an alert, a banner, a card, a toast and the cookie notice.
+   Twelve surfaces drew their own, 20 to 32px, fading by opacity or filling on
+   hover, on four radii. `class` is a hook for the code that listens to it and
+   for where the surface places it - never for how it looks. #}
+{% macro close_button(label='', class='', id='', data_attrs={}, x_click='') %}
+  {{- btn_icon_only('x', variant='tertiary', size='sm', id=id, class=('btn-touch-target ' ~ class)|trim,
+      aria_label=label or t('Close'), data_attrs=data_attrs, x_click=x_click) -}}
+{% endmacro %}
+
+{# A LINK drawn as btn_icon_only - the row action of a table that navigates
+   (open a course's tickets, start a request) rather than acts. Same box, same
+   icon size, same tooltip, and the tooltip is its accessible name. Two pages
+   used to write this <a> out by hand. #}
+{% macro btn_link_icon_only(icon_name, href, title, variant='secondary', size='md', class='', target='') %}
+  {% set size_class = {'xs': 'btn-xs', 'sm': 'btn-sm', 'md': '', 'lg': 'btn-lg'}.get(size, '') %}
+  {% set full_class = ['btn', 'btn-icon-only', 'btn-' ~ variant, size_class, class]|select|join(' ') %}
+  {% set icon_size = {'xs': 'xs', 'sm': 'sm', 'md': 'sm', 'lg': 'md'}.get(size, 'sm') %}
+  <a href="{{ href }}" class="{{ full_class }}"{% if target %} target="{{ target }}"{% endif %}{% if target == '_blank' %} rel="noopener noreferrer"{% endif %} aria-label="{{ title }}" data-tippy-content="{{ title }}">
+    {{ icon(icon_name, size=icon_size) }}
+  </a>
+{% endmacro %}
+
+{# Link styled as button #}
+{% macro btn_link(text, href, variant='primary', size='md', class='', target='', id='', title='', disabled=false) %}
+  {% set size_class = {'xs': 'btn-xs', 'sm': 'btn-sm', 'md': '', 'lg': 'btn-lg'}.get(size, '') %}
+  {% set variant_class = 'btn-' ~ variant %}
+  {# <a> has no native disabled attribute - mark it with is-disabled + aria so
+     it reads/behaves as disabled (used by gated CTAs). #}
+  {% set full_class = ['btn', variant_class, size_class, 'is-disabled' if disabled else '', class]|select|join(' ') %}
+  <a
+    href="{{ '#' if disabled else href }}"
+    class="{{ full_class }}"
+    role="button"
+    {% if disabled %}aria-disabled="true" tabindex="-1"{% endif %}
+    {% if target %}target="{{ target }}"{% endif %}
+    {% if target == '_blank' %}rel="noopener noreferrer"{% endif %}
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if title %}data-tippy-content="{{ title }}" aria-label="{{ title }}"{% endif %}
+  >{{ text }}</a>
+{% endmacro %}
+
+{# Link with icon styled as button #}
+{% macro btn_link_icon(text, href, icon_name, variant='primary', size='md', icon_pos='left', class='', target='', id='', title='', data_attrs={}, download=false) %}
+  {% set size_class = {'xs': 'btn-xs', 'sm': 'btn-sm', 'md': '', 'lg': 'btn-lg'}.get(size, '') %}
+  {% set variant_class = 'btn-' ~ variant %}
+  {% set full_class = ['btn', 'btn-icon', variant_class, size_class, class]|select|join(' ') %}
+  {# 16px at every size but xs, as GlButton draws it; layout.css sizes the box the same way. #}
+  {% set icon_size = {'xs': 'xs', 'sm': 'sm', 'md': 'sm', 'lg': 'md'}.get(size, 'sm') %}
+  <a 
+    href="{{ href }}"
+    class="{{ full_class }}"
+    role="button"
+    {% if target %}target="{{ target }}"{% endif %}
+    {% if target == '_blank' %}rel="noopener noreferrer"{% endif %}
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if download %}download{% endif %}
+    {% if title %}data-tippy-content="{{ title }}" aria-label="{{ title }}"{% endif %}
+    {% for k, v in data_attrs.items() %}data-{{ k }}="{{ v|force_escape }}" {% endfor %}
+  >
+    {% if icon_pos == 'left' %}{{ icon(icon_name, size=icon_size) }}{% endif %}
+    <span class="btn-text">{{ text }}</span>
+    {% if icon_pos == 'right' %}{{ icon(icon_name, size=icon_size) }}{% endif %}
+  </a>
+{% endmacro %}
+
+
+
+

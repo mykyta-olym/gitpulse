@@ -1,0 +1,492 @@
+/* ============================================
+   DROPDOWNS - GitLab Pajamas Design System
+   Unified dropdown component for all menus,
+   listboxes, and option selectors.
+
+   Supports TWO toggling modes:
+   1) Class-based:  .gl-dropdown.open  (JS/paginator)
+   2) Alpine.js:    x-show on .gl-dropdown-menu
+   ============================================ */
+
+/* -- Container -- */
+.gl-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+/* When open, boost stacking above sibling cards / sections */
+.gl-dropdown.open,
+.gl-dropdown[x-data].open {
+  z-index: var(--z-dropdown);
+}
+/* Boost entire card so dropdown escapes sibling cards below */
+.card.has-dropdown-open {
+  z-index: var(--z-dropdown);
+  position: relative;
+}
+
+/* -- Trigger button (GitLab GlButton category=tertiary) -- */
+.gl-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  height: 32px;
+  padding: 0 var(--gl-spacing-3);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--gl-text-color-default);
+  border: 1px solid var(--gl-btn-default-border);
+  border-radius: var(--gl-action-border-radius);
+  background: var(--gl-btn-default-bg);
+  cursor: pointer;
+  transition: border-color var(--transition-normal),
+              background var(--transition-normal),
+              box-shadow var(--transition-normal);
+  /* A GlButton's 16px line, like every other 32px control. */
+  line-height: 1rem;
+  white-space: nowrap;
+  user-select: none;
+}
+.gl-dropdown-toggle:hover {
+  background: var(--gl-btn-default-bg-hover);
+  border-color: var(--gl-btn-default-border-hover);
+}
+.gl-dropdown-toggle:focus,
+.gl-dropdown-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.gl-dropdown-toggle:active {
+  background: var(--gl-btn-default-bg-active);
+  border-color: var(--gl-btn-default-border-active);
+}
+/* A disabled toggle looks disabled from its FIRST frame - the same disabled
+   tokens every button uses, no transition. There was no `:disabled` rule at
+   all: a toggle rendered `disabled` (every role select on an archived course)
+   painted white with dark text, i.e. available, until the read-only guard's
+   observer marked it a frame later and the colour transition eased it to
+   grey - so every filter switch on the Teachers page flashed a row of
+   'enabled' selects for ~60ms and then dimmed them. The state is the
+   element's own; nothing may have to catch up to it. */
+.gl-dropdown-toggle:disabled,
+.gl-dropdown-toggle[disabled] {
+  color: var(--gl-btn-disabled-text);
+  background: var(--gl-btn-disabled-bg);
+  border-color: var(--gl-btn-disabled-border);
+  cursor: not-allowed;
+  transition: none;
+}
+.gl-dropdown-toggle:disabled:hover,
+.gl-dropdown-toggle[disabled]:hover {
+  background: var(--gl-btn-disabled-bg);
+  border-color: var(--gl-btn-disabled-border);
+}
+
+/* -- Chevron icon inside toggle -- */
+.gl-dropdown-chevron {
+  transition: transform var(--transition-normal);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.gl-dropdown.open .gl-dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+/* -- Menu panel -- */
+.gl-dropdown-menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: 100%;
+  /* GitLab's listbox is a FLOATING panel, not a shape welded to its trigger: a
+     small gap, all four corners rounded, its own shadow. Squaring the meeting
+     corners and closing the gap - which is what "make them one object" was read
+     as - produced a hard notch that looked worse than the gap it replaced. */
+  margin-top: var(--gl-spacing-2);
+  transform-origin: top center;
+  /* Size to the CONTENT, never narrower than the control that opened it, never
+     wider than the viewport. A fixed 320px cap clipped long entries - a branch
+     name like `kyryl_ticket_num_2...` simply ran out of the box and the menu
+     grew a horizontal scrollbar. `max-content` lets the menu take the width its
+     longest option needs; the viewport clamp keeps it on screen on a phone. */
+  min-width: 100%;
+  width: max-content;
+  max-width: min(30rem, calc(100vw - 2rem));
+  background: var(--gl-dropdown-bg);
+  border: 1px solid var(--gl-dropdown-border);
+  border-radius: var(--gl-dropdown-border-radius);
+  padding: var(--gl-spacing-2) 0;
+  list-style: none;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-lg);
+  /* Clip to the menu's OWN radius. An item's highlight is a 4px-rounded fill
+     spanning the full width, and the menu's corner is 8px - so highlighting
+     the first or last item showed a hard square edge cutting across the
+     rounded corner. Clipping is the same thing that lets a long menu scroll
+     inside itself instead of running off the screen, which is how GitLab's
+     listbox behaves: it has a max height and scrolls rather than growing. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(60vh, 22rem);
+}
+
+.gl-dropdown-menu[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+/* A PORTALED menu is moved to <body> when it opens, so while it is closed it
+   has no reason to be laid out at all - and being laid out is what made the
+   page jump.
+
+   `position: absolute` takes an element out of the flow but NOT out of its
+   scroll container's scrollable overflow. The 170px page-size menu sits below
+   its toggle at the bottom of User Management and added 49px to the content's
+   scroll height. Opening it moved the menu to <body>, that 49px went with it,
+   and the browser clamped a scroll position that was suddenly past the end -
+   so the page lurched upward under the reader. Measured on Users: scrollHeight
+   1150 -> 1101 and scrollTop 342 -> 293 on a single click.
+
+   Scoped to portaled menus, and to the state where the menu has NOT been moved
+   yet: a dropdown that opens in place still animates from `opacity: 0`, and
+   `portalMenu` sets `display: block` inline on the one that travels. */
+.gl-dropdown[data-dropdown-portal] .gl-dropdown-menu:not([data-gl-portal]) {
+  display: none;
+}
+
+/*
+ * -- MODE 1: Class-based toggling (.gl-dropdown.open) --
+ * Used by JS/paginator. Menu hidden via opacity+visibility.
+ */
+/* GitLab's own dropdown does not animate in either direction - measured on
+   gitlab.example.com, `transition: all 0s` and opacity 1 on the first frame.
+   This app deliberately departs from that: the author asked for the open/close
+   to be visible, repeatedly, and a menu that simply blinks into place reads as
+   disconnected from the control that opened it. The motion is short and
+   downward - 120ms, 4px - so it reads as the panel coming OUT of the trigger,
+   which is the join the blink was missing. */
+.gl-dropdown:not([x-data]) .gl-dropdown-menu {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-standard),
+              transform var(--motion-duration-fast) var(--motion-ease-standard),
+              visibility 0s linear var(--motion-duration-fast);
+}
+
+/* MODE 2 (Alpine x-show) needs no rule of its own: x-show sets display and
+   [x-cloak] prevents the FOUC. This show rule stays scoped to MODE 1. */
+.gl-dropdown:not([x-data]).open .gl-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-standard),
+              transform var(--motion-duration-fast) var(--motion-ease-standard),
+              visibility 0s;
+}
+
+/* The form select's panel is driven by GP.motion (see glFormSelect). The
+   `@starting-style` + `allow-discrete` block that used to sit here only ever
+   animated the ENTRANCE, and only in browsers new enough to support both - the
+   same browser-dependent mechanism already removed from <details> and the tab
+   panels for silently doing nothing everywhere else. */
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-dropdown-menu {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Opens upward when .gl-dropdown-up is set */
+.gl-dropdown-menu.gl-dropdown-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: var(--gl-spacing-1);
+}
+
+/* Align right */
+.gl-dropdown-menu.gl-dropdown-right {
+  right: 0;
+  left: auto;
+}
+
+/* -- Section header inside menu --
+   GitLab's group label (GlDisclosureDropdownGroup) and listbox header: bold
+   12px strong text. It sits on the item's own box - same padding, same 2px
+   left edge - so it starts where the labels under it start. */
+.gl-dropdown-header {
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  border-left: 2px solid transparent;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+  color: var(--gl-text-color-strong);
+}
+
+/* -- Divider (GitLab gl-new-dropdown-divider) -- */
+.gl-dropdown-divider {
+  height: 1px;
+  background: var(--gl-dropdown-divider);
+  margin: var(--gl-spacing-2) 0;
+}
+
+/* -- Menu item (GitLab gl-new-dropdown-item) -- */
+.gl-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  width: 100%;
+  /* GitLab's gl-new-dropdown-item measures 32px tall with 0/8px padding and a
+     4px radius on the row itself - measured on the open command palette. Ours
+     were 36px with 12px side padding and square, so every menu sat taller and
+     the hover ran edge to edge instead of as a rounded row. */
+  /* MIN-height, not height. 32px is GitLab's row, but their labels are short;
+     ours include "TUKE FEI - Winter 2026/2027 (Informatika, all years)", which
+     wraps to two lines. In a fixed 32px box the 39px of text overflowed 3.6px
+     top and bottom and printed straight over the row below it. The row grows
+     to the label instead. */
+  min-height: 32px;
+  height: auto;
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  color: var(--gl-dropdown-item-text);
+  font-size: var(--font-size-base);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast),
+              border-color var(--transition-fast);
+  font-family: inherit;
+  text-align: left;
+  line-height: 1.4;
+}
+/* Not until the pointer has moved. The menu opens under the cursor, so without
+   this the row it happens to cover paints itself selected the instant the menu
+   appears - see the guard in core/35-dropdown-menu.js. Keyboard focus is
+   unaffected: it is a separate selector below. */
+html.gp-no-hover .gl-dropdown-item:hover:not(.active):not([aria-selected="true"]) {
+  background: transparent;
+  color: var(--gl-dropdown-item-text);
+}
+.gl-dropdown-item:hover,
+.gl-dropdown-item:focus {
+  background: var(--gl-dropdown-item-hover-bg);
+  color: var(--gl-text-color-strong);
+  text-decoration: none;
+}
+/* Keyboard focus must not look identical to a mouse hover. This rule used to
+   kill the outline and then only repeat the hover background, so tabbing through
+   a menu gave no "you are here" signal at all - the one control family in the
+   app with no focus ring, while 29 other selectors use the --focus-ring token.
+   The ring is INSET rather than that token: --focus-ring is an outer box-shadow
+   (0 0 0 1px, 0 0 0 3px) and a dropdown item is a full-bleed row, so an outer
+   ring would be clipped by the menu's own edges. */
+.gl-dropdown-item:focus-visible {
+  outline: none;
+  background: var(--gl-dropdown-item-hover-bg);
+  color: var(--gl-text-color-strong);
+  box-shadow: var(--focus-ring-inset);
+}
+.gl-dropdown-item:active {
+  background: var(--gl-dropdown-item-active-bg);
+}
+
+/* Active / selected item - blue left border + highlight */
+.gl-dropdown-item.active,
+.gl-dropdown-item[aria-selected="true"] {
+  border-left-color: var(--gl-feedback-info-icon);
+  color: var(--gl-text-color-strong);
+  background: var(--gl-dropdown-item-selected-bg);
+}
+
+/* -- Item content layout -- */
+.gl-dropdown-item-content {
+  flex: 1;
+}
+.gl-dropdown-item-title {
+  font-weight: var(--font-weight-medium);
+  color: inherit;
+}
+
+/* The check slot stays reserved so hover and selection never move the label.
+   Hover / keyboard focus previews a choice; selection keeps the solid check. */
+.gl-dropdown-item-check {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gl-text-color-link);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.gl-dropdown-item:where(:not(:disabled, [aria-disabled="true"])):hover .gl-dropdown-item-check,
+.gl-dropdown-item:where(:not(:disabled, [aria-disabled="true"])):focus-visible .gl-dropdown-item-check {
+  opacity: 0.5;
+}
+.gl-dropdown-item.active .gl-dropdown-item-check,
+.gl-dropdown-item[aria-selected="true"] .gl-dropdown-item-check {
+  opacity: 1;
+}
+/* Opening a menu under a resting pointer is not a hover. Keyboard focus still
+   previews the choice while the shared pointer guard is active. */
+html.gp-no-hover .gl-dropdown-item:hover:not(.active):not([aria-selected="true"]):not(:focus-visible) .gl-dropdown-item-check {
+  opacity: 0;
+}
+
+/* -- Icon slot -- */
+.gl-dropdown-item .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+.gl-dropdown-item:hover .icon {
+  color: var(--gl-text-color-strong);
+}
+
+/* -- Danger item variant -- */
+.gl-dropdown-item.gl-dropdown-item-danger {
+  color: var(--gl-text-color-danger);
+}
+.gl-dropdown-item.gl-dropdown-item-danger:hover {
+  background: var(--danger-bg);
+  color: var(--gl-text-color-danger);
+}
+.gl-dropdown-item.gl-dropdown-item-danger .icon {
+  color: var(--gl-text-color-danger);
+}
+
+/* -- User dropdown (GitLab gl-user-menu) -- */
+.gl-user-dropdown {
+  min-width: 240px;
+  max-width: 280px;
+}
+.gl-user-dropdown-header {
+  display: block;
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+}
+.gl-user-dropdown-info {
+  /* Full width so the name row can push the role badge to the right edge;
+     min-width:0 lets the long name ellipsis inside the flex parent. */
+  width: 100%;
+  min-width: 0;
+}
+.gl-user-dropdown-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-2);
+}
+.gl-user-dropdown-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-user-dropdown-handle {
+  font-size: var(--font-size-xs);
+  color: var(--gl-text-color-subtle);
+  margin-top: 2px;
+}
+
+/* Empty dropdown menu (shared select_field macro). A menu with no options used
+   to render as a blank box, which reads as broken rather than "nothing to pick".
+   Styled as quiet, non-interactive text - it is a statement, not an option. */
+.gl-dropdown-empty {
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: default;
+}
+
+/* -- Long option labels never get cut --
+   The item is a flex row, and a flex child refuses to shrink below its content
+   width unless `min-width: 0` says otherwise - which is why a long, unbreakable
+   token (a branch name, an email) pushed past the menu edge instead of
+   wrapping. `anywhere` lets such a token break, so the text is always readable
+   in full rather than truncated or hidden. */
+.gl-dropdown-item-content {
+  min-width: 0;
+}
+.gl-dropdown-item-title {
+  overflow-wrap: anywhere;
+}
+
+/* -- Academic period selector (components/academic_period.html) ---------
+   A filter like every other filter in a controls band - it wears
+   `gl-form-dropdown`, the Events type/status filters' control - so the only
+   rules here are about SIZE: it keeps its own width wherever it sits (the
+   form-dropdown default is the full width of a form cell), and it does not
+   resize as the chosen term's label changes length. */
+.gl-dropdown.gl-period-selector {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 11.5rem;
+}
+/* Beside the search box, the controls band stretches every child `div` to
+   full width (`.table-controls-search > div`) - which would have made the
+   period filter as wide as the search field and squeezed the search to
+   nothing. It keeps its own size, and wraps under the search on a phone. */
+.table-controls-search > .gl-period-selector {
+  width: auto;
+  flex: 0 0 auto;
+}
+@media (max-width: 480px) {
+  .table-controls-search:has(> .gl-period-selector) {
+    flex-wrap: wrap;
+  }
+}
+.gl-period-menu {
+  min-width: 15rem;
+}
+/* The note beside an option: which period the calendar says we are in, and
+   which ones hold no courses. A second line would make every option twice as
+   tall, so it rides at the end of the title's row, quiet. Title and note
+   share a BASELINE, not a box: the note is set smaller, so inline in the same
+   line box it sat visibly higher than the period it describes. */
+.gl-period-menu .gl-dropdown-item-content {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gl-spacing-3);
+}
+.gl-dropdown-item-note {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--gl-text-color-link);
+  white-space: nowrap;
+}
+.gl-dropdown-item-note--muted {
+  color: var(--text-tertiary);
+}
+
+/* -- Period-and-dates fields (period_fields) -----------------------------
+   What the fields say about the dates, under them: a note in the help
+   text's voice, a warning in the warning colour, and the way back to the
+   official dates as a link-sized button on the same line. */
+.period-fields-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--gl-spacing-3);
+  margin-top: calc(-1 * var(--gl-spacing-2));
+  margin-bottom: var(--gl-spacing-4);
+}
+.period-fields-hint[hidden] {
+  display: none;
+}
+.period-fields-hint-text {
+  margin: 0;
+}
+.period-fields-hint-text.is-warning {
+  color: var(--gl-text-color-warning);
+}
+.period-fields-official {
+  padding: 0;
+  height: auto;
+}

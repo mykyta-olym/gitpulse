@@ -1,0 +1,48 @@
+{#
+  Bulk actions for a table with row checkboxes.
+
+  Usage:
+    from "components/bulk_actions.html" import bulk_action, bulk_bar
+
+    {% set actions %}
+      {{ bulk_action(t('Delete selected'), 'trash', 'btnDeleteSelectedJobs',
+                     count_id='jobsSelectedCount', variant='danger',
+                     tooltip=t('Delete the selected operations')) }}
+    {% endset %}
+    {{ bulk_bar(actions) }}
+
+  Three pages had each written this by hand - a button, then a bare
+  `<span class="muted font-sm">(<span id="...">0</span>)</span>` beside it - so
+  the count's markup, its size and its spacing were decided per call site. It is
+  one component now, which is also what makes "select rows, then act on them"
+  look the same wherever a table offers it.
+
+  The count element is what page JS writes into as ticks change; it starts at
+  zero and the button starts disabled, because acting on nothing is not an
+  action the reader can take.
+#}
+
+{% from "components/buttons.html" import btn_icon %}
+
+{# `size='sm'`: a bulk action is always a TABLE's action, sitting in the card
+   header or the toolbar over the rows it applies to, and a table's buttons are
+   small. Passing no size gave them the 34px page-header height, which made
+   "Delete selected / Purge Old / Refresh" tower over the table below. #}
+{# Disabled until a row is ticked - and it says so: `disabled-reason` is shown on
+   hover and on a tap (process-action-guards.js) while the button is off. #}
+{% macro bulk_action(label, icon_name, id, count_id='', variant='secondary', tooltip='', size='sm') %}
+{# `btn-responsive`: on a phone the label folds into the icon
+   (cards.css), so the actions stay on the title row instead of wrapping. #}
+  {{ btn_icon(label, icon_name, variant=variant, size=size, id=id, disabled=true, class='btn-responsive',
+       data_attrs={'tippy-content': tooltip or label, 'disabled-reason': t('Tick at least one row first.')}) }}
+  {%- if count_id %}
+  {# The tally belongs to the button, not to the toolbar: it says what THIS
+     action would apply to. #}
+  <span class="bulk-count muted" aria-live="polite">(<span id="{{ count_id }}">0</span>)</span>
+  {%- endif %}
+{% endmacro %}
+
+
+{% macro bulk_bar(caller_content='') %}
+<div class="bulk-actions d-flex gap-2 items-center">{{ caller_content }}</div>
+{% endmacro %}

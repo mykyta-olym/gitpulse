@@ -1,0 +1,147 @@
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import btn_link_icon_only %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/tables.html" import data_table %}
+{% from "components/table_heads.html" import project_members_head_basic, project_members_head_full with context %}
+{% from "components/members.html" import member_name_cell with context %}
+
+{# -- Members Table -- #}
+{% set ct %}{{ t('Members') }}{% endset %}
+{% set ha %}{% endset %}
+{% call card(title=ct, icon_name='users', header_actions=ha) %}
+{% if students %}
+<div class="member-api-note">
+  {{ icon('info', size='sm') }}
+  {{ t('Members with expired GitLab access are not shown - the GitLab API only returns active members.') }}
+</div>
+{% if is_student and not can_edit %}
+{# -- Student view: names and roles only (privacy) -- #}
+{% call data_table(headers=[], id='projectMembersTable', sortable=true, class='project-members-table table-scrollable table-sticky-actions') %}
+  {{ project_members_head_basic() }}
+  <tbody id="projectMembersBody">
+    {% for s in students | sort(attribute='full_name') %}
+    <tr>
+      <td class="text-nowrap">{{ s.full_name or s.gitlab_username or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+{% endcall %}
+{% else %}
+{# -- Teacher / Admin view: full metrics table -- #}
+{% call data_table(headers=[], id='projectMembersTable', sortable=true, class='project-members-table table-scrollable table-sticky-actions') %}
+  {{ project_members_head_full(checks) }}
+  <tbody id="projectMembersBody">
+    {% for s in students | sort(attribute='full_name') %}
+    {% set snap = snapshots.get(s.id) %}
+    {% set m = memberships.get(s.id) if memberships is defined else none %}
+    {% set u_role = user_roles.get(s.gitlab_username | lower) if user_roles is defined and s.gitlab_username else none %}
+    {% set is_teacher = (m and m.is_teacher) or u_role in ('teacher', 'admin') %}
+    {% set is_excluded = m and m.excluded_from_scoring if m else false %}
+    {% set is_mentor = (m and m.is_mentor) and not is_teacher and not is_excluded %}
+    {% set gl_role = (m.gitlab_access_role or '') if m else '' %}
+    {% set m_source = (m.membership_source or '') if m else '' %}
+    {% set course_role = course_roles.get(s.gitlab_username | lower, '') if course_roles is defined and s.gitlab_username else '' %}
+    {% if is_teacher %}
+      {% set member_base_cat = 'teacher' %}
+    {% elif m and m.is_mentor %}
+      {% set member_base_cat = 'mentor' %}
+    {% elif m_source == 'inherited' %}
+      {% set member_base_cat = 'inherited' %}
+    {% else %}
+      {% set member_base_cat = 'direct' %}
+    {% endif %}
+    {% set member_cat = 'excluded' if is_excluded else member_base_cat %}
+    <tr
+      class="{% if is_teacher %}member-role-teacher {% endif %}{% if is_excluded %}member-excluded {% endif %}{% if is_mentor %}member-role-mentor{% endif %}"
+      data-student-id="{{ s.id }}"
+      data-member-role="{{ gl_role }}"
+      data-member-source="{{ m_source }}"
+      data-member-category="{{ member_cat }}"
+      data-member-base-category="{{ member_base_cat }}"
+      {% if is_teacher %}data-member-teacher="1"{% endif %}
+      {% if is_excluded %}data-member-excluded="1"{% endif %}
+      {% if is_mentor %}data-member-mentor="1"{% endif %}
+    >
+      <td class="text-nowrap">
+        {{ member_name_cell(s, u_role, is_teacher, gl_role, m_source, snap, course_role, is_excluded, is_mentor=is_mentor, detail_url='/dashboard/students/' ~ s.id ~ '/team/' ~ team.id ~ '?from_project=' ~ project.id) }}
+      </td>
+      {# When the GitLab repo is empty/deleted the stored snapshots are stale
+         (they predate the repo being emptied). Show the blank N/A state so the
+         roster agrees with the empty-repo banner instead of misleading scores. #}
+      {% if snap and not is_teacher and not is_mentor and not (repo_empty is defined and repo_empty) %}
+        {% for attr, code, name in checks %}
+          {% set cd = (snap.checks_detail or {}).get(code, {}) %}
+          {% set val = cd.get('pass') if cd else ((snap|attr(attr)|default(none)) if attr else none) %}
+          {% set is_expected = cd.get('expected', true) if cd else true %}
+          {% if not is_expected %}
+            <td class="check-na" aria-label="{{ t('Not yet required') }}" data-tippy-content="{{ name }}: {{ t('not yet required') }}">-</td>
+          {% elif val == true %}
+            <td class="check-pass" aria-label="{{ t('Pass') }}" data-tippy-content="{{ name }}: {{ t('Pass') }}">{{ icon('check-circle', size='sm') }}</td>
+          {% elif val == false %}
+            <td class="check-fail" aria-label="{{ t('Fail') }}" data-tippy-content="{{ name }}: {{ t('Fail') }}">{{ icon('x-circle', size='sm') }}</td>
+          {% else %}
+            <td class="check-na" aria-label="{{ t('N/A') }}" data-tippy-content="{{ name }}: {{ t('N/A') }}">-</td>
+          {% endif %}
+        {% endfor %}
+        {% set score = (snap.weighted_score * 100)|round|int %}
+        {% set _v = 'green' if score >= (green_pct|default(DEFAULT_GREEN_PCT|default(75))) else ('amber' if score >= (yellow_pct|default(DEFAULT_YELLOW_PCT|default(50))) else 'red') %}
+        <td class="text-center member-badge-cell" data-sort-value="{{ score }}">
+          {{ badge(score ~ '%', variant=_v) }}
+        </td>
+      {% else %}
+        {% for _ in checks %}
+          <td class="check-na">-</td>
+        {% endfor %}
+        <td class="text-center member-badge-cell text-muted" data-sort-value="-1">-</td>
+      {% endif %}
+      <td class="text-nowrap text-right">
+        <span class="gl-row-actions">
+        {# Mentors are not part of the group score by default (same as teachers/admins),
+           so the include/exclude toggle would be meaningless for them - hide it. #}
+        {% if can_edit and not is_teacher and not is_mentor %}
+        <button type="button"
+                class="btn btn-icon-only btn-sm btn-secondary btn-toggle-exclusion"
+                data-action="toggleExclusion"
+                data-action-args='{{ [s.id|string, team.id|string]|tojson }}'
+                data-team-id="{{ team.id }}"
+                data-process-lock-when="sync run_checks"
+                data-process-lock-scope="course:{{ team.course_id }} team:{{ team.id }} project:{{ project.id }}"
+                data-tippy-content="{{ t('Include in scoring') if is_excluded else t('Exclude from scoring') }}"
+                aria-label="{{ t('Include in scoring') if is_excluded else t('Exclude from scoring') }}">
+          {#- What the press does, not an eye: the eye is View, right beside it. -#}
+          {{ icon('user-plus' if is_excluded else 'user-minus', size='sm') }}
+        </button>
+        {% endif %}
+        {{ btn_link_icon_only('eye', '/dashboard/students/' ~ s.id ~ '/team/' ~ team.id ~ '?from_project=' ~ project.id, t('View'), size='sm') }}
+        </span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+{% endcall %}
+
+{# -- Check legend (before pagination so pagination stays as card footer) -- #}
+<details class="details-accordion mt-5 mb-3" aria-label="{{ t('Check legend') }}">
+  <summary class="legend-toggle">
+    {{ icon('help-circle', size='sm') }}
+    {{ t('Check legend') }}
+  </summary>
+  <div class="check-legend-grid mt-3 font-sm">
+    {% for _, code, name in checks %}
+    <span class="check-legend-item">{{ badge(code, variant='gray', size='sm') }} {{ name }}</span>
+    {% endfor %}
+  </div>
+</details>
+<div id="projectMembersPagination" class="pagination-controls mt-3"></div>
+{% endif %}{# is_student #}
+{% else %}
+{% if can_edit %}
+  {{ empty_state(t('No Members Yet'), t('Students will appear here after GitLab sync'), illustration='empty-user') }}
+{% elif is_student %}
+  {{ empty_state(t('No Members Yet'), t('Your group has no members registered yet. Your teacher will set this up.'), illustration='empty-user') }}
+{% else %}
+  {{ empty_state(t('No Members Yet'), t('Add students to this group to track their progress'), illustration='empty-user') }}
+{% endif %}
+{% endif %}
+{% endcall %}

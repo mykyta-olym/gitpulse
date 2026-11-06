@@ -1,0 +1,155 @@
+{# What the assistant did - one card, rendered with the page and on its own
+   (GET .../assistant/activity) for what redraws it: the card's Refresh, the
+   end of a Prepare exercise run, and the course's live stream when the bot
+   acts. The table is worked by the shared components (ClientPaginator,
+   TableFilter, FilterPills, sortable-table.js) like every other list, and the
+   view and the search come from the address, so a reload of ?tool=conflict
+   paints that view on the first frame. #}
+{% from "components/buttons.html" import btn_icon %}
+{% from "components/badges.html" import badge %}
+{% from "components/layout.html" import filter_tabs with context %}
+{% from "components/forms.html" import search_input with context %}
+{% from "components/cards.html" import card %}
+{% from "components/avatar.html" import avatar %}
+{% from "components/tables.html" import table_controls, data_table, sortable_header, pagination_controls, table_empty %}
+{% from "components/time.html" import localized_time %}
+
+{% set _tool_labels = {
+  'push_review': t('Push review'),
+  'conflict': t('Merge conflict'),
+  'mr_review': t('Issues and merge requests')
+} %}
+{% set _state_labels = {
+  'waiting': t('Waiting'),
+  'planted': t('Conflict planted'),
+  'assigned': t('Issue assigned'),
+  'needs_work': t('Changes requested'),
+  'approved': t('Approved'),
+  'passed': t('Done'),
+  'merged_unreviewed': t('Merged without review'),
+  'failed': t('GitLab refused')
+} %}
+{% set _state_variants = {
+  'waiting': 'muted',
+  'planted': 'info',
+  'assigned': 'info',
+  'needs_work': 'warning',
+  'approved': 'info',
+  'passed': 'success',
+  'merged_unreviewed': 'warning',
+  'failed': 'danger'
+} %}
+{% set _action_labels = {
+  'commented': t('Commented'),
+  'planted': t('Committed the conflicting edit'),
+  'issue_created': t('Opened the issue'),
+  'approved': t('Approved'),
+  'merge_scheduled': t('Merges when the pipeline passes'),
+  'merged': t('Merged and closed'),
+  'closed_issue': t('Closed the issue'),
+  'mr_closed': t('Merge request closed'),
+  'error': t('GitLab refused')
+} %}
+
+{% set _tool_param = (request.query_params.get('tool') or '') | lower %}
+{% set _initial_tool = _tool_param if _tool_param in tool_names else 'all' %}
+{% set _initial_q = (request.query_params.get('q') or '') | trim %}
+{% set _q = _initial_q | lower %}
+{% set _shown = namespace(n=0) %}
+
+{% set activity_search %}
+{{ search_input(id='assistantSearch', placeholder=t('Search students, groups or projects...'), value=_initial_q) }}
+{% endset %}
+{% set activity_views %}
+{{ filter_tabs([
+     {'value': 'all', 'label': t('All'), 'icon': 'list'},
+     {'value': 'push_review', 'label': _tool_labels['push_review'], 'icon': 'git-commit'},
+     {'value': 'conflict', 'label': _tool_labels['conflict'], 'icon': 'git-merge'},
+     {'value': 'mr_review', 'label': _tool_labels['mr_review'], 'icon': 'git-pull-request'}
+   ], active=_initial_tool, aria_label=t('Filter by tool'), class='assistant-tool-filter') }}
+{% endset %}
+{% set activity_actions %}
+{{ btn_icon(t('Refresh'), 'refresh-cw', variant='secondary', size='sm', id='btnRefreshAssistantActivity', class='btn-responsive',
+            data_attrs={'tippy-content': t('Refresh the assistant activity')}) }}
+{% endset %}
+
+{# Not "Activity": that is the course tab next to this one, about students. #}
+{% call card(title=t('Assistant activity'), icon_name='activity', id='assistantActivityCard', header_actions=activity_actions,
+             data_attrs={'data-tour': 'assistant-activity', 'data-refresh-url': '/dashboard/courses/' ~ course.id ~ '/assistant/activity'},
+             info_tip=t('What the assistant did, newest first, with a link to where it happened in GitLab. The page shows the latest') ~ ' ' ~ activity_limit ~ '.') %}
+  {{ table_controls(search=activity_search, filters=activity_views) }}
+  {% call data_table(headers=[], sortable=true, paginated=true, id='assistantActivityTable', class='assistant-activity-table table-scrollable') %}
+    <colgroup>
+      <col class="col-assistant-student">
+      <col class="col-assistant-team">
+      <col class="col-assistant-tool">
+      <col class="col-assistant-where">
+      <col class="col-assistant-state">
+      <col class="col-assistant-action">
+      <col class="col-assistant-updated">
+    </colgroup>
+    <thead>
+      <tr>
+        {{ sortable_header(t('Student'), 'student', class='col-assistant-student') }}
+        {{ sortable_header(t('Group'), 'team', class='col-assistant-team') }}
+        {{ sortable_header(t('Tool'), 'tool', class='col-assistant-tool') }}
+        <th class="col-assistant-where">{{ t('Where') }}</th>
+        {{ sortable_header(t('State'), 'state', class='col-assistant-state') }}
+        <th class="col-assistant-action">{{ t('Last action') }}</th>
+        {{ sortable_header(t('Updated'), 'updated', sort_type='date', class='col-assistant-updated', default_sort='desc') }}
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in activity %}
+      {% set task = row.task %}
+      {% set _student = task.student_username or '-' %}
+      {% set _search = (_student ~ ' ' ~ (row.student_name or '') ~ ' ' ~ row.team ~ ' ' ~ row.project_path) | lower %}
+      {% set _hidden = (_initial_tool != 'all' and task.tool != _initial_tool) or (_q and _q not in _search) %}
+      {% if not _hidden %}{% set _shown.n = _shown.n + 1 %}{% endif %}
+      <tr class="assistant-row{% if _hidden %} d-none{% endif %}" data-search="{{ _search }}" data-tool="{{ task.tool }}">
+        <td class="col-assistant-student" data-sort-value="{{ _student | lower }}">
+          <div class="table-identity">
+            {{ avatar(row.avatar_url, row.student_name or _student, size=32) }}
+            <div class="member-info">
+              <span class="member-name">{{ row.student_name or _student }}</span>
+              <span class="member-username">@{{ _student }}</span>
+            </div>
+          </div>
+        </td>
+        <td class="col-assistant-team" data-sort-value="{{ row.team | lower }}">{{ row.team }}</td>
+        <td class="col-assistant-tool" data-sort-value="{{ task.tool }}">{{ _tool_labels.get(task.tool, task.tool) }}</td>
+        <td class="col-assistant-where">
+          <span class="d-flex flex-wrap gap-2">
+          {% if row.issue_url %}<a href="{{ row.issue_url }}" target="_blank" rel="noopener">#{{ task.issue_iid }}</a>{% endif %}
+          {% if row.mr_url %}<a href="{{ row.mr_url }}" target="_blank" rel="noopener">!{{ task.mr_iid }}</a>{% endif %}
+          {% if task.branch %}<code>{{ task.branch }}</code>{% endif %}
+          {% if row.commit_url and task.tool != 'mr_review' %}<a href="{{ row.commit_url }}" target="_blank" rel="noopener"><code>{{ task.commit_sha[:8] }}</code></a>{% endif %}
+          {% if task.file_path and task.tool != 'push_review' %}<span class="muted text-sm">{{ task.file_path }}</span>{% endif %}
+          </span>
+        </td>
+        <td class="col-assistant-state" data-sort-value="{{ task.state }}">
+          {{ badge(_state_labels.get(task.state, task.state), variant=_state_variants.get(task.state, 'muted'), size='sm') }}
+        </td>
+        <td class="col-assistant-action">
+          {% set _waiting_for = (task.detail or {}).get('waiting_for') if task.state == 'waiting' else none %}
+          {% if _waiting_for == 'file' %}
+            <span class="muted text-sm">{{ t('The file is not in the repository:') }} <code>{{ task.file_path }}</code></span>
+          {% elif _waiting_for == 'edit' %}
+            <span class="muted text-sm">{{ t('Waiting for the branch to change') }} <code>{{ task.file_path }}</code></span>
+          {% elif row.last_action %}
+            {% set _label = _action_labels.get(row.last_action, row.last_action) %}
+            {% if row.last_url %}<a href="{{ row.last_url }}" target="_blank" rel="noopener">{{ _label }}</a>{% else %}{{ _label }}{% endif %}
+            {% if row.last_action == 'error' and row.last_note %}<div class="muted text-sm">{{ row.last_note }}</div>{% endif %}
+          {% else %}
+            <span class="muted">-</span>
+          {% endif %}
+        </td>
+        <td class="col-assistant-updated" data-sort-value="{{ task.updated_at.isoformat() if task.updated_at else '' }}">{{ localized_time(task.updated_at) }}</td>
+      </tr>
+    {% else %}
+      {{ table_empty(t('Once a tool is on and the bot is connected, what the assistant does in GitLab appears here.'), colspan=7) }}
+    {% endfor %}
+    </tbody>
+  {% endcall %}
+  {{ pagination_controls(total=_shown.n, page_size=default_page_size | default('50')) }}
+{% endcall %}

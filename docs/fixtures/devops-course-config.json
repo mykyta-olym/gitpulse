@@ -1,0 +1,434 @@
+{
+  "$schema": "gitpulse/full-config/v2",
+  "exported_at": "2026-03-02T12:00:00+01:00",
+  "source_course": {
+    "code": "DEVOPS",
+    "academic_year": "2025/2026",
+    "semester": "summer"
+  },
+  "course": {
+    "code": "DEVOPS",
+    "name": "Základy DevOps",
+    "academic_year": "2025/2026",
+    "semester": "summer",
+    "description": "10 bodov - test v 7. týždni semestra. 10 bodov - tímový projekt: vyriešenie zadanej úlohy vrátane implementácie jednotkových testov, recenzia kódu ostatných členov tímu, zlúčenie ich riešení do hlavnej vetvy vývoja.",
+    "is_active": true,
+    "teacher_usernames": [
+      "fg855ni",
+      "sulir",
+      "sylvia.matasova",
+      "monika.kohutova"
+    ]
+  },
+  "settings": {
+    "branch_pattern": "^(issue|feat|fix|feature|bugfix|chore|hotfix|refactor)[/-]\\d+(-.+)?$",
+    "mr_template_required_sections": [
+      "Popis",
+      "Zmeny",
+      "Testovanie"
+    ],
+    "test_file_patterns": [
+      "test_*.c",
+      "*_test.c",
+      "*_tests.c",
+      "check_*.c",
+      "tests/*.c",
+      "tests/**/*.c",
+      "test/*.c",
+      "test/**/*.c",
+      "testy/*.c",
+      "testy/**/*.c",
+      "tests/*.h",
+      "test/*.h"
+    ],
+    "enabled_checks": [
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R05",
+      "R06",
+      "R07",
+      "R08",
+      "R09",
+      "R10",
+      "R11",
+      "R12",
+      "R13"
+    ],
+    "check_configs": {
+      "R01": {
+        "min_issues": 1
+      },
+      "R02": {
+        "require_branch_convention": false
+      },
+      "R03": {
+        "min_test_files": 1
+      },
+      "R04": {
+        "require_issue_ref": true
+      },
+      "R05": {
+        "min_description_words": 10,
+        "require_template": false
+      },
+      "R06": {
+        "min_reviewers": 2
+      },
+      "R07": {
+        "min_mrs_reviewed": 2,
+        "min_word_count": 20
+      },
+      "R08": {
+        "require_commit_ref": true,
+        "pass_if_no_threads": true
+      },
+      "R09": {
+        "min_approvals": 2
+      },
+      "R10": {
+        "allow_self_merge": true
+      },
+      "R11": {
+        "require_both_closed": true
+      },
+      "R12": {
+        "require_test_job": false
+      },
+      "R13": {
+        "max_web_editor_ratio": 0.4
+      }
+    },
+    "min_reviews_per_mr": 2,
+    "min_review_word_count": 20,
+    "min_distinct_mrs_reviewed": 2,
+    "green_threshold": 0.8,
+    "yellow_threshold": 0.5,
+    "mr_creation_deadline": "2026-04-26T23:59:00+02:00",
+    "merge_deadline": "2026-05-03T23:59:00+02:00",
+    "semester_start_date": "2026-02-16",
+    "gitlab_group_path": "teaching/devops-2026",
+    "llm_course_type": "devops",
+    "llm_custom_prompt": "",
+    "llm_resource_urls": [
+      {
+        "label": "DevOps - Hlavná stránka kurzu",
+        "url": "https://kurzy.kpi.fei.tuke.sk/devops/"
+      },
+      {
+        "label": "DevOps - Riešenie úloh v tíme",
+        "url": "https://kurzy.kpi.fei.tuke.sk/devops/assignments/doing-communicating.html"
+      },
+      {
+        "label": "DevOps - Analýza požiadaviek a konceptuálny návrh",
+        "url": "https://kurzy.kpi.fei.tuke.sk/devops/assignments/understanding.html"
+      }
+    ]
+  },
+  "builtin_checks": [
+    {
+      "check_code": "R01",
+      "name": "Vlastníctvo Issue",
+      "description": "Študent má priradenú aspoň jednu issue - úlohu z tímového projektu",
+      "category": "issue",
+      "weight": 0.1,
+      "is_active": true,
+      "check_config": {
+        "min_issues": 1
+      }
+    },
+    {
+      "check_code": "R02",
+      "name": "Branch + MR vytvorený",
+      "description": "Vytvorená feature vetva podľa konvencie issue-N a otvorený merge request",
+      "category": "mr",
+      "weight": 0.08,
+      "is_active": true,
+      "check_config": {
+        "require_branch_convention": true
+      }
+    },
+    {
+      "check_code": "R03",
+      "name": "Testy napísané",
+      "description": "MR obsahuje zmeny v testovacích súboroch - unit testy v jazyku C (framework check)",
+      "category": "mr",
+      "weight": 0.1,
+      "is_active": true,
+      "check_config": {
+        "min_test_files": 1
+      }
+    },
+    {
+      "check_code": "R04",
+      "name": "MR prepojený s Issue",
+      "description": "Merge request odkazuje na príslušnú issue cez Closes #N alebo Fixes #N",
+      "category": "mr",
+      "weight": 0.08,
+      "is_active": true,
+      "check_config": {
+        "require_issue_ref": true
+      }
+    },
+    {
+      "check_code": "R05",
+      "name": "Popis MR",
+      "description": "MR má vyplnený popis s minimálne 10 slovami popisujúcimi zmeny",
+      "category": "mr",
+      "weight": 0.07,
+      "is_active": true,
+      "check_config": {
+        "min_description_words": 10,
+        "require_template": false
+      }
+    },
+    {
+      "check_code": "R06",
+      "name": "Code Review prijaté",
+      "description": "MR dostal recenzie od aspoň 2 kolegov z tímu",
+      "category": "review",
+      "weight": 0.11,
+      "is_active": true,
+      "check_config": {
+        "min_reviewers": 2
+      }
+    },
+    {
+      "check_code": "R07",
+      "name": "Code Review poskytnuté",
+      "description": "Študent recenzoval aspoň 2 MR kolegov s obsahovou spätnou väzbou (min 20 slov)",
+      "category": "review",
+      "weight": 0.11,
+      "is_active": true,
+      "check_config": {
+        "min_mrs_reviewed": 2,
+        "min_word_count": 20
+      }
+    },
+    {
+      "check_code": "R08",
+      "name": "Reakcia na recenziu",
+      "description": "Študent reagoval na diskusné vlákna s odkazom na commit opravujúci pripomienku",
+      "category": "review",
+      "weight": 0.09,
+      "is_active": true,
+      "check_config": {
+        "require_commit_ref": true,
+        "pass_if_no_threads": true
+      }
+    },
+    {
+      "check_code": "R09",
+      "name": "MR schválený",
+      "description": "MR získal aspoň 2 schválenia od kolegov (Approve) pred zlúčením",
+      "category": "review",
+      "weight": 0.07,
+      "is_active": true,
+      "check_config": {
+        "min_approvals": 2
+      }
+    },
+    {
+      "check_code": "R10",
+      "name": "Zlúčený autorom",
+      "description": "MR bol zlúčený autorom (nie recenzentom) po schválení",
+      "category": "mr",
+      "weight": 0.06,
+      "is_active": true,
+      "check_config": {
+        "allow_self_merge": true
+      }
+    },
+    {
+      "check_code": "R11",
+      "name": "MR + Issue uzavretý",
+      "description": "Po zlúčení bola pridružená issue aj MR korektne uzavretá",
+      "category": "mr",
+      "weight": 0.05,
+      "is_active": true,
+      "check_config": {
+        "require_both_closed": true
+      }
+    },
+    {
+      "check_code": "R12",
+      "name": "Pipeline zelený",
+      "description": "CI/CD pipeline prešiel úspešne (voliteľné - nie všetky projekty majú CI nastavené od začiatku)",
+      "category": "ci",
+      "weight": 0.04,
+      "is_active": true,
+      "check_config": {
+        "require_test_job": false
+      }
+    },
+    {
+      "check_code": "R13",
+      "name": "Kvalita commitov",
+      "description": "Commity používajú zmysluplné správy - nie auto-generované webovým editorom GitLabu",
+      "category": "commit",
+      "weight": 0.04,
+      "is_active": true,
+      "check_config": {
+        "max_web_editor_ratio": 0.4
+      }
+    }
+  ],
+  "custom_checks": [],
+  "weekly_deadlines": [
+    {
+      "week": 1,
+      "label": "Úvod + inštalácia nástrojov (Git, gcc, make)",
+      "expected_checks": []
+    },
+    {
+      "week": 2,
+      "label": "Git základy - init, add, commit, push, remote",
+      "expected_checks": [
+        "R01"
+      ]
+    },
+    {
+      "week": 3,
+      "label": "Git branching - vetvy, merge, riešenie konfliktov",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R13"
+      ]
+    },
+    {
+      "week": 4,
+      "label": "Analýza požiadaviek - popis problému, používatelia, user stories",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R04",
+        "R05",
+        "R13"
+      ]
+    },
+    {
+      "week": 5,
+      "label": "Konceptuálny model - diagram tried, vlastnosti, vzťahy",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R04",
+        "R05",
+        "R13"
+      ]
+    },
+    {
+      "week": 6,
+      "label": "Modelovanie správania - diagramy aktivít, sekvencií, stavov",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R13"
+      ]
+    },
+    {
+      "week": 7,
+      "label": "Odovzdanie Zadania 1 (9b, deadline 29.03.2026) - analýza a návrh",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R13"
+      ]
+    },
+    {
+      "week": 8,
+      "label": "Tímový projekt (Zadanie 2) - plánovanie, issues, Git workflow",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R13"
+      ]
+    },
+    {
+      "week": 9,
+      "label": "Unit testy v C (framework check) + code review",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R13"
+      ]
+    },
+    {
+      "week": 10,
+      "label": "Deadline vytvorenia MR (26.04.2026) - code review prebieha",
+      "mr_deadline": "2026-04-26T23:59:00",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R12",
+        "R13"
+      ]
+    },
+    {
+      "week": 11,
+      "label": "Deadline zlúčenia (03.05.2026) - schválenie a merge do master",
+      "merge_deadline": "2026-05-03T23:59:00",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13"
+      ]
+    },
+    {
+      "week": 12,
+      "label": "Odovzdanie Zadania 2 - kompletný Git workflow",
+      "expected_checks": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,476 @@
+{#
+  Form Components - Input fields, validation, and form layouts
+  
+  Usage:
+    from "components/forms.html" import form_group, text_input, select_field, checkbox, form_actions, csrf_field
+    csrf_field()
+    text_input('email', label='Email', type='email', required=true)
+    select_field('role', label='Role', options=[('admin', 'Admin'), ('user', 'User')])
+#}
+
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import close_button %}
+{% from "components/dropdown.html" import dropdown_check, dropdown_chevron, dropdown_label with context %}
+
+{% macro disabled_control(reason='') -%}
+{%- if reason %}<span class="gl-tip-wrap" data-tippy-content="{{ reason }}">{% endif -%}
+{{ caller() }}
+{%- if reason %}</span>{% endif -%}
+{%- endmacro %}
+
+{# CSRF hidden input #}
+{% macro csrf_field() %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% endmacro %}
+
+{# Form group wrapper #}
+{% macro form_group(label='', id='', required=false, error='', help_text='', class='', inline=false, label_hint='') %}
+<div class="form-group{% if inline %} form-group-inline{% endif %}{% if error %} has-error{% endif %} {{ class }}">
+  {% if label %}
+  <label{% if id %} for="{{ id }}"{% endif %} class="form-label">
+    {{ label }}
+    {% if required %}<span class="required-mark">*</span>{% endif %}
+    {% if label_hint %} <span class="label-hint">({{ label_hint }})</span>{% endif %}
+  </label>
+  {% endif %}
+  <div class="form-control-wrapper">
+    {{ caller() }}
+    {% if error %}
+      <span class="form-error">{{ icon('alert-circle', size='xs') }} {{ error }}</span>
+    {% endif %}
+    {% if help_text and not error %}
+      <span class="form-help">{{ help_text }}</span>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{# Text input #}
+{% macro text_input(name='', label='', type='text', value='', placeholder='', required=false, disabled=false, readonly=false, error='', help_text='', class='', id='', autocomplete='', pattern='', minlength='', maxlength='', min='', max='', step='', autofocus=false, x_model='', label_hint='', size='', bare=false, x_bind_placeholder='') %}
+{% set field_id = id or name %}
+{% set size_cls = 'form-input-' ~ size if size else '' %}
+{% if bare %}
+  <input 
+    type="{{ type }}"
+    class="form-input {{ size_cls }} {{ class }}"
+    {% if x_model %}x-model="{{ x_model }}"{% endif %}
+    {% if name %}name="{{ name }}"{% endif %}
+    {% if field_id %}id="{{ field_id }}"{% endif %}
+    {% if value %}value="{{ value }}"{% endif %}
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if x_bind_placeholder %}:placeholder="{{ x_bind_placeholder }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if readonly %}readonly{% endif %}
+    {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+    {% if pattern %}pattern="{{ pattern }}"{% endif %}
+    {% if minlength %}minlength="{{ minlength }}"{% endif %}
+    {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+    {% if min %}min="{{ min }}"{% endif %}
+    {% if max %}max="{{ max }}"{% endif %}
+    {% if step %}step="{{ step }}"{% endif %}
+    {% if autofocus %}autofocus{% endif %}
+  >
+{% else %}
+{% call form_group(label=label, id=field_id, required=required, error=error, help_text=help_text, label_hint=label_hint) %}
+  <input 
+    type="{{ type }}"
+    name="{{ name }}"
+    id="{{ field_id }}"
+    class="form-input {{ size_cls }} {{ class }}{% if error %} input-error{% endif %}"
+    value="{{ value }}"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if x_bind_placeholder %}:placeholder="{{ x_bind_placeholder }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if readonly %}readonly{% endif %}
+    {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+    {% if pattern %}pattern="{{ pattern }}"{% endif %}
+    {% if minlength %}minlength="{{ minlength }}"{% endif %}
+    {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+    {% if min %}min="{{ min }}"{% endif %}
+    {% if max %}max="{{ max }}"{% endif %}
+    {% if step %}step="{{ step }}"{% endif %}
+    {% if autofocus %}autofocus{% endif %}
+    {% if x_model %}x-model="{{ x_model }}"{% endif %}
+  >
+{% endcall %}
+{% endif %}
+{% endmacro %}
+
+
+{# Textarea #}
+{% macro textarea(name, label='', value='', placeholder='', required=false, disabled=false, readonly=false, rows=4, error='', help_text='', class='', id='', maxlength='', monospace=false, x_model='', label_hint='') %}
+{% set field_id = id or name %}
+{% call form_group(label=label, id=field_id, required=required, error=error, help_text=help_text, label_hint=label_hint) %}
+  <textarea 
+    name="{{ name }}"
+    id="{{ field_id }}"
+    class="form-input form-textarea{% if monospace %} monospace{% endif %} {{ class }}{% if error %} input-error{% endif %}"
+    rows="{{ rows }}"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if readonly %}readonly{% endif %}
+    {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+    {% if x_model %}x-model="{{ x_model }}"{% endif %}
+  >{{ value }}</textarea>
+{% endcall %}
+{% endmacro %}
+
+{# Select dropdown - GitLab Pajamas component (GlFormDropdown) #}
+{# Renders a component-style dropdown matching the language selector pattern. #}
+{# Alpine logic lives in glFormSelect() - see core.js #}
+{% macro select_field(name, label='', options=[], value='', required=false, disabled=false, error='', help_text='', class='', id='', placeholder=t('Select an option'), multiple=false) %}
+{% set field_id = id or name %}
+{% set _cfg = {'value': value|string, 'options': options, 'placeholder': placeholder} %}
+{% set initial_selection = namespace(label='') %}
+{% for opt_value, opt_label in options %}
+  {% if opt_value|string == value|string %}{% set initial_selection.label = opt_label %}{% endif %}
+{% endfor %}
+{% if not initial_selection.label %}
+  {% set initial_selection.label = placeholder or (options[0][1] if options else '') %}
+{% endif %}
+{% call form_group(label=label, id=field_id ~ '_toggle', required=required, error=error, help_text=help_text) %}
+  <div class="gl-dropdown gl-form-dropdown {{ class }}{% if error %} has-error{% endif %}"
+       x-data="glFormSelect({{ _cfg|tojson_attr }})"
+       :class="{ 'open': open }"
+       @click.outside="open = false"
+       @keydown="onKeydown($event)">
+    {#- The value is rendered too, not only bound: whatever reads the field
+        before Alpine starts - the table filter a link pre-sets with
+        ?status=archived, a form sent at once - saw an empty value, and a
+        filter the dropdown showed was not applied. -#}
+    <input type="hidden" name="{{ name }}" id="{{ field_id }}" x-ref="input" value="{{ value }}" :value="selected">
+    {% if required %}
+    <input type="text" id="{{ field_id }}_validator" class="gl-form-dropdown-validator" x-ref="validator" :value="selected" required tabindex="-1" aria-label="{{ label or name }}" autocomplete="off"{% if disabled %} disabled{% endif %}>
+    {% endif %}
+    <button type="button"
+            id="{{ field_id }}_toggle"
+            class="gl-dropdown-toggle gl-form-dropdown-toggle"
+            @click="open = !open"
+            :aria-expanded="open"
+            aria-haspopup="listbox"
+            aria-controls="{{ field_id }}_options"
+            {% if required %}aria-required="true"{% endif %}
+            {% if disabled %}disabled{% endif %}>
+      {# Overlaid option labels keep the field's intrinsic width stable. #}
+      <span class="gl-form-dropdown-sizer" aria-hidden="true" x-ref="sizer">
+        <span>{{ placeholder }}</span>{% for opt_value, opt_label in options %}<span>{{ opt_label }}</span>{% endfor %}
+      </span>
+      <span class="gl-form-dropdown-text"
+            x-text="label || placeholder"
+            :class="{ 'is-placeholder': !label }">{{ initial_selection.label }}</span>
+      {{ dropdown_chevron() }}
+    </button>
+    {# No x-show. It sets `display:none` the instant `open` flips, so the panel
+       is gone before an exit animation can run - which is why this was the one
+       component in the app with no close motion at all. glFormSelect drives
+       both visibility and motion through GP.motion instead, so the select is
+       on the same contract as every other panel. #}
+    <ul id="{{ field_id }}_options" class="gl-dropdown-menu" role="listbox" aria-labelledby="{{ field_id }}_toggle" x-cloak x-ref="menu">
+      {% for opt_value, opt_label in options %}
+      <li role="option">
+        <button type="button" class="gl-dropdown-item"
+                data-value="{{ opt_value }}"
+                @click="select({{ (opt_value|string)|tojson_attr }})">
+          {{ dropdown_check() }}
+          {{ dropdown_label(opt_label) }}
+        </button>
+      </li>
+      {% else %}
+      {# An empty menu is a blank box that reads as broken. Say there is nothing
+         to choose - the same thing GitLab's dropdowns do. In the shared macro,
+         so EVERY select in the app gets it rather than each caller inventing
+         one. #}
+      <li class="gl-dropdown-empty" role="presentation">{{ t('No options available') }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endcall %}
+{% endmacro %}
+
+{# Checkbox #}
+{# `input_class` puts a class on the INPUT rather than the wrapper - for the
+   handful of call sites whose JS selects the boxes themselves
+   (e.g. `.transfer-team-checkbox:checked`). #}
+{% macro checkbox(name='', label='', checked=false, value='true', disabled=false, error='', help_text='', class='', id='', x_model='', bare=false, data_attrs=none, input_class='', input_data_attrs=none, aria_label='') %}
+{% set field_id = id or name %}
+{% if bare %}
+{# No for= here: the input is nested INSIDE the label, so the label already
+   toggles it on click. Adding for= too fires the toggle twice (the synthetic
+   click bubbles back), which reads as "the checkbox needs two clicks". #}
+<label class="form-check {{ class }}" {% if data_attrs %}{% for dk, dv in data_attrs.items() %}data-{{ dk }}="{{ dv }}" {% endfor %}{% endif %}>
+    <input type="checkbox" class="form-check-input {{ input_class }}" value="{{ value }}" {% if x_model %}x-model="{{ x_model }}"{% endif %}{% if field_id %} id="{{ field_id }}"{% endif %}{% if name %} name="{{ name }}"{% endif %}{% if checked %} checked{% endif %}{% if disabled %} disabled{% endif %}{% if aria_label %} aria-label="{{ aria_label }}"{% endif %}{% for key, val in (input_data_attrs or {}).items() %} data-{{ key }}="{{ val }}"{% endfor %}>
+  {% if label %}<span class="form-check-label">{{ label }}</span>{% endif %}
+</label>
+{% else %}
+<div class="form-check {{ class }}{% if error %} has-error{% endif %}">
+  <input 
+    type="checkbox"
+    name="{{ name }}"
+    id="{{ field_id }}"
+    value="{{ value }}"
+    class="form-check-input"
+    {% if checked %}checked{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if x_model %}x-model="{{ x_model }}"{% endif %}
+      {% for key, val in (input_data_attrs or {}).items() %}data-{{ key }}="{{ val }}"{% endfor %}
+      {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
+  >
+  <label for="{{ field_id }}" class="form-check-label" {% if data_attrs %}{% for dk, dv in data_attrs.items() %}data-{{ dk }}="{{ dv }}" {% endfor %}{% endif %}>{{ label }}</label>
+  {% if error %}
+    <span class="form-error">{{ error }}</span>
+  {% endif %}
+  {% if help_text %}
+    <span class="form-help">{{ help_text }}</span>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{# Radio - the checkbox's twin.
+
+   There was no radio macro, so every radio in the app was hand-written as
+   `<label class="form-check"><input type="radio" ...> <span>text</span></label>`,
+   which is the same markup `checkbox(bare=true)` renders. Same component, two
+   spellings. #}
+{% macro radio(name, value, label='', checked=false, disabled=false, class='', id='', data_attrs=none) %}
+{# No for= : the input is nested INSIDE the label, so the label already toggles
+   it. Adding for= too fires the toggle twice. #}
+<label class="form-check {{ class }}" {% if data_attrs %}{% for dk, dv in data_attrs.items() %}data-{{ dk }}="{{ dv }}" {% endfor %}{% endif %}>
+  <input type="radio" class="form-check-input" name="{{ name }}" value="{{ value }}"{% if id %} id="{{ id }}"{% endif %}{% if checked %} checked{% endif %}{% if disabled %} disabled{% endif %}>
+  {% if label %}<span class="form-check-label">{{ label }}</span>{% endif %}
+</label>
+{% endmacro %}
+
+{# Caption for a GROUP of controls - a radio set, a checkbox list, a row of
+   rating buttons.
+
+   It exists because the alternative people reached for was `<label
+   class="form-label">Groups and students</label>`, and a `<label>` with no
+   control is exactly what Chrome reports as "A <label> isn't associated with a
+   form field" (2 on the course-settings page alone, plus one on the support
+   form). A group caption is a `<legend>`; that is what the element is for, and it
+   names the group for a screen reader instead of naming nothing.
+
+   `.form-label` keeps the visual identical to a field label. #}
+{% macro field_group(label='', required=false, class='', id='') %}
+<fieldset class="form-group form-fieldset {{ class }}"{% if id %} id="{{ id }}"{% endif %}>
+  {% if label %}
+  <legend class="form-label">
+    {{ label }}
+    {% if required %}<span class="required-mark">*</span>{% endif %}
+  </legend>
+  {% endif %}
+  {{ caller() }}
+</fieldset>
+{% endmacro %}
+
+
+
+
+
+
+
+{# Native file picker shared by JSON imports and Markdown attachments. #}
+{% macro file_upload(id, label='', accept='', multiple=false, data_attrs={}) %}
+<span class="gl-file-upload">
+  <input type="file" id="{{ id }}" class="gl-file-upload-input sr-only" data-dirty-ignore{% if accept %} accept="{{ accept }}"{% endif %}{% if multiple %} multiple{% endif %}>
+  <label for="{{ id }}" class="btn btn-icon btn-ghost btn-sm btn-responsive" data-tippy-content="{{ label or t('Upload file') }}"{% for k, v in data_attrs.items() %} data-{{ k }}="{{ v|force_escape }}"{% endfor %}>
+    {{ icon('upload', size='sm') }}<span class="btn-text">{{ label or t('Upload file') }}</span>
+  </label>
+</span>
+{% endmacro %}
+
+{# -- JSON drop editor --
+   ONE surface for a JSON field: the editor IS the drop zone. Replaces the
+   dashed upload box stacked on top of a separate textarea - two controls that
+   did the same job, where picking a file wiped what you had typed and typing
+   wiped the file you had picked. Here a dropped or browsed file simply loads
+   its text into the editor, so what will be submitted is always what is on
+   screen.
+
+   Behaviour: GP.initJsonDrop (core/37-json-drop.js), auto-initialised.
+#}
+{% macro json_drop(name, value='', rows=8, id='', placeholder='', help_text='', label='', accept='.json', max_size_mb=10, class='', browse_label='') %}
+{% set field_id = id or name %}
+<div class="gl-json-drop {{ class }}" id="{{ field_id }}_dropzone" data-json-drop data-max-size="{{ max_size_mb }}">
+  <div class="gl-json-drop-bar">
+    {% if label %}<span class="gl-json-drop-label" id="{{ field_id }}_label">{{ label }}</span>{% endif %}
+    <div class="gl-json-drop-tools">
+      <span class="gl-json-drop-file" hidden>
+        {{ icon('file', size='xs') }}
+        <span class="gl-json-drop-filename"></span>
+        {{ close_button(t('Remove file'), class='gl-json-drop-clear') }}
+      </span>
+      {{ file_upload(field_id ~ '_file', label=browse_label, accept=accept) }}
+    </div>
+  </div>
+  <div class="gl-json-drop-surface">
+    <textarea name="{{ name }}" id="{{ field_id }}" rows="{{ rows }}"
+              class="form-input code-textarea gl-json-drop-input"
+              {% if label %}aria-labelledby="{{ field_id }}_label"{% else %}aria-label="{{ name }}"{% endif %}
+              {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}>{{ value }}</textarea>
+    <div class="gl-json-drop-overlay" aria-hidden="true">
+      {{ icon('upload') }}
+      <span>{{ t('Drop to load this file') }}</span>
+    </div>
+  </div>
+  <span class="form-help gl-json-drop-help">
+    {% if help_text %}{{ help_text }} {% endif %}{{ t('Drop a file here, paste, or use Upload file.') }} {{ t('Max:') }} {{ max_size_mb }} MB
+  </span>
+</div>
+{% endmacro %}
+
+{# Search input with icon #}
+{# `x_on_focus` is what a typeahead needs and the reason the Teachers page had
+   hand-written this macro's markup instead of calling it: a copy of
+   `.search-box > .search-icon + .search-input`, identical byte for byte, kept
+   only so it could add `@focus`. One parameter is cheaper than a second copy of
+   the control, and the copy could not follow this one when it changed.
+   `borderless` is GlSearchBoxByType's: the field fills a band that draws its
+   own edge - the search palette's top. Called with `{% call %}`, the body is
+   its right-icons slot: controls inside the field at its end. #}
+{% macro search_input(name='q', value='', placeholder=t('Search...'), class='', id='', autofocus=false, x_model='', data_attrs={}, x_on_input='', x_on_focus='', disabled=false, x_bind_disabled='', borderless=false) %}
+{% set field_id = id or name %}
+<div class="search-box{% if borderless %} search-box-borderless{% endif %} {{ class }}">
+  <span class="search-icon">{{ icon('search', size='sm') }}</span>
+  <input 
+    type="search"
+    name="{{ name }}"
+    id="{{ field_id }}"
+    class="search-input"
+    value="{{ value }}"
+    placeholder="{{ placeholder }}"
+    aria-label="{{ placeholder }}"
+    autocomplete="off"
+    {% if autofocus %}autofocus{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if x_bind_disabled %}:disabled="{{ x_bind_disabled }}"{% endif %}
+    {% if x_model %}x-model="{{ x_model }}"{% endif %}
+    {% if x_on_input %}@input="{{ x_on_input }}"{% endif %}
+    {% if x_on_focus %}@focus="{{ x_on_focus }}"{% endif %}
+    {% for k, v in data_attrs.items() %}data-{{ k }}="{{ v }}" {% endfor %}
+  >
+  {%- if caller is defined %}
+  <span class="search-box-actions">{{ caller() }}</span>
+  {%- endif %}
+</div>
+{% endmacro %}
+
+{# -- Number stepper (bare control, no form_group wrapper) --
+   One segmented control: the -/+ buttons sit INSIDE the field's border rather
+   than being two detached btn-secondary blocks with the value marooned between
+   them.
+
+   Behaviour is a single delegated handler in core (see core/15-number-stepper.js), NOT an
+   Alpine factory. That matters because the check-editor renders parameter rows
+   from JSON at runtime: with an Alpine factory those clones stayed dead, so the
+   page grew a second hand-rolled stepper plus its own document-level click
+   handler - and because both handlers matched `.number-btn-minus`, one click
+   stepped the value twice. Plain markup + one delegated handler means the
+   server-rendered control and a JS-cloned one behave identically. #}
+{% macro number_stepper(name='', value='', min='', max='', step='', id='', class='', placeholder='', required=false, disabled=false) %}
+{% set field_id = id or name %}
+<div class="gl-number-input {{ class }}" data-number-input>
+  <button type="button" class="gl-number-input-btn" data-number-step="-1" tabindex="-1"
+          aria-label="{{ t('Decrease') }}" data-tippy-content="{{ t('Decrease') }}"{% if disabled %} disabled{% endif %}>{{ icon('minus', size='sm') }}</button>
+  <input
+    type="number"
+    class="gl-number-input-field"
+    {% if name %}name="{{ name }}"{% endif %}
+    {% if field_id %}id="{{ field_id }}"{% endif %}
+    value="{{ value }}"
+    {% if placeholder != '' %}placeholder="{{ placeholder }}"{% endif %}
+    {% if min != '' %}min="{{ min }}"{% endif %}
+    {% if max != '' %}max="{{ max }}"{% endif %}
+    {% if step != '' %}step="{{ step }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+  >
+  <button type="button" class="gl-number-input-btn" data-number-step="1" tabindex="-1"
+          aria-label="{{ t('Increase') }}" data-tippy-content="{{ t('Increase') }}"{% if disabled %} disabled{% endif %}>{{ icon('plus', size='sm') }}</button>
+</div>
+{% endmacro %}
+
+{# Number stepper wrapped in a labelled form group. #}
+{% macro number_input(name, label='', value=0, min=0, max=100, step=1, required=false, error='', help_text='', class='', id='') %}
+{% set field_id = id or name %}
+{% call form_group(label=label, id=field_id, required=required, error=error, help_text=help_text) %}
+  {{ number_stepper(name=name, id=field_id, value=value, min=min, max=max, step=step, required=required, class=class) }}
+{% endcall %}
+{% endmacro %}
+
+{# Language selector dropdown - unified for sidebar and standalone pages #}
+{% macro language_selector(supported_locales, current_locale='sk', next_url='/dashboard/', variant='default', class='') %}
+{% if supported_locales|length > 0 %}
+{% set selected_locale = namespace(label='') %}
+{% for locale in supported_locales %}
+  {% if locale.code == current_locale %}{% set selected_locale.label = locale.label %}{% endif %}
+{% endfor %}
+{% if not selected_locale.label %}
+  {% set selected_locale.label = supported_locales[0].label|default(current_locale|upper) %}
+{% endif %}
+<div class="gl-dropdown gl-lang-selector{% if variant == 'sidebar' %} gl-sidebar-lang{% endif %} {{ class }}"
+     data-dropdown data-locale-switcher>
+  <button type="button"
+          class="{% if variant == 'sidebar' %}gl-sidebar-bottom-item{% elif variant == 'auth' %}btn btn-ghost btn-sm{% else %}gl-dropdown-toggle{% endif %}"
+          data-dropdown-toggle aria-expanded="false" aria-haspopup="listbox">
+    {{ icon('globe', size='sm') }}
+    <span class="sr-only">{{ t('Language') }}:</span>
+    <span class="gl-lang-selector-label{% if variant == 'sidebar' %} gl-sidebar-item-text{% endif %}" translate="no">{{ selected_locale.label }}</span>
+    {{ dropdown_chevron() }}
+  </button>
+  <ul class="gl-dropdown-menu{% if variant == 'sidebar' %} gl-dropdown-up gl-sidebar-lang-menu{% elif variant == 'auth' %} gl-dropdown-right{% endif %}"
+      role="listbox" aria-label="{{ t('Language') }}" data-dropdown-menu
+      aria-hidden="true" inert{% if variant == 'sidebar' %} data-direction-locked="1"{% endif %}>
+    {% for locale in supported_locales %}
+    <li role="option"{% if locale.code == current_locale %} aria-selected="true"{% endif %}>
+      {# A language's name stays in that language (`translate="no"` is
+         honoured by i18n.js), so "English" never becomes "Angličtina". #}
+      <a href="/dashboard/language/{{ locale.code }}?next={{ next_url|urlencode }}"
+         class="gl-dropdown-item{% if locale.code == current_locale %} active{% endif %}"
+         rel="nofollow" data-dropdown-close translate="no" lang="{{ locale.code }}">
+        {{ dropdown_check() }}
+        {{ dropdown_label(locale.label) }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# -- Code Reference Details --
+   Collapsible reference panel with structured property list.
+   Usage:
+     code_reference(title='Format reference', items=[
+       {'code': 'type: "count"', 'desc': '- count entities matching filter'},
+       {'code': 'entity', 'default': 'issue | merge_request', 'indent': true},
+     ])
+   Or with raw pre block:
+     code_reference(title='Format reference', pre='[{"week": 3}]')
+#}
+{% macro code_reference(title='', items=[], pre='', class='') %}
+<details class="code-details{{ ' ' ~ class if class }}">
+  <summary>{{ title }}</summary>
+  {% if pre %}
+  <pre>{{ pre }}</pre>
+  {% endif %}
+  {% if items %}
+  <ul class="prop-list">
+    {% for item in items %}
+    <li{% if item.indent %} class="ml-2"{% endif %}>
+      <code>{{ item.code }}</code>
+      {% if item.default %}<span class="prop-default">{{ item.default }}</span>{% endif %}
+      {% if item.desc %}<span class="muted">{{ item.desc }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</details>
+{% endmacro %}
+
+

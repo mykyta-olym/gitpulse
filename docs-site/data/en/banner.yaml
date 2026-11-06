@@ -1,0 +1,11 @@
+---
+# Their version linked to a GitLab survey. This is the feedback form this
+# project keeps for documentation feedback (one of the per-role surveys).
+#
+# The per-language data directory is what makes this file the English one, and
+# it held a verbatim copy of data/sk/banner.yaml - so an English reader was
+# asked, in Slovak, to fill in a questionnaire. The mechanism worked; nobody
+# had translated the string.
+show_survey_banner: true
+description: |
+  Help us improve the GitPulse documentation. [Fill in the survey](https://forms.gle/yp5BibuoeH2pRD7J7).

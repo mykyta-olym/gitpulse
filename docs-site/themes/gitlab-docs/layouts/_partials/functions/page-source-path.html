@@ -1,0 +1,34 @@
+{{/*
+  Get the full source file path for a page, including the clone directory
+
+  @param page - The page context
+  @param canonicalOnly (optional) - If true, always return the canonical (English) version path
+  @return string
+    Full path to the source file (e.g., "../gitlab/doc/operations/observability.md" or "../gitlab/doc-locale/ja-jp/operations/observability.md")
+*/}}
+
+{{- $refPath := "" -}}
+{{- if .page.File -}}
+  {{- $sourceProject := string (partial "functions/page-source-project.html" .page) -}}
+  {{- $productData := index .page.Site.Data.products "products" -}}
+  {{- $sectionData := index $productData $sourceProject -}}
+
+  {{- if $sectionData -}}
+    {{- $cloneDir := $sectionData.clone_dir -}}
+    {{- $docsDir := $sectionData.docs_dir -}}
+    {{- $pagePath := .page.File.Path -}}
+
+    {{- /* Strip the section prefix from the path for non-gitlab projects */ -}}
+    {{- if ne $sourceProject "gitlab" -}}
+      {{- $pagePath = strings.TrimLeft "/" (replace $pagePath $sourceProject "" 1) -}}
+    {{- end -}}
+
+    {{- if and (ne .page.Lang site.Params.defaultLang) (not .canonicalOnly) -}}
+      {{- $refPath = printf "%s/%s-locale/%s/%s" $cloneDir $docsDir .page.Lang $pagePath -}}
+    {{- else -}}
+      {{- $refPath = printf "%s/%s/%s" $cloneDir $docsDir $pagePath -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $refPath -}}

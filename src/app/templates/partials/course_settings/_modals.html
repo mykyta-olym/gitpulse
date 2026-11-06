@@ -1,0 +1,186 @@
+{# -- Course Settings Modals -- #}
+{% from "components/icons.html" import icon %}
+{% from "components/alerts.html" import alert %}
+{% from "components/modals.html" import modal %}
+{% from "components/forms.html" import text_input, select_field, textarea, json_drop, code_reference, checkbox, radio, field_group, number_input with context %}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/_config_import_body.html" import config_import_body with context %}
+{% from "components/academic_period.html" import period_fields with context %}
+
+{# -- Full Config Import Modal -- #}
+{% call modal('fullConfigModal', icon('upload', size='sm') ~ ' ' ~ t('Import Full Course Configuration'), size='lg') %}
+    {{ config_import_body(
+      prefix='fullConfig',
+      upload_name='full_config',
+      description=t('Drop or select a JSON file to configure every aspect of this course at once. All sections are optional - only included sections will be applied.'),
+      apply_label=t('Apply Full Configuration'),
+      apply_id='btnFullConfigApply',
+      apply_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id},
+      cancel_id='btnFullConfigCancel'
+    ) }}
+{% endcall %}
+
+{# -- Unified Check Editor Modal (for both built-in config AND custom checks) -- #}
+{% call modal('checkEditorModal', icon('edit', size='sm') ~ ' ' ~ t('Edit Check'), size='md') %}
+    <input type="hidden" id="ceCheckCode" name="ceCheckCode" value="">
+    <input type="hidden" id="ceIsBuiltin" name="ceIsBuiltin" value="">
+    <input type="hidden" id="ceCheckId" name="ceCheckId" value="">
+
+    {# Common fields: name, category, weight, active #}
+    <p id="ceBuiltinHint" class="muted small mb-2 d-none">{{ icon('info', size='sm') }} {{ t('Built-in check - changes to name and category are stored as overrides for this course.') }}</p>
+    <div class="form-row">
+      {{ text_input('ce_name', label=t('Check Name'), id='ceName', required=true, maxlength='200') }}
+      {{ select_field('ce_category', label=t('Category'), id='ceCategory', options=[('issue', t('Issue')), ('mr', t('Merge Request')), ('review', t('Review')), ('ci', t('CI/CD')), ('commit', t('Commit')), ('custom', t('Custom'))], placeholder='') }}
+    </div>
+      {{ textarea('ce_description', label=t('Description'), id='ceDescription', rows=4, placeholder=t('What this check verifies...'), maxlength='500') }}
+    <div class="form-row">
+      {{ number_input('ce_weight', label=t('Weight (0-1)'), id='ceWeight', min='0', max='1', step='0.01', value='0.05') }}
+      <div class="form-group">
+        <span class="form-label">{{ t('Status') }}</span>
+        {{ checkbox('ce_active', t('Active'), checked=true, id='ceActive', class='ce-active-toggle') }}
+      </div>
+    </div>
+
+    {# Built-in check: configurable parameters panel #}
+    <div id="ceBuiltinPanel" class="ce-panel d-none">
+      <h4 class="ce-panel-title">{{ icon('sliders', size='sm') }} {{ t('Check Parameters') }}</h4>
+      <p class="muted mb-2">{{ t('Override default thresholds for this check. Leave empty for defaults.') }}</p>
+      <div id="ceConfigParams"></div>
+    </div>
+
+    {# Custom check: evaluation rule panel #}
+    <div id="ceCustomPanel" class="ce-panel d-none">
+      <h4 class="ce-panel-title">{{ icon('code', size='sm') }} {{ t('Evaluation Rule') }}</h4>
+      <div class="form-row">
+        {{ select_field('ce_rule_type', label=t('Rule Type'), id='ceRuleType', options=[('count', t('Count')), ('field_check', t('Field Check')), ('ratio', t('Ratio')), ('word_count', t('Word Count'))], placeholder='') }}
+      </div>
+      {{ code_reference(title=t('Rule configuration reference'), class='mb-2', items=[
+        {'code': 'type: "count"', 'desc': t('- count entities matching filter vs threshold')},
+        {'code': 'entity', 'default': 'issue | merge_request | pipeline | review | note | response', 'indent': true},
+        {'code': 'filter', 'default': '{"field": "value"}', 'desc': t('optional field filter'), 'indent': true},
+        {'code': 'op', 'default': '>= | <= | == | > | <', 'indent': true},
+        {'code': 'threshold', 'default': '1', 'indent': true},
+        {'code': 'type: "field_check"', 'desc': t('- check boolean field on entities')},
+        {'code': 'entity, field, mode', 'default': 'any | all', 'indent': true},
+        {'code': 'type: "ratio"', 'desc': t('- ratio of matching entities')},
+        {'code': 'entity, filter, op, threshold', 'indent': true},
+        {'code': 'type: "word_count"', 'desc': t('- average word count check')},
+        {'code': 'entity, field, op, threshold', 'indent': true},
+      ]) }}
+      {# Same drop/paste surface as every other JSON field in the app, so a
+         rule can be dragged in from a file instead of retyped. #}
+      {{ json_drop('ce_rule', id='ceRule', rows=5, label=t('Rule (JSON)'), placeholder='{"type":"count","entity":"merge_request","op":">=","threshold":1}') }}
+    </div>
+
+    <div class="modal-footer">
+      {{ btn_icon(t('Delete'), 'trash', variant='danger', size='sm', class='d-none', id='btnDeleteCheck', title=t('Delete this check'), data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id}) }}
+      {{ btn_icon(t('Save Check'), 'save', id='btnSaveCheck', data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Save check configuration')}) }}
+    </div>
+{% endcall %}
+
+{# -- LLM Generate Modal -- #}
+{% if llm_enabled|default(false) %}
+{% call modal('llmGenerateModal', icon('cpu', size='sm') ~ ' ' ~ t('Generate Checks with AI'), size='md') %}
+    {% if not llm_api_key_configured|default(false) %}
+    {{ alert(t('LLM API key is not configured. Set LLM_API_KEY in environment.'), variant='warning', id='llmApiKeyMissingWarning') }}
+    {% endif %}
+
+    {# Step 1 - what the teacher is asking for. The modal used to open on a
+       bare textarea + stepper with no explanation of what would happen, so it
+       read as a debug form rather than a feature. #}
+    <section class="llm-gen-step" aria-labelledby="llmGenStep1">
+      <h4 class="llm-gen-step-title" id="llmGenStep1">
+        <span class="llm-gen-step-num" aria-hidden="true">1</span>
+        {{ t('Describe what to check') }}
+      </h4>
+      <p class="llm-gen-step-hint">{{ t('Checks are generated from this course\'s settings (branch patterns, test paths, review rules). Add a prompt only if you want to steer the focus - leave it empty for a balanced set.') }}</p>
+      {{ textarea('llm_prompt', label=t('Prompt (optional)'), id='llmPrompt', rows=3, placeholder=t('e.g. Focus on testing and code style best practices...'), maxlength='2000') }}
+      <div class="llm-gen-controls">
+        {{ number_input('llm_count', label=t('Number of checks'), id='llmCount', min='1', max='20', step='1', value='3') }}
+        <p class="llm-gen-controls-hint">{{ t('Each generated check is a draft - you pick which ones to keep in step 2. Nothing is saved until you do.') }}</p>
+      </div>
+    </section>
+
+    {# Step 2 - review + pick. Hidden until a generation returns. #}
+    <section id="llmSuggestions" class="d-none llm-gen-step llm-gen-step--results" aria-labelledby="llmGenStep2">
+      <h4 class="llm-gen-step-title" id="llmGenStep2">
+        <span class="llm-gen-step-num" aria-hidden="true">2</span>
+        {{ t('Review and select') }}
+      </h4>
+      <p class="llm-gen-step-hint">{{ t('Tick the checks worth keeping. Weights are suggestions - you can edit every check afterwards.') }}</p>
+      <div id="llmSuggestionsBody"></div>
+    </section>
+
+    <div class="modal-footer">
+      {{ btn_icon(t('Generate'), 'cpu', id='btnRunLLM', disabled=(not llm_api_key_configured|default(false)), data_attrs={'tippy-content': t('Generate compliance checks using AI based on your prompt'), 'disabled-reason': t('LLM API key is not configured. Set LLM_API_KEY in environment.')}) }}
+      {{ btn_icon(t('Save Selected'), 'save', class='d-none', id='btnSaveLLMChecks', data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Save selected LLM-generated checks to this course')}) }}
+      {{ btn_icon(t('New Generation'), 'refresh', variant='secondary', class='d-none', id='btnNewLLMGeneration', data_attrs={'tippy-content': t('Generate a new set of checks')}) }}
+    </div>
+{% endcall %}
+{% endif %}
+
+{# -- Import Checks Config Modal -- #}
+{% call modal('importChecksModal', icon('upload', size='sm') ~ ' ' ~ t('Import Check Configuration'), size='md') %}
+    <p class="muted mb-2">{{ t('Import a JSON configuration file exported from another course. Built-in checks (R01-R13) will be updated. Custom checks will be created or matched by code.') }}</p>
+    {{ json_drop('checks_config_paste', id='checks_config_paste_input', rows=5, placeholder='{"$schema": "gitpulse/check-config/v1", ...}') }}
+    <div id="importChecksPreview" class="d-none mt-3">
+      <h4 class="ce-panel-title">{{ icon('info', size='sm') }} {{ t('Preview') }}</h4>
+      <div id="importChecksSummary" class="muted"></div>
+    </div>
+    <div class="modal-footer">
+      {{ btn(t('Cancel'), variant='secondary', id='btnImportChecksCancel') }}
+      {{ btn_icon(t('Apply Configuration'), 'upload', id='btnImportChecksApply', disabled=true, data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'disabled-reason': t('Load a configuration file first.')}) }}
+    </div>
+{% endcall %}
+
+{# Transfer to new semester - full carry-over wizard (supersedes the old
+   bare Clone modal; the /clone API stays for compatibility). #}
+{% if multi_tenant_enabled %}
+{% call modal('transferCourseModal', icon('copy', size='sm') ~ ' ' ~ t('Transfer to New Semester'), size='md') %}
+    {#- The same term one year on, from the SOURCE course. It used to be the
+        source's own semester plus the year the server booted in - which,
+        before the August rollover, is the term the course is already in, and
+        the create API refuses that as a duplicate. -#}
+    {%- set _next = next_course_period(course.academic_year, course.semester) %}
+    {#- The same period-and-dates fields as Create Course. The dates open on
+        the official ones of the target term when the calendar has it; left
+        empty, the server moves this course's own dates to the new term. -#}
+    {{ period_fields({'period': 'transferPeriod', 'year': 'transferAcademicYear', 'semester': 'transferSemester', 'start': 'transferStart', 'end': 'transferEnd'}, _next.academic_year, _next.semester, help_text=t('The term the new course runs in - by default the same term one year on.'), exclude_key=(course.academic_year | replace('/', '-')) ~ '-' ~ course.semester, empty_hint=t("Left empty, the new course takes this course's dates moved to the new term - the same weekday, week for week.")) }}
+
+    {% call field_group(label=t('Groups and students')) %}
+      {{ radio('transferCarryMode', 'all', label=t('Keep everything - carry all groups over (members and projects re-sync from GitLab)'), checked=true) }}
+      {{ radio('transferCarryMode', 'selected', label=t('Choose specific groups to carry over')) }}
+      {{ radio('transferCarryMode', 'none', label=t('Start clean - empty course with the same settings')) }}
+    {% endcall %}
+
+    <div id="transferTeamPicker" class="transfer-team-picker d-none">
+      {% if transfer_teams %}
+        {% for team in transfer_teams %}
+        {{ checkbox(id='transfer-team-' ~ team.id, label=team.name, value=team.id, bare=true, input_class='transfer-team-checkbox') }}
+        {% endfor %}
+      {% else %}
+        <p class="muted">{{ t('This course has no active groups.') }}</p>
+      {% endif %}
+    </div>
+
+    {% call field_group(label=t('Webhooks')) %}
+      {{ select_field('transferWebhookMode', options=[
+          ('move', t('Move existing configurations - GitLab hooks keep working, nothing to reconfigure')),
+          ('fresh', t('Issue new secrets (shown once - update them in GitLab)')),
+          ('none', t('Do not carry webhooks'))
+        ], id='transferWebhookMode', placeholder='') }}
+    {% endcall %}
+
+    {{ checkbox('transferArchiveSource', label=t('Archive this course after the transfer'), checked=true, id='transferArchiveSource') }}
+    {{ checkbox('transferEnqueueSync', label=t('Start the initial GitLab sync for carried groups'), checked=true, id='transferEnqueueSync') }}
+
+    <div id="transferResult" class="d-none mt-3"></div>
+
+    {# Was a lone full-width button dropped in the body - the only modal on the
+       page whose primary action did not sit in a footer next to a Cancel. #}
+    <div class="modal-footer">
+      {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'transferCourseModal'}) }}
+      {{ btn_icon(t('Transfer Course'), 'copy', id='btnSubmitTransfer') }}
+    </div>
+{% endcall %}
+{% endif %}

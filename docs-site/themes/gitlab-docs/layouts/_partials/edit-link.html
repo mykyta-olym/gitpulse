@@ -1,0 +1,42 @@
+{{/*
+  A link to this page's source in the project's repository.
+
+  What was here modelled GitLab's docs build: several upstream repositories
+  assembled into one site, each with a `clone_dir` and `docs_dir` recorded in
+  `data/products`, and every URL hardcoded to gitlab.com. This site is one
+  repository with one content tree and is not hosted on gitlab.com, so the
+  lookup found nothing and the partial returned an empty string - the "View page
+  source" and "Edit in Web IDE" links simply did not render, in the footer or in
+  the page metadata.
+
+  The path is the content file's own: `.File.Path` is relative to the language's
+  content directory, which `params.contentDirs` maps.
+
+  @param Context   the page
+  @param linkType  "source" (view the file) or "ide" (open the editor)
+  @param editText  link text; omit together with format="url" for a bare URL
+  @param format    "url" for the URL alone, anything else for an <a>
+*/}}
+{{- if .Context.File -}}
+  {{- $repo := site.Params.repoURL -}}
+  {{- $branch := site.Params.repoBranch | default "main" -}}
+  {{- $contentDir := index site.Params.contentDirs .Context.Lang | default "content" -}}
+  {{- $path := printf "docs-site/%s/%s" $contentDir (.Context.File.Path | replaceRE `\\` "/") -}}
+
+  {{- $url := "" -}}
+  {{- if eq .linkType "source" -}}
+    {{- $url = printf "%s/-/blob/%s/%s" $repo $branch $path -}}
+  {{- else if eq .linkType "ide" -}}
+    {{- /* The Web IDE lives at the instance root, not under the project, so it
+           needs the project path on its own rather than the full repo URL. */ -}}
+    {{- $parsed := urls.Parse $repo -}}
+    {{- $project := strings.Trim $parsed.Path "/" -}}
+    {{- $url = printf "%s://%s/-/ide/project/%s/edit/%s/-/%s" $parsed.Scheme $parsed.Host $project $branch $path -}}
+  {{- end -}}
+
+  {{- if eq .format "url" -}}
+    {{ $url }}
+  {{- else -}}
+    <a href="{{ $url }}">{{ .editText }}</a>
+  {{- end -}}
+{{- end -}}

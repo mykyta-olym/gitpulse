@@ -1,0 +1,144 @@
+{# The Users table. ONE table: people and service accounts are the same entity
+   with the same columns, and were rendered twice - two `data_table` calls, two
+   paginators, two tab panels - over one shared `users_table_head()`. The head
+   macro being shared is the proof: same colgroup, same eight columns, same td
+   classes; a bot row differed from a person row by a badge and two tooltips.
+   So the split was a filter, and it is one now: the pill row that already said
+   Admin / Teacher / Student says Service Accounts too, and the reader sees both
+   kinds at once, searches both at once, and sorts both at once.
+
+   A partial rather than a macro: an include gets the render context
+   (`users`, `bot_users`, `is_admin`, `t`) for free. #}
+{% from "components/time.html" import localized_time %}
+{% from "components/layout.html" import filter_tabs with context %}
+{% from "components/academic_period.html" import period_selector, period_badge with context %}
+{% from "components/tables.html" import table_controls %}
+{# Search and the view switch are NOT card-header material: the header says
+   what you can DO to a table, and these say how you narrow it. They go in the
+   controls band between the header and the rows - `table_controls` - which is
+   the same band, in the same place, on every table in the app. #}
+{# The view and the search come from the URL when it carries them, so a reload
+   of ?role=teacher paints Teacher. This used to render "All" with every row
+   and leave admin-users.js to switch after first paint - a visible jump from
+   the default to the chosen view on every refresh. The JS still runs the same
+   predicate on load; it now finds nothing to change. #}
+{% set _role_param = (request.query_params.get('role') or '') | lower %}
+{% set _initial_role = _role_param if _role_param in ['admin', 'teacher', 'student'] or (_role_param == 'bot' and bot_users) else 'all' %}
+{% set _initial_q = (request.query_params.get('q') or '') | trim %}
+{% set _initial_q_lc = _initial_q | lower %}
+{% set users_search %}
+{{ search_input(id='userSearch', placeholder=t('Search users...'), value=_initial_q) }}
+{#- The period is a SCOPE, not another filter pill: it changes which people
+    the page is about, and it travels in the URL so a cohort can be linked
+    to. It sits beside search rather than at the end of the role tabs: on a
+    phone that row scrolls sideways, which put the control off-screen at
+    x=365 of 390 - and a scrolling row clips a dropdown opened inside it. -#}
+{{ period_selector(period_scope) }}
+{% endset %}
+{% set users_views %}
+{# Five views of one table, one at a time - the strip the course navigation
+   uses. As pills they read as filters you switch on and off, which is not what
+   picking a slice is. #}
+{% set _user_tabs = [
+     {'value': 'all', 'label': t('All'), 'icon': 'users'},
+     {'value': 'admin', 'label': t('Admin'), 'icon': 'shield'},
+     {'value': 'teacher', 'label': t('Teacher'), 'icon': 'user-check'},
+     {'value': 'student', 'label': t('Student'), 'icon': 'user'}
+   ] %}
+{%- if bot_users %}
+{# Service accounts are a different KIND of row, not another role, so the strip
+   sets them apart with a divider - and "All" means all the people, which is
+   what a reader of this page is here for. Only rendered when there are any: a
+   view that can only ever show nothing is noise. #}
+{% set _user_tabs = _user_tabs + [{'value': 'bot', 'label': t('Service Accounts'), 'icon': 'bot', 'badge': bot_users | length, 'apart': true}] %}
+{%- endif %}
+{{ filter_tabs(_user_tabs, active=_initial_role, aria_label=t('Filter users'), class='users-role-filter') }}
+{% endset %}
+{% set users_card_title %}{{ t('Users') }}{% endset %}
+{% call card(title=users_card_title, icon_name='users', class='users-management-card',
+             info_tip=t('List of all registered users and service accounts synced from GitLab OAuth.')) %}
+{{ table_controls(search=users_search, filters=users_views) }}
+{% set _shown = namespace(n=0) %}
+{% call data_table(headers=[], sortable=true, paginated=true, class='users-table table-scrollable table-sticky-actions', id='usersTable') %}
+{{ users_table_head() }}
+<tbody>
+  {% for user in (users or []) + (bot_users or []) %}
+  {# A row outside the initial view starts hidden - the same predicate
+     admin-users.js applies: "All" is the people, a service account is its
+     own kind of row, and a role means people with that role. Letting the
+     filter hide rows after first paint re-sized every column under the
+     reader. `admin-users.js` takes over from here. #}
+  {% set _search_text = (user.username|lower) ~ ' ' ~ ((user.full_name or '')|lower) ~ ' ' ~ ((user.email or '')|lower) %}
+  {% set _in_view = (not user.is_bot) if _initial_role == 'all' else (user.is_bot if _initial_role == 'bot' else (not user.is_bot and user.role == _initial_role)) %}
+  {% set _hidden = (not _in_view) or (_initial_q_lc and _initial_q_lc not in _search_text) %}
+  {% if not _hidden %}{% set _shown.n = _shown.n + 1 %}{% endif %}
+  <tr class="user-row{% if user.is_bot %} user-row--bot{% endif %}{% if _hidden %} d-none{% endif %}{% if not user.is_active %} row-inactive{% endif %}" data-tour="user-row" data-search="{{ _search_text }}" data-role="{{ user.role }}" data-bot="{{ '1' if user.is_bot else '0' }}">
+    <td class="col-username">
+      <span class="user-identity">
+      <strong class="user-username" data-tippy-content="{{ user.username }}">{{ user.username }}</strong>
+      {#- No Bot badge here: the Role column says Bot on the same row, and the
+          second badge took 40px of a 150px column from the name beside it. -#}
+      {% if user.username == current_user.get('user') %}
+      {{ badge(t('you'), variant='muted', size='sm') }}
+      {% endif %}
+      </span>
+    </td>
+    <td class="col-gitlabid muted col-hide-sm"><span class="users-cell-value">{{ user.gitlab_user_id or '-' }}</span></td>
+    <td class="col-fullname"><span class="users-cell-value" data-tippy-content="{{ user.full_name or '-' }}">{{ user.full_name or '-' }}</span></td>
+    <td class="col-email col-hide-xs"><span class="users-cell-value"{% if user.email and user.email != 'PRIVATE' %} data-tippy-content="{{ user.email }}"{% endif %}>{% if user.email and user.email != 'PRIVATE' %}{{ user.email }}{% elif user.email == 'PRIVATE' %}<span class="muted">{{ t('PRIVATE') }}</span>{% else %}-{% endif %}</span></td>
+    {#- A service account's stored role is whatever GitLab sync gave it -
+        "student", as a rule - and printing that made a bot look like a
+        student. It is a service account, and the column says so. -#}
+    <td class="col-role">{% if user.is_bot %}{{ badge(t('Bot'), variant='muted', size='sm') }}{% else %}{{ role_badge(user.role) }}{% endif %}</td>
+    {#- Which terms this person is in, as a badge on EVERY row - a dash said
+        nothing, and a reader could not tell "no term" from "every term".
+        * a student: the terms of the courses whose groups they are in;
+          none yet -> No period (the selector's own "No period" view).
+        * a teacher: the terms of the courses they own or teach;
+          none -> No courses.
+        * an administrator or a service account: All periods - they are not
+          tied to a term and appear in every one, which is exactly what the
+          period selector does with them.
+        Its own column, so the badges wrap instead of running over Status.
+        Sorted by the newest term; the two kinds of "every term" sort first. -#}
+    {%- set _user_periods = (user_periods or {}).get(user.id|string, []) if user.role in ('student', 'teacher') and not user.is_bot else [] %}
+    {%- set _every_term = user.is_bot or user.role == 'admin' %}
+    <td class="col-period col-hide-xs" data-sort-value="{{ '9999' if _every_term else ((_user_periods[0].academic_year ~ '-' ~ _user_periods[0].semester) if _user_periods else '') }}">
+      {%- if _every_term %}
+      <span data-tippy-content="{{ t('Service accounts belong to the installation, not to a term, and appear in every period.') if user.is_bot else t('Administrators are not tied to a term: they see every course and appear in every period.') }}">{{ badge(t('All periods'), variant='gray', size='sm', class='gl-period-badge') }}</span>
+      {%- elif _user_periods %}
+      <span class="users-period-badges">
+        {%- for _p in _user_periods %}
+        {{ period_badge(_p.academic_year, _p.semester, current=(_p.academic_year ~ '-' ~ _p.semester)|replace('/', '-') == current_period_key) }}
+        {%- endfor %}
+      </span>
+      {%- elif user.role == 'teacher' %}
+      <span data-tippy-content="{{ t('This teacher does not own or teach any course yet. Teachers appear in every period.') }}">{{ badge(t('No courses'), variant='muted', size='sm', class='gl-period-badge') }}</span>
+      {%- else %}
+      <span data-tippy-content="{{ t('Not in a group of any course yet.') }}">{{ badge(t('No period'), variant='muted', size='sm', class='gl-period-badge') }}</span>
+      {%- endif %}
+    </td>
+    <td class="col-status col-hide-xs">
+      {% if user.is_active %}
+        {{ status_indicator('success', t('Active')) }}
+      {% else %}
+        {{ status_indicator('muted', t('Inactive')) }}
+      {% endif %}
+    </td>
+    <td class="col-created muted col-hide-sm"><span class="users-cell-value">{{ localized_time(user.created_at, date_only=true) }}</span></td>
+    <td class="col-actions text-right">
+      <div class="gl-row-actions">
+      {% set info_label = t('View service account details') if user.is_bot else t('View memberships') %}
+      {{ btn_icon_only('info', variant='secondary', size='sm', aria_label=info_label, data_attrs={'tippy-content': info_label, 'action': 'openUserInfoModal', 'action-args': [user.id|string, user.username]|tojson_attr}) }}
+      {% if is_admin %}
+        {% set edit_label = t('Restore as human user / edit') if user.is_bot else t('Edit role and status') %}
+        {{ btn_icon_only('edit', variant='secondary', size='sm', aria_label=edit_label, data_attrs={'tippy-content': edit_label, 'action': 'openEditUserModal', 'action-args': [user.id|string, user.username, user.role, user.is_active, user.is_bot or false]|tojson_attr}) }}
+      {% endif %}
+      </div>
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
+{% endcall %}
+{{ pagination_controls(total=_shown.n, page_size=default_page_size | default('50')) }}
+{% endcall %}

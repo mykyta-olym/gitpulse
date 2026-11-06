@@ -1,0 +1,193 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+{{ $title:= .Title | markdownify | plainify | htmlUnescape }}
+<title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ printf "%s | %s" $title site.Title }}{{ end }}</title>
+
+<link rel="icon" href="{{ relURL "" }}favicon.ico" sizes="any">
+<link rel="icon" href="{{ relURL "" }}favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ relURL "" }}apple-touch-icon.png">
+<link rel="manifest" href="{{ relURL "" }}manifests/manifest.webmanifest">
+{{/* The application's own accent, not GitLab orange - a phone chroming the
+     page should paint this project's colour. */}}
+<meta name="theme-color" content="#18171d">
+
+<!-- Build canonical url and hreflang metatags for SEO -->
+{{ partial "functions/canonical-hreflang.html" . }}
+
+{{ if .Params.description }}
+  <meta name="description" content="{{ .Params.description }}">
+{{ else if .Description }}
+  <meta name="description" content="{{ .Description }}">
+{{ else if and (not .IsHome) $title }}
+  {{/* Fallback to a title-based description to avoid duplicated meta descriptions across pages. */}}
+  <meta name="description" content="{{ printf (T "meta.descriptionFallback") $title }}">
+{{ else }}
+  <meta name="description" content="{{ T "meta.siteDescription" }}">
+{{ end }}
+
+{{/* What a shared link shows. Previously only og:site_name was set, so a
+     link to any page arrived as a bare URL with no title, summary or image. */}}
+{{ $desc := "" }}
+{{ if .Params.description }}{{ $desc = .Params.description }}
+{{ else if .Description }}{{ $desc = .Description }}
+{{ else }}{{ $desc = printf (T "meta.descriptionFallback") $title }}{{ end }}
+
+<meta property="og:site_name" content="{{ site.Title }}">
+<meta property="og:type" content="{{ if .IsHome }}website{{ else }}article{{ end }}">
+<meta property="og:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ $title }}{{ end }}">
+<meta property="og:description" content="{{ $desc }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:locale" content="{{ replace .Site.Language.Lang "-" "_" }}">
+<meta property="og:image" content="{{ "assets/images/og-image.png" | absURL }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ if .IsHome }}{{ site.Title }}{{ else }}{{ $title }}{{ end }}">
+<meta name="twitter:description" content="{{ $desc }}">
+
+{{/* What this page tells a crawler.
+
+     Only the noindex half used to be written, so every other page said nothing
+     at all and the one signal that existed came from nginx's X-Robots-Tag -
+     which disagreed with it, and with the sitemap. Saying it in the page as
+     well means the answer survives a different proxy, an archived copy or a
+     reader saving the HTML, and it is the same rule nginx/default.conf applies:
+     generated listings are followed but not listed, everything else public is
+     indexable with the preview limits docs.gitlab.com uses.
+
+     Gated sections are absent from this rule on purpose: they are Disallowed in
+     the application's robots.txt, and a noindex a crawler is forbidden to fetch
+     is a contradiction. */}}
+{{ $listing := false }}
+{{ range site.Params.noindexSections | default slice }}
+  {{/* On the URL, not `.Section`: `tags` and `search` are top-level pages whose
+       Section is the empty string, so a Section test left them declaring
+       themselves indexable while nginx served them `noindex, follow`. */}}
+  {{ if in $.RelPermalink (printf "/%s/" .) }}{{ $listing = true }}{{ end }}
+{{ end }}
+{{ if or (eq .Params.noindex true) $listing }}
+  <meta name="robots" content="noindex, follow">
+{{ else }}
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+{{ end }}
+
+<!-- Redirect handling -->
+{{ if isset .Params "redirect_to" }}
+  {{ partial "redirect.html" . }}
+{{ end }}
+
+<!-- GitLab Fonts and UI -->
+<link rel="preload" href="{{ relURL "" }}gitlab_ui/fonts/GitLabSans.woff2" type="font/woff2" as="font" crossorigin>
+<link rel="prefetch" href="{{ relURL "" }}gitlab_ui/fonts/GitLabSans-Italic.woff2" crossorigin>
+<link rel="prefetch" href="{{ relURL "" }}gitlab_ui/fonts/GitLabMono.woff2" crossorigin>
+<link rel="stylesheet" href="{{ relURL "" }}gitlab_ui/ui/index.css">
+
+<!-- Tailwind utilities and custom CSS -->
+<link rel="stylesheet" href="{{ relURL "" }}vite/main.css">
+
+<!-- Syntax highlighting themes - load both for dynamic switching -->
+{{ $syntaxDarkCSS := resources.Get "css/syntax-dark.css" | resources.Minify }}
+{{ $syntaxLightCSS := resources.Get "css/syntax-light.css" | resources.Minify }}
+<link rel="stylesheet" href="{{ $syntaxDarkCSS.RelPermalink }}" id="syntax-dark-theme">
+<link rel="stylesheet" href="{{ $syntaxLightCSS.RelPermalink }}" id="syntax-light-theme">
+
+{{/* Decides whose language and theme choice wins - see static/js/preferences.js */}}
+<script src="{{ relURL "" }}js/preferences.js"></script>
+
+<!-- Prevent FOUC by applying theme and layout immediately -->
+<script>
+  (function() {
+    const THEME_STORAGE_KEY = 'gitlab-docs-theme';
+    const LAYOUT_STORAGE_KEY = 'gitlab-docs-layout';
+    const THEMES = { LIGHT: 'light', DARK: 'dark', AUTO: 'auto' };
+    const LAYOUTS = { FIXED: 'fixed', FLUID: 'fluid' };
+    const DEFAULT_THEME = '{{ .Site.Params.theme | default "dark" }}';
+    const DEFAULT_LAYOUT = 'fixed';
+    let is_auto = false;
+
+    const storedTheme = localStorage?.getItem(THEME_STORAGE_KEY);
+    const storedLayout = localStorage?.getItem(LAYOUT_STORAGE_KEY);
+    const systemPreference = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? THEMES.DARK : THEMES.LIGHT;
+
+    function determineTheme() {
+      if (storedTheme && (storedTheme === THEMES.LIGHT || storedTheme === THEMES.DARK)) {
+        return storedTheme;
+      }
+      if (storedTheme === THEMES.AUTO) {
+        is_auto = true;
+      }
+      if (is_auto) {
+        return systemPreference;
+      }
+      return DEFAULT_THEME;
+    }
+
+    function determineLayout() {
+      return storedLayout === LAYOUTS.FLUID ? LAYOUTS.FLUID : DEFAULT_LAYOUT;
+    }
+
+    // Apply theme immediately to prevent FOUC
+    const theme = determineTheme();
+    const layout = determineLayout();
+    const html = document.documentElement;
+
+    html.classList.remove('gl-dark', 'gl-light');
+    html.classList.add(theme === THEMES.DARK ? 'gl-dark' : 'gl-light');
+
+    // Apply layout immediately to prevent layout shift
+    if (layout === LAYOUTS.FLUID) {
+      html.classList.add('fluid');
+      html.classList.remove('fixed');
+    }
+
+    // Apply syntax highlighting immediately
+    const darkStylesheet = document.getElementById('syntax-dark-theme');
+    const lightStylesheet = document.getElementById('syntax-light-theme');
+
+    if (darkStylesheet && lightStylesheet) {
+      if (theme === THEMES.DARK) {
+        darkStylesheet.disabled = false;
+        lightStylesheet.disabled = true;
+      } else {
+        darkStylesheet.disabled = true;
+        lightStylesheet.disabled = false;
+      }
+    }
+    // Store theme config for main theme manager
+    window.__initialTheme = is_auto ? THEMES.AUTO : theme;
+    window.__initialLayout = layout;
+  })();
+</script>
+
+
+<!-- Custom tags -->
+<meta name="gitlab_docs_base_url" content="{{ relURL "" }}">
+<meta name="gitlab_docs_page_owner"
+  data-stage="{{ or .Params.stage "None" }}"
+  data-group="{{ or .Params.group "None" }}"
+>
+<meta class="elastic" name="gitlab_docs_section" content="{{ partial "functions/page-metadata" (dict "Context" . "field" "section") | default "none" }}">
+<meta class="elastic" data-pagefind-meta="breadcrumbs[content]" name="gitlab_docs_breadcrumbs" content="{{ partial "functions/page-metadata" (dict "Context" . "field" "trail_string") }}">
+
+{{ $sourceLink := partial "edit-link.html" (dict "Context" . "linkType" "source" "format" "url") }}
+{{ $ideLink := partial "edit-link.html" (dict "Context" . "linkType" "ide"  "format" "url") }}
+<meta name="gitlab_docs_page_source" content="{{ $sourceLink }}">
+<meta name="gitlab_docs_web_ide_link" content="{{ $ideLink }}">
+
+<script>
+// Active trail for use by navigation menus
+window.pageMetadata = {
+  trail: {{ partial "functions/page-metadata" (dict "Context" . "field" "trail_json") | default "[]" | safeJS }}
+};
+</script>
+
+<!-- Search: Pagefind. The Elasticsearch branch needs a cluster, an index
+     and a frontend key; Pagefind indexes the built HTML and needs no service. -->
+<link href="{{ relURL "" }}pagefind/pagefind-ui.css" rel="stylesheet">
+<script type="module" src="{{ relURL "" }}pagefind/pagefind-ui.js"></script>
+<script type="module" src="{{ relURL "" }}vite/pagefind_search.js"></script>
+
+
+{{/* GitLab's two `zd-site-verification` tokens used to be emitted here. They
+     came with the theme and verify THEIR Zendesk federated search against
+     docs.gitlab.com; on this host they claimed a site this project does not
+     own and told a crawler nothing true. Removed rather than replaced - this
+     site has no Zendesk. */}}

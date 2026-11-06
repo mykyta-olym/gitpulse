@@ -1,0 +1,290 @@
+/* -- Top Bar (Super Nav) - fixed above content area -- */
+/* GitLab's super-topbar spans the FULL width at the top (x=0, 1440x48 measured
+   on gitlab.com) and the sidebar starts below it. Ours used to start after the
+   sidebar, so the shell read as "sidebar with a bar next to it" instead of
+   "bar over everything" - the layout difference visible before any component. */
+.gl-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--navbar-height);
+  background: transparent;
+  /* GitLab's super-topbar is a 3-column grid (measured 521.9 / 344.2 / 521.9),
+     which is what keeps the search dead centre of the viewport no matter how
+     wide the brand or the right-hand cluster get. Ours was flex, so the search
+     centred in the leftover space and sat 52px left of GitLab's. */
+  display: grid;
+  /* GitLab's search grows with the viewport: measured 261px at 1024, 312 at
+     1280, 344 at 1440, 392 at 1680 and 440 at 1920 - exactly 20vw + 56px. A
+     fixed 344px looked stunted on a wide screen, which is what "make the
+     element longer" was about. */
+  grid-template-columns: 1fr minmax(0, calc(20vw + 56px)) 1fr;
+  align-items: center;
+  padding: 0 var(--gl-spacing-3) 0 var(--gl-spacing-4);  /* GitLab: 0 8px 0 12px */
+  flex-shrink: 0;
+  /* Above the content-level status strips (health/connection banner, job bar,
+     which are z-index: var(--z-sticky) inside .gl-page and come LATER in the DOM)
+     so the top-bar's dropdown menus open OVER them instead of the banner
+     bleeding through / overlapping the menu. */
+  z-index: calc(var(--z-sticky) + 10);
+  /* GitLab's top bar: gap 16px. */
+  gap: var(--gl-spacing-5);
+}
+
+.gl-top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  /* Allow breadcrumbs to shrink so long page titles (e.g. a team project
+     with multiple student names) don't overflow into the search bar. */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.gl-top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  flex-shrink: 0;
+  justify-self: end;   /* right column of the grid */
+}
+
+/* -- Top Bar Search Button - GitLab "Search or go to..." -- */
+.gl-top-bar-search {
+  /* Middle grid column, fixed at GitLab's 344px, with the 1fr columns either
+     side balancing it into the exact centre of the viewport. */
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.gl-search-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  width: 100%;
+  /* Measured on gitlab.com: the search trigger is 344x32 with a 12px radius and
+     0/4px/0/8px padding. Ours was 560px wide with a 4px radius, so the bar read
+     as a wide input rather than GitLab's compact pill. */
+  max-width: 100%;
+  height: 32px;
+  padding: 0 var(--gl-spacing-2) 0 var(--gl-spacing-3);
+  background: var(--gl-topbar-search-bg);
+  border: 1px solid var(--gl-topbar-search-border);
+  border-radius: 12px;
+  color: var(--gl-text-color-subtle);
+  font-size: var(--font-size-base);
+  line-height: 1rem;   /* GitLab: 16px, not the inherited 1.5 body line */
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: border-color var(--transition-normal),
+              background var(--transition-normal),
+              box-shadow var(--transition-normal);
+}
+
+/* GitLab's search trigger animates ONE thing on hover: the border darkens from
+   rgba(5,5,6,0.24) to rgba(5,5,6,0.4) over the standard 0.2s out-cubic. The
+   fill and the label stay exactly as they were - ours also swapped the
+   background, which read as a heavier state change than GitLab's. */
+.gl-search-btn:hover {
+  border-color: var(--gl-topbar-search-border-hover);
+}
+
+/* .gl-search-btn:focus-visible is part of the shared focus ring in forms.css */
+
+.gl-search-btn .icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.gl-search-btn-text {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gl-search-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* GitLab's `/` badge: 19x18, 12px text, 4px radius, on gray-10 with a
+     gray-200 hairline. Ours was 20x20 at 11px with a 2px radius. */
+  min-width: 19px;
+  height: 18px;
+  padding: 3px 5px;
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  background: var(--gl-kbd-bg);
+  border: 1px solid var(--gl-kbd-border);
+  border-radius: var(--radius);
+  color: var(--gl-text-color-subtle);
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.gl-top-bar-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  /* GitLab's top-bar controls sit ON a surface - measured on gitlab.com, the
+     search and "+" buttons are filled discs, not bare glyphs floating in the
+     bar. Ours were `background: none`, so they read as decoration rather than
+     as things you can press. Explicit, not `--gl-hover-subtle`: that token is a
+     dark tint in dark mode and disappears against the bar. */
+  background-color: var(--gl-topbar-search-bg);
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--gl-text-color-subtle);
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  transition: background var(--transition-normal),
+              color var(--transition-normal);
+}
+
+.gl-top-bar-action:hover {
+  background: var(--gl-hover-subtle);
+  color: var(--gl-text-color-strong);
+  text-decoration: none;
+}
+
+.gl-top-bar-action:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.gl-top-bar-action .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* -- Mobile Menu Button -- */
+.gl-mobile-menu-btn {
+  /* The shared tertiary icon button; only a phone shows it. */
+  display: none;
+}
+
+
+
+/* -- Top-bar Dropdown Container -- */
+.gl-top-bar-dropdown {
+  position: relative;
+}
+
+/* -- User avatar dropdown -- */
+.gl-top-bar-user-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.gl-top-bar-avatar-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow var(--transition-normal);
+}
+
+/* The avatar is the shared one (`avatar(..., size=32)`); the button rings it. */
+.gl-top-bar-avatar-btn:hover .gl-avatar,
+.gl-top-bar-avatar-btn:focus-visible .gl-avatar {
+  box-shadow: 0 0 0 2px var(--primary);
+  /* Colour only on hover - GitLab's whole transition inventory carries no
+     transform outside animated icons (@gitlab/ui 136.3.0). The lift was
+     already removed from the course cards once; it survived here. */
+}
+
+.gl-top-bar-avatar-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: 50%;
+}
+
+/* -- Context bar - academic year + clock -- */
+.gl-top-bar-context {
+  display: flex;
+  align-items: center;
+  /* Every other item in the bar is a 32px box centred on the 24px midline, at
+     14px. This chip sat at 18px/12px, which is what made the header read as
+     "one thing bigger than another" rather than one row. */
+  height: 32px;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-base);
+  color: var(--gl-text-color-subtle);
+  white-space: nowrap;
+  user-select: none;
+}
+.gl-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* Centre the GLYPHS, not the line box. `align-items: center` lines up boxes,
+     and a 21px line box around 14px digits carries the font's full ascent -
+     room for accents and diacritics that "2026/2027" and "23.09. 14:03" never
+     use - so the ink of those digits lands about a pixel BELOW the middle of
+     the box it sits in. Measured from the rendered pixels: every other item in
+     this bar (search button, avatar, and these chips' own icons) has its ink
+     centred on 23.75, and the text alone sat at 25.0 - which is the row not
+     reading as level. `line-height: 1` collapses the box onto the em, and the
+     ink lands where every box already is. */
+  line-height: 1;
+}
+/* The clock's text is written by JS after first paint, so its box starts at zero
+   and the whole right-hand cluster slides sideways when it lands - measured as a
+   layout shift on EVERY page (`.gl-top-bar-right` 145px -> 230px). Reserve the
+   width the string will occupy ("17.08. 16:33" = 12 characters) and count the
+   digits as tabular so a minute change cannot re-wrap it either. */
+#topBarClockText {
+  display: inline-block;
+  min-width: 10ch;
+  /* ...and the HEIGHT of that line too. Empty, this box is 0 high, so the
+     `.gl-context-item` around it is only as tall as the clock icon; the moment
+     the text lands the line grows and the item's own top moves - a shift the
+     browser scores at 0 but the eye reads as the top bar settling, on every
+     page that draws it. One em is that line now the chip sets line-height 1. */
+  min-height: 1em;
+  font-variant-numeric: tabular-nums;
+}
+/* neutral-600, not neutral-500: gray-500 on the page tint is 4.04:1, and
+   GitLab's neutral-500 is the disabled step, not a text colour. */
+.gl-context-separator {
+  color: var(--text-secondary);
+}
+
+/* -- Mobile brand logo -- hidden on desktop (the sidebar carries it); shown
+   only on mobile so the bar reads like GitLab: logo - menu .. search + avatar. */
+.gl-top-bar-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-shrink: 0;
+  border-radius: var(--gl-action-border-radius);
+  color: var(--gl-text-color-strong);
+  font-weight: var(--font-weight-bold);
+  /* The wordmark carries the brand, so it keeps the larger step - GitLab has no
+     brand text at all, so there is no number of theirs to copy here. */
+  font-size: var(--font-size-md);
+  text-decoration: none;
+}
+.gl-top-bar-logo-svg {
+  /* Anchored to GitLab's brand WIDTH, not its height. GitLab's tanuki is
+     near-square (25x24) and fills its box; ours is wide-format and its ink spans
+     44x36 of a 48-unit viewBox. Matching GitLab's 24px HEIGHT therefore drew a
+     29px-wide mark - the heaviest object in the bar. A 27px box puts the ink at
+     ~25x20: GitLab's width exactly, and safely under the 32px control rhythm
+     every other item in the bar follows. */
+  width: 32px;
+  height: 32px;
+  display: block;
+}

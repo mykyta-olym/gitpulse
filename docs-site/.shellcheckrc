@@ -1,0 +1,2 @@
+external-sources=true # Follow source statements
+disable=SC2059 # https://www.shellcheck.net/wiki/SC2059

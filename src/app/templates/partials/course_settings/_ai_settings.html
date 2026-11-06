@@ -1,0 +1,62 @@
+{# -- AI Analysis Configuration -- #}
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import card %}
+{% from "components/forms.html" import select_field, textarea with context %}
+{% from "components/buttons.html" import btn_icon, btn_icon_only %}
+{% from "components/layout.html" import json_island with context %}
+
+{% if llm_enabled|default(false) %}
+{% set ct %}{{ t('AI Analysis Configuration') }}{% endset %}
+{% call card(title=ct, icon_name='cpu') %}
+    <p class="muted">{{ t('Configure how the AI analysis adapts to your course. Choose a course type to load its prompt preset, then customize if needed.') }}</p>
+    {{ json_island(llm_prompt_presets, csp_nonce, id='llm-prompt-presets-data') }}
+    {{ select_field('llm_course_type', label=t('Course Type'), options=[('default', t('Default (General)')), ('zsi', t('ZSI - Software Engineering Fundamentals')), ('devops', t('DevOps Fundamentals'))], value=settings.llm_course_type or 'default', help_text=t('Selects a base prompt preset. Changing the type loads the corresponding prompt into the editor below.')) }}
+    {# Registered ``glCollapse`` factory - the production @alpinejs/csp build
+       cannot evaluate ``{ showPrompt: false }``, ``showPrompt = !showPrompt``
+       or the x-text ternary, so this disclosure never opened. #}
+    <div class="form-group mt-4" x-data="glCollapse(false)">
+      <div class="llm-prompt-toggle">
+        <label for="llm_custom_prompt" class="form-label">{{ t('Analysis Prompt') }}</label>
+        {# `data-readonly-ok`: a disclosure toggle, not an edit - it must keep
+           working when the archived-course guard locks the form. #}
+        <button type="button" class="btn btn-ghost btn-sm llm-prompt-toggle-btn" data-readonly-ok @click="toggle" :aria-expanded="expanded">
+          {# Both labels render; CSS shows the right one off aria-expanded, so
+             no ternary expression is needed (forbidden by the CSP build).
+             The chevron TRAILS the label - one disclosure anatomy app-wide. #}
+          <span class="llm-prompt-label llm-prompt-label--collapsed">{{ t('Expand') }}</span>
+          <span class="llm-prompt-label llm-prompt-label--expanded">{{ t('Collapse') }}</span>
+          {{ icon('chevron-down', size='sm', class='llm-prompt-chevron') }}
+        </button>
+      </div>
+      <span class="form-help mb-2 d-block">{{ t('The prompt sent to the LLM for analysis. Select a course type above to load a preset, or write your own. Leave empty to use the built-in preset for the selected type.') }}</span>
+      <div x-show="open" x-collapse>
+        {{ textarea('llm_custom_prompt', value=settings.llm_custom_prompt or '', rows=12, monospace=true, placeholder=t('Leave empty to use the default analysis prompt...'), class='llm-prompt-editor') }}
+        <div class="llm-prompt-actions mt-2">
+          {{ btn_icon(t('Load Preset'), 'refresh-cw', variant='secondary', class='btn-sm', id='btnLoadPreset', data_attrs={'tippy-content': t('Replace the prompt with the built-in preset for the selected course type')}) }}
+        </div>
+      </div>
+    </div>
+    <fieldset class="form-group mt-4 llm-url-group">
+      <legend class="form-label">{{ t('Course Resource URLs') }}</legend>
+      <span class="form-help mb-2 d-block">{{ t('Add links to course websites, assignment pages, or grading criteria. The AI will fetch and use their content to give more relevant and accurate responses. One URL per line.') }}</span>
+      {{ json_island(llm_resource_urls, csp_nonce, id='llm-resource-urls-data') }}
+      <div x-data="llmResourceUrls()" class="llm-url-list">
+        <template x-for="(entry, idx) in entries" :key="idx">
+          <div class="llm-url-entry">
+            <div class="llm-url-field llm-url-label-col">
+              <label :for="'llm_url_label_' + idx" class="sr-only" x-text="'{{ t('Label') }} ' + (idx + 1)"></label>
+              <input type="text" class="form-input" x-model="entry.label" :id="'llm_url_label_' + idx" :name="'llm_url_label_' + idx" :placeholder="'{{ t('Label (e.g. Assignments)') }}'">
+            </div>
+            <div class="llm-url-field llm-url-url-col">
+              <label :for="'llm_url_' + idx" class="sr-only" x-text="'URL ' + (idx + 1)"></label>
+              <input type="url" class="form-input" x-model="entry.url" :id="'llm_url_' + idx" :name="'llm_url_' + idx" placeholder="https://...">
+            </div>
+            {{ btn_icon_only('trash', variant='ghost', size='sm', class='llm-url-remove', x_click="removeEntry(idx)", aria_label=t('Remove')) }}
+          </div>
+        </template>
+        {{ btn_icon(t('Add URL'), 'plus', variant='secondary', size='sm', x_click="addEntry()", data_attrs={'tippy-content': t('Add a course resource link the AI can fetch for context')}) }}
+        <input type="hidden" name="llm_resource_urls_json" id="llm_resource_urls_json" :value="entriesJson">
+      </div>
+    </fieldset>
+{% endcall %}
+{% endif %}

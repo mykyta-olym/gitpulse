@@ -1,0 +1,64 @@
+{
+  "event": "Pipeline Hook",
+  "payload": {
+    "user": {
+      "id": 1,
+      "name": "Administrator",
+      "email": "[REDACTED]",
+      "username": "root",
+      "avatar_url": "https://www.gravatar.com/avatar/bf39fbad4281cf4c31bdf9f49427146901be0bc0ee56c71814cf859450fa8718?s=80&d=identicon"
+    },
+    "builds": [],
+    "commit": {
+      "id": "1fd75505a301ca2c006b39419c951317973bfb11",
+      "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/commit/1fd75505a301ca2c006b39419c951317973bfb11",
+      "title": "Vyplniť súbor úlohy celý",
+      "author": {
+        "name": "Boris Novák",
+        "email": "boris.novak@e2e.example.edu"
+      },
+      "message": "Vyplniť súbor úlohy celý",
+      "timestamp": "2026-10-19T13:19:02+00:00"
+    },
+    "project": {
+      "id": 1,
+      "name": "projekt",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "namespace": "TIM-01",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-01/projekt"
+    },
+    "object_kind": "pipeline",
+    "merge_request": null,
+    "object_attributes": {
+      "id": 1,
+      "iid": 1,
+      "ref": "9-boris-ci",
+      "sha": "1fd75505a301ca2c006b39419c951317973bfb11",
+      "tag": false,
+      "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/pipelines/1",
+      "name": null,
+      "source": "external",
+      "stages": [
+        "external"
+      ],
+      "status": "success",
+      "duration": null,
+      "variables": [],
+      "before_sha": "0000000000000000000000000000000000000000",
+      "created_at": "2026-10-19T13:19:16.655Z",
+      "finished_at": "2026-10-19T13:19:20.966Z",
+      "protected_ref": false,
+      "default_branch": false,
+      "detailed_status": "passed",
+      "queued_duration": 4,
+      "ref_status_name": null
+    }
+  }
+}

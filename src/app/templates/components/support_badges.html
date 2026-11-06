@@ -1,0 +1,51 @@
+{#
+  Support Badge Components - shared across support_tickets, support_ticket_detail, support_manage
+
+  Usage:
+    {% from "components/support_badges.html" import support_status_badge, status_badge_detail, priority_badge, category_badge %}
+#}
+
+{% from "components/badges.html" import badge %}
+
+{# -- Table status badge (compact, used in ticket lists) -- #}
+{% macro support_status_badge(s) %}
+  {% if s == 'open' %}{{ badge(t('Open'), variant='success') }}
+  {% elif s == 'in_progress' %}{{ badge(t('In Progress'), variant='info') }}
+  {% elif s == 'resolved' %}{{ badge(t('Resolved'), variant='primary') }}
+  {% elif s == 'closed' %}{{ badge(t('Closed'), variant='gray') }}
+  {% else %}{{ badge(t(s|default('open')), variant='gray') }}{% endif %}
+{% endmacro %}
+
+{# -- Detail status badge: the table's badge with GlBadge's icon, as GitLab's
+      issuable header draws its state. support-ticket-detail.js repaints it
+      from the same map (STATUS_BADGES) when the status changes live. -- #}
+{% macro status_badge_detail(s) %}
+  {% if s == 'in_progress' %}{{ badge(t('In Progress'), variant='info', icon_name='clock') }}
+  {% elif s == 'resolved' %}{{ badge(t('Resolved'), variant='primary', icon_name='check-circle') }}
+  {% elif s == 'closed' %}{{ badge(t('Closed'), variant='gray', icon_name='git-merge') }}
+  {% else %}{{ badge(t('Open'), variant='success', icon_name='git-pull-request') }}{% endif %}
+{% endmacro %}
+
+{# -- Priority badge -- #}
+{% macro priority_badge(p) %}
+  {% if p == 'critical' %}{{ badge(t('Critical'), variant='danger') }}
+  {% elif p == 'high' %}{{ badge(t('High'), variant='warning') }}
+  {% elif p == 'medium' %}{{ badge(t('Medium'), variant='info') }}
+  {% elif p == 'low' %}{{ badge(t('Low'), variant='gray') }}
+  {% else %}{{ badge(t(p|default('medium')), variant='gray') }}{% endif %}
+{% endmacro %}
+
+{# -- Category badge -- #}
+{% macro category_badge(c) %}
+  {% if c == 'bug' %}{{ badge(t('Bug'), variant='danger', icon_name='alert-circle') }}
+  {% elif c == 'feature_request' %}{{ badge(t('Feature'), variant='primary', icon_name='zap') }}
+  {% elif c == 'question' %}{{ badge(t('Question'), variant='info', icon_name='help-circle') }}
+  {% elif c == 'account' %}{{ badge(t('Account'), variant='warning', icon_name='user') }}
+  {% elif c == 'grade' %}{{ badge(t('Grade'), variant='info', icon_name='award') }}
+  {% elif c == 'dashboard' %}{{ badge(t('Dashboard'), variant='info', icon_name='bar-chart-2') }}
+  {% elif c == 'cicd' %}{{ badge(t('CI/CD'), variant='primary', icon_name='git-branch') }}
+  {% elif c == 'code_review' %}{{ badge(t('Reviews'), variant='primary', icon_name='git-pull-request') }}
+  {% elif c == 'evaluation' %}{{ badge(t('Evaluations'), variant='success', icon_name='check-square') }}
+  {% elif c == 'repositories' %}{{ badge(t('Repos'), variant='gray', icon_name='folder') }}
+  {% else %}{{ badge(t('General'), variant='gray', icon_name='clipboard') }}{% endif %}
+{% endmacro %}

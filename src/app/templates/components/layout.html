@@ -1,0 +1,237 @@
+{#
+  Layout Components - Page structure, grids, navigation
+  
+  Usage:
+    from "components/layout.html" import page_header, section, breadcrumbs, tabs
+#}
+
+{% from "components/icons.html" import icon %}
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn %}
+
+{# Page header with title and actions #}
+{% macro page_header(title, subtitle='', back_link='', back_text=t('Back'), secondary_back_link='', secondary_back_text='', class='', badge='') %}
+{% if back_link %}
+<div class="page-header-nav">
+  <a href="{{ back_link }}" class="page-header-back">
+    {{ icon('arrow-left', size='sm') }}
+    {{ back_text }}
+  </a>
+  {% if secondary_back_link %}
+  <span class="page-header-nav-sep" aria-hidden="true">/</span>
+  <a href="{{ secondary_back_link }}" class="page-header-back">
+    {{ icon('home', size='sm') }}
+    {{ secondary_back_text or t('Back to Dashboard') }}
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+<div class="page-header {{ class }}">
+  <div class="page-header-content">
+    <div class="page-header-title-row">
+      <h1>{{ title }}</h1>
+      {% if badge %}
+        {{ badge }}
+      {% endif %}
+    </div>
+    {% if subtitle %}
+      <p class="muted">{{ subtitle }}</p>
+    {% endif %}
+  </div>
+  {% if caller is defined and caller %}
+  <div class="page-header-actions">
+    {{ caller() }}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# Section with optional header #}
+{% macro section(title='', subtitle='', class='', id='', collapsible=false, collapsed=false) %}
+{# Collapsible sections run on the registered ``glCollapse`` factory: the
+   production @alpinejs/csp build cannot evaluate an x-data object literal,
+   an ``open = !open`` assignment or an ``open ? .. : ..`` ternary, which left
+   every collapsible section frozen. The chevron is GitLab's
+   GlAnimatedChevronRightDownIcon, rotated by CSS (.section-toggle-chevron). #}
+<section class="content-section {{ class }}"{% if id %} id="{{ id }}"{% endif %}{% if collapsible %} x-data="glCollapse({{ 'false' if collapsed else 'true' }})"{% endif %}>
+  {% if title %}
+  <div class="section-header{% if collapsible %} section-header--collapsible{% endif %}"{% if collapsible %} @click="toggle" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle" role="button" tabindex="0" :aria-expanded="expanded"{% endif %}>
+    {# Title and description STACK, the way GitLab's settings sections read: the
+       heading names the section and the description explains it underneath. They
+       used to sit side by side, which put a whole sentence on the same line as a
+       21px heading and left neither reading as the other's caption. The
+       disclosure chevron still belongs beside the title, so it keeps its own row. #}
+    <div class="section-title-group">
+      <div class="section-title-row">
+        {% if collapsible %}
+          <span class="section-toggle" aria-hidden="true">
+            <svg class="section-toggle-chevron" :class="chevronClass" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.75 4.75L10 8L6.75 11.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        {% endif %}
+        <h2 class="section-title">{{ title }}</h2>
+      </div>
+      {% if subtitle %}
+        <p class="section-subtitle">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+    {% if caller is defined and caller.actions is defined %}
+      <div class="section-actions">{{ caller.actions() }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+  <div class="section-content"{% if collapsible %} x-show="open" x-collapse{% endif %}>
+    {{ caller() }}
+  </div>
+</section>
+{% endmacro %}
+
+{# Tabs component.
+   Uses the declarative [data-tabs] controller (GP.initTabs, core/39-tabs-and-toggles.js) rather than inline Alpine - the production
+   @alpinejs/csp build cannot evaluate an x-data object literal, an
+   ``activeTab = 'x'`` assignment or an ``activeTab === 'x'`` comparison.
+   The caller supplies panels marked with ``data-tab-panel="<item.id>"``. #}
+{% macro tabs(items=[], active='', class='', id='tabs') %}
+{% set _active_id = active or (items[0].id if items else '') %}
+<div class="tabs-container {{ class }}" data-tabs{% if id %} id="{{ id }}"{% endif %}>
+  <div class="tabs-nav" role="tablist">
+    {% for item in items %}
+    <button
+      type="button"
+      class="btn btn-ghost tab-btn{% if item.id == _active_id %} active{% endif %}"
+      data-tab="{{ item.id }}"
+      role="tab"
+      aria-selected="{{ 'true' if item.id == _active_id else 'false' }}"
+      aria-controls="tab-panel-{{ item.id }}"
+    >
+      {% if item.icon %}{{ icon(item.icon, size='sm') }}{% endif %}
+      {{ item.label }}
+      {% if item.badge %}
+        {{ badge(item.badge, variant='muted', size='sm', class='tab-badge') }}
+      {% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  <div class="tabs-content">
+    {{ caller() }}
+  </div>
+</div>
+{% endmacro %}
+
+
+{# The page-config JSON island every page ships for its client bundle: role
+   flags and any page-specific data, read once via JSON.parse(#gp-page-config).
+   Six pages hand-wrote the same <script nonce id="gp-page-config"> wrapper and
+   the trailing `| tojson }}</script>`; this owns that wrapper so the id, type
+   and nonce can never drift between pages. Pass the config dict and the nonce:
+     {{ page_config({'isAdmin': is_admin, ...}, csp_nonce) }}
+   The nonce is not load-bearing (an application/json script is not executable,
+   so CSP never gates it) but is kept so the emitted tag is unchanged. #}
+{#
+  Server -> client data for a page. `id` because pages need their own islands;
+  every block used to be hand-written instead, which meant hand-serialising
+  booleans as `{{ 'true' if x else 'false' }}` and hand-placing every comma - a
+  missing one breaks JSON.parse and takes the whole page's JS with it.
+
+  The role keys are added here rather than repeated per page: they came from the
+  same five context variables at every call site, and three pages spelled out an
+  identical five-line block. A caller passing one of them wins.
+#}
+{% macro page_config(config, nonce='', id='gp-page-config') -%}
+{#- The ONE definition of the role flags. base.html used to derive two of them
+    differently from every page config - `canEdit` as `is_admin or is_teacher`
+    and `isStudent` as `user_role == 'student'`, against the server-computed
+    `can_edit` / `is_student` the page blocks used - so a page could ship two
+    contradictory answers to the same question. The server value wins where the
+    view provides one; the role-derived form stays as the fallback for pages
+    (login, errors) that compute neither. -#}
+{%- set _roles = {
+  'canEdit': can_edit if can_edit is defined
+             else (is_admin | default(false) or is_teacher | default(false)),
+  'isAdmin': is_admin | default(false),
+  'isTeacher': is_teacher | default(false),
+  'isStudent': is_student if is_student is defined
+               else (user_role | default('') == 'student'),
+  'userRole': user_role | default(''),
+} -%}
+<script nonce="{{ nonce }}" id="{{ id }}" type="application/json">{{ dict(_roles, **config) | tojson }}</script>
+{%- endmacro %}
+
+{#
+  A raw JSON payload inlined for a page's JS to read on boot (first table page,
+  chart data, i18n catalogue). Distinct from `page_config`: this one adds
+  NOTHING to the value, because the reader parses it as an array or an object of
+  its own shape. Seven of these were hand-written `<script type="application/json">`
+  tags that differed only in id and attribute order.
+#}
+{% macro json_island(data, nonce='', id='') -%}
+<script nonce="{{ nonce }}" id="{{ id }}" type="application/json">{{ data | tojson }}</script>
+{%- endmacro %}
+
+{#
+  The content well of a course-scoped page.
+
+  Seven pages wrote this wrapper out by hand and they had drifted into two
+  forms: the four course tabs rendered `is-course-archived` (so their guarded
+  buttons were dimmed on the first frame) while the group, project and student
+  pages only announced `data-course-archived` and waited for the JS guard to add
+  the class - the same read-only state arriving instantly on one tab and a beat
+  late on the next.
+
+  Both halves are emitted here now: the class the CSS dims by, and the
+  announcement the live-status poll keys off. The poll reads `.tabs-nav` first
+  where a nav exists, so course tabs keep announcing through it.
+
+  `data-course-id` used to ride along only on the archived branch, which left
+  the group and project pages with no course id anywhere in their markup. The
+  id is not a property of being archived - it is emitted whenever the page has
+  a course, for the scripts that read the page's course from it.
+#}
+{% macro tab_content(course=None) %}
+{%- set _locked = course and not course.is_active -%}
+<div class="gl-tab-content{% if _locked %} is-course-archived{% endif %}"
+     {%- if course %} data-course-id="{{ course.id }}"{% endif %}
+     {%- if _locked %} data-course-archived="1"{% endif %}>
+  {{ caller() }}
+</div>
+{%- endmacro %}
+
+{# A row of mutually exclusive VIEWS of one table - the same strip the course
+   sub-navigation uses (`.tabs-nav` / `.tab-btn`), because that is what it is:
+   switching between views, not toggling filters on and off.
+
+   It replaced three pill groups that each said the same thing in a different
+   shape. A pill reads as "a filter I have applied"; these are "which slice am I
+   looking at", one at a time, which is a tab. The button carries `data-value`
+   and page JS narrows the rows - no panels, one table underneath.
+
+   `apart: true` on an item draws a divider before it: for a view that is a
+   different KIND of row rather than another value of the same field. Service
+   accounts against Admin / Teacher / Student is exactly that - they are not
+   a fourth role, which is also why "All" does not include them. #}
+{# `panels=true`: the strip switches PANELS instead of filtering rows. Each
+   button then also carries `data-tab`, and the declarative tabs controller
+   (`[data-tabs]` / `[data-tab-panel]`, GP.initTabs) shows the matching panel.
+   Same pills, same band, same place in the card - one view switcher whether
+   the views are subsets of one table or two tables of their own. #}
+{% macro filter_tabs(items=[], active='all', aria_label='', class='', id='', panels=false) %}
+<div class="tabs-nav filter-tabs {{ class }}" role="tablist"{% if aria_label %} aria-label="{{ aria_label }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}>
+  {% for item in items %}
+  <button type="button"
+    class="tab-btn{% if item.value == active %} active{% endif %}{% if item.apart %} tab-btn--apart{% endif %}{% if item.muted %} tab-btn--muted{% endif %}"
+    role="tab"
+    data-value="{{ item.value }}"
+    {%- if panels %} data-tab="{{ item.value }}" aria-controls="tab-panel-{{ item.value }}"{% endif %}
+    aria-selected="{{ 'true' if item.value == active else 'false' }}"
+    {%- if item.x_selected %} :aria-selected="{{ item.x_selected }}" :class="{ active: {{ item.x_selected }} }"{% endif %}
+    {%- if item.x_click %} @click="{{ item.x_click }}"{% endif %}
+    {%- if item.tooltip %} data-tippy-content="{{ item.tooltip }}"{% endif %}>
+    {% if item.icon %}{{ icon(item.icon, size='sm') }}{% endif %}
+    <span class="tab-label" data-label="{{ item.label }}">{{ item.label }}</span>
+    {%- if item.badge is defined and item.badge is not none %}
+    {{ badge(item.badge, variant='muted', size='sm', class='tab-badge') }}
+    {%- endif %}
+  </button>
+  {% endfor %}
+</div>
+{% endmacro %}

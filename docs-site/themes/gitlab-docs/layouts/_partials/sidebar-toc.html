@@ -1,0 +1,43 @@
+{{/*
+  Server-renders the on-page table of contents.
+
+  Mirrors the client-side TOC Vue component (src/components/toc.vue): a flat
+  list of h2–h4 links from the rendered page content, excluding headings with
+  .no_toc or .archive-item (the Vue ignoreSelector defaults). The Vue TOC
+  component replaces this markup on mount, restoring scroll-spy behavior.
+
+  Parsing .Content (rather than .Fragments) keeps shortcode-injected headings
+  in sync with what the client scrapes from .docs-content.
+
+  @param Page
+    The page object (passed as the dot context).
+*/}}
+{{- $headings := slice -}}
+{{- range findRESubmatch `(?is)<h([2-4])(\s[^>]*)?>(.*?)</h[2-4]>` .Content -}}
+  {{- $level := index . 1 -}}
+  {{- $attrs := index . 2 | default "" -}}
+  {{- $inner := index . 3 -}}
+  {{- /* Skip excluded headings (matches Vue ignoreSelector). */ -}}
+  {{- if and (not (findRE `\bno_toc\b` $attrs)) (not (findRE `\barchive-item\b` $attrs)) -}}
+    {{- $idMatch := findRESubmatch `\bid="([^"]+)"` $attrs -}}
+    {{- if gt (len $idMatch) 0 -}}
+      {{- $id := index (index $idMatch 0) 1 -}}
+      {{- $text := $inner | plainify | htmlUnescape | strings.TrimSpace -}}
+      {{- if and $id $text -}}
+        {{- $headings = $headings | append (dict "id" $id "level" $level "text" $text) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if $headings -}}
+  <nav class="toc" aria-label="{{ T "toc.tableOfContents" }}">
+    <ul class="toc-list gl-list-none">
+      {{- range $headings -}}
+        <li class="toc-item toc-level-{{ .level }}">
+          <a href="#{{ .id }}" class="toc-link gl-text-gray-800">{{ .text }}</a>
+        </li>
+      {{- end -}}
+    </ul>
+  </nav>
+{{- end -}}

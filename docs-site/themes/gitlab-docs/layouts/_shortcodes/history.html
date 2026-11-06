@@ -1,0 +1,3 @@
+{{/* "History" is the same markup as "Collapsible," but with a pre-populated title */}}
+{{- $content := .Inner | .Page.RenderString -}}
+{{- partial "collapsible.html" (dict "id" $.Ordinal "title" (T "history.title") "content" $content) -}}

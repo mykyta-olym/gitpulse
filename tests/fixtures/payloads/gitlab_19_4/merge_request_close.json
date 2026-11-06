@@ -1,0 +1,160 @@
+{
+  "event": "Merge Request Hook",
+  "payload": {
+    "user": {
+      "id": 1,
+      "name": "Administrator",
+      "email": "[REDACTED]",
+      "username": "root",
+      "avatar_url": "https://www.gravatar.com/avatar/bf39fbad4281cf4c31bdf9f49427146901be0bc0ee56c71814cf859450fa8718?s=80&d=identicon"
+    },
+    "labels": [],
+    "changes": {
+      "state_id": {
+        "current": 2,
+        "previous": 1
+      },
+      "updated_at": {
+        "current": "2026-10-19T13:18:27.312Z",
+        "previous": "2026-10-19T13:15:55.903Z"
+      }
+    },
+    "project": {
+      "id": 1,
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "namespace": "TIM-01",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-01/projekt"
+    },
+    "reviewers": [
+      {
+        "id": 8,
+        "name": "Asistent cvičení",
+        "email": "[REDACTED]",
+        "state": "approved",
+        "username": "group_3_bot_596ca9c752b0b40b0190223f3496802d",
+        "avatar_url": "https://www.gravatar.com/avatar/fb0fba3dd1e88ad36dfce89f3da99428ec945c0bac1aa039f89b207beb330093?s=80&d=identicon",
+        "re_requested": false
+      }
+    ],
+    "event_type": "merge_request",
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "description": null
+    },
+    "object_kind": "merge_request",
+    "object_attributes": {
+      "id": 5,
+      "iid": 5,
+      "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/merge_requests/5",
+      "draft": false,
+      "state": "closed",
+      "title": "Úloha Boris, druhý pokus",
+      "action": "close",
+      "labels": [],
+      "source": {
+        "id": 1,
+        "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+        "name": "projekt",
+        "ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+        "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+        "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+        "http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+        "namespace": "TIM-01",
+        "avatar_url": null,
+        "description": null,
+        "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+        "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+        "ci_config_path": null,
+        "default_branch": "main",
+        "visibility_level": 0,
+        "path_with_namespace": "zsi-e2e/tim-01/projekt"
+      },
+      "system": false,
+      "target": {
+        "id": 1,
+        "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+        "name": "projekt",
+        "ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+        "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+        "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+        "http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+        "namespace": "TIM-01",
+        "avatar_url": null,
+        "description": null,
+        "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+        "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+        "ci_config_path": null,
+        "default_branch": "main",
+        "visibility_level": 0,
+        "path_with_namespace": "zsi-e2e/tim-01/projekt"
+      },
+      "state_id": 2,
+      "author_id": 4,
+      "merged_at": null,
+      "created_at": "2026-10-19T13:15:53.278Z",
+      "updated_at": "2026-10-19T13:18:27.312Z",
+      "actioned_at": "2026-10-19T13:18:27.391Z",
+      "assignee_id": null,
+      "description": "## Description\n\nVyplnil som svoj súbor.\n\n## Testing\n\nSkontroloval som obsah súboru.\n\nCloses #6",
+      "last_commit": {
+        "id": "83b9d5a7b1cd71b1edf426b99b1b2ccfa08c1a18",
+        "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/commit/83b9d5a7b1cd71b1edf426b99b1b2ccfa08c1a18",
+        "title": "Doplniť obľúbený príkaz Gitu",
+        "author": {
+          "name": "Boris Novák",
+          "email": "boris.novak@e2e.example.edu"
+        },
+        "message": "Doplniť obľúbený príkaz Gitu",
+        "timestamp": "2026-10-19T13:16:02+00:00"
+      },
+      "merge_error": null,
+      "prepared_at": "2026-10-19T13:15:55.601Z",
+      "time_change": 0,
+      "assignee_ids": [],
+      "merge_params": {
+        "force_remove_source_branch": true
+      },
+      "merge_status": "unchecked",
+      "milestone_id": null,
+      "reviewer_ids": [
+        8
+      ],
+      "merge_user_id": null,
+      "source_branch": "6-boris-2",
+      "target_branch": "main",
+      "time_estimate": 0,
+      "updated_by_id": null,
+      "last_edited_at": null,
+      "head_pipeline_id": null,
+      "merge_commit_sha": null,
+      "total_time_spent": 0,
+      "work_in_progress": false,
+      "human_time_change": null,
+      "last_edited_by_id": null,
+      "source_project_id": 1,
+      "squash_commit_sha": null,
+      "target_project_id": 1,
+      "first_contribution": true,
+      "human_time_estimate": null,
+      "detailed_merge_status": "unchecked",
+      "human_total_time_spent": null,
+      "target_branch_protected": true,
+      "merge_when_pipeline_succeeds": false,
+      "blocking_discussions_resolved": true
+    }
+  }
+}

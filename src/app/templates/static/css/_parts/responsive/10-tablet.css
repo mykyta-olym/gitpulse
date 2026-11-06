@@ -1,0 +1,239 @@
+@media (min-width: 769px) and (max-width: 1199px) {
+  .gl-home-layout {
+    grid-template-columns: 1fr;
+  }
+  .gl-home-main {
+    grid-column: span 1;
+  }
+
+  .gl-home-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sidebar-sticky {
+    position: static;
+  }
+
+  /* -- Form inputs - prevent iOS auto-zoom on focus -- */
+  .form-input,
+  .form-select,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* -- Small phones (≤ 480px) -- */
+@media (max-width: 480px) {
+  .modal-backdrop {
+    padding: var(--gl-spacing-2);
+  }
+
+  .gl-sidebar-brand-text {
+    font-size: var(--font-size-sm);
+  }
+
+  h1 { font-size: var(--font-size-2xl); }
+  h2 { font-size: var(--font-size-xl); }
+
+  .btn {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+    font-size: var(--font-size-sm);
+  }
+  /* An icon-only button is its square, not text padding: 12px a side left a
+     24px pagination button 0px for its chevron, which `svg { max-width: 100% }`
+     then shrank to nothing below 768px. */
+  .btn.btn-icon-only {
+    padding: 0;
+  }
+
+
+  .card-body { --card-body-pad-y: var(--gl-spacing-4); --card-body-pad-x: var(--gl-spacing-4); }
+  .card-header { padding: 6px var(--gl-spacing-4); }
+  .card-footer { padding: var(--gl-spacing-3) var(--gl-spacing-4); }
+
+  /* Preferences theme switcher */
+  .theme-switcher--segmented {
+    display: flex;
+    width: 100%;
+  }
+  .theme-switcher--segmented .theme-switcher-button {
+    flex: 1 1 0;
+    padding: 0 var(--gl-spacing-2);
+    gap: var(--gl-spacing-1);
+  }
+  /* The page gutter at phone widths is owned by 00-mobile.css - it was set
+     here too, inside a max-width:480 block in the TABLET file, and won on
+     order over the rule anyone would think to edit. */
+
+  /* The bar's margins follow the card body's own padding (navbar.css). */
+  .pagination-controls {
+    padding-left: var(--gl-spacing-4);
+    padding-right: var(--gl-spacing-4);
+  }
+
+  /* -- Support forms - compact on small phones -- */
+  .gh-products-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gh-product-card {
+    padding: var(--gl-spacing-2) var(--gl-spacing-3);
+    gap: var(--gl-spacing-1);
+  }
+
+  .gh-product-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .gh-product-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gh-situation-card {
+    padding: var(--gl-spacing-3);
+    gap: var(--gl-spacing-2);
+  }
+
+  .gh-situation-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .gh-situation-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gh-situation-info h3 {
+    font-size: var(--font-size-sm);
+  }
+
+  .gh-situation-info p {
+    font-size: var(--font-size-xs);
+  }
+
+  /* Thread entries - even more compact */
+
+  .gh-thread-header {
+    padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  }
+
+  .gh-thread-body {
+    padding: var(--gl-spacing-3);
+  }
+
+  /* -- Page header actions --
+     Every button keeps its words and the row WRAPS. "Refresh from GitLab" on
+     User Management is the reference for this family; collapsing the rest to
+     36px squares meant a header of anonymous glyphs the reader had to press to
+     identify, and it made the page header the one toolbar in the app that
+     behaved differently from every card toolbar beside it. */
+  /* Left-aligned, not centred. A centred lone button floats in the middle of an
+     otherwise left-aligned page - the header title, the breadcrumb and every
+     card below start at the same left edge, and "Refresh from GitLab" on User
+     Management is the button this family is measured against. */
+  .page-header-actions { flex-direction: row; width: 100%; justify-content: flex-start; }
+  .page-header-actions .btn { flex: 0 1 auto; }
+  .page-header-actions .btn .spinner { flex-shrink: 0; }
+  .page-header-actions .badge { align-self: flex-start; }
+  .page-header-actions .btn-group { display: inline-flex; flex-wrap: wrap; gap: var(--gl-spacing-2); }
+
+  /* -- Course card action row -- */
+  .course-card-actions .btn { min-width: 0; }
+
+  /* -- Admin courses table - "Teachers" column hidden via .col-hide-xs at template level. */
+
+  /* -- Users table - Email + Status columns hidden via .col-hide-xs at template level. */
+  .users-table {
+    min-width: 380px;
+  }
+
+  /* -- DLQ table - even more compact -- */
+  #dlqTable {
+    min-width: 600px;
+    font-size: var(--font-size-xs);
+  }
+  #dlqTable th,
+  #dlqTable td {
+    padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  }
+
+  /* -- Stat cards -- */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--gl-spacing-3);
+  }
+  /* -- GL Intelligence cards -- */
+  .gl-intelligence-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .gl-intelligence-grid--compact {
+    grid-template-columns: 1fr !important;
+  }
+  /* The stat tile's own responsive steps live with the tile, in home.css. This
+     block used to re-declare its padding, value size, label case and icon box
+     here - a second opinion at a second width, which is what made the admin
+     tiles read as a different, puffier product than the dashboard ones. */
+
+  /* -- Activity page -- */
+  .activity-item { gap: var(--gl-spacing-3); padding: var(--gl-spacing-3) 0; }
+  .activity-icon { width: 28px; height: 28px; }
+
+  /* -- Heatmap sticky column - narrower on small phones -- */
+  .hm-check-col {
+    width: auto;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+
+  /* -- Compliance summary stats - tighter on small phones -- */
+  .compliance-summary-stats {
+    gap: var(--gl-spacing-2);
+  }
+  .summary-stat {
+    padding: var(--gl-spacing-2);
+  }
+  .summary-stat-value {
+    font-size: var(--font-size-base);
+  }
+  /* -- Form inputs -- */
+  .form-input,
+  .form-select,
+  select {
+    height: 36px;
+  }
+
+  /* -- Modals tighter -- */
+  .modal {
+    margin: var(--gl-spacing-2);
+  }
+  .modal-header {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  }
+  .modal-body {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  }
+  .modal-footer {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  }
+  .modal-body > .modal-footer,
+  .modal-body > form > .modal-footer {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  }
+
+  /* -- Diff viewer - hide line numbers on small phones -- */
+  .diff-line-num {
+    display: none;
+  }
+  .diff-container {
+    padding: var(--gl-spacing-1);
+  }
+  .diff-pre {
+    max-height: 250px;
+  }
+
+}
+
+/* -- Very small phones (≤ 360px) -- */

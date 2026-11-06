@@ -1,0 +1,59 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+# Send firing alerts to Alertmanager (run with the `monitoring` profile).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  # -- GitPulse API (main application metrics) --
+  - job_name: "gitpulse-api"
+    metrics_path: /metrics
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          service: "gitpulse"
+          component: "api"
+
+  # -- Prometheus self-monitoring --
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "monitoring"
+          component: "prometheus"
+
+  # -- Grafana internal metrics --
+  - job_name: "grafana"
+    metrics_path: /grafana/metrics
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["grafana:3000"]
+        labels:
+          service: "monitoring"
+          component: "grafana"
+
+  # -- Jaeger collector/query metrics --
+  - job_name: "jaeger"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["jaeger:14269"]
+        labels:
+          service: "monitoring"
+          component: "jaeger"
+
+  # -- Postgres exporter (DB-level metrics) --
+  - job_name: "postgres"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: "gitpulse"
+          component: "postgres"

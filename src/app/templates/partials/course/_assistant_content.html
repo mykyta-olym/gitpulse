@@ -1,0 +1,235 @@
+{# The classroom assistant, for the course's teachers: the bot account it acts
+   as, its three tools, the exercise it prepares, and what it did.
+
+   Every card is server-rendered from what is stored - nothing here asks
+   GitLab on load. The activity card is a partial of its own
+   (_assistant_activity.html), which its Refresh and the live stream redraw. #}
+{% from "components/buttons.html" import btn, btn_icon, btn_link %}
+{% from "components/badges.html" import badge %}
+{% from "components/layout.html" import page_config with context %}
+{% from "components/forms.html" import csrf_field, checkbox, text_input, form_group, field_group, number_stepper, select_field with context %}
+{% from "components/alerts.html" import alert %}
+{% from "components/cards.html" import card %}
+{% from "components/avatar.html" import avatar %}
+{% from "components/modals.html" import modal %}
+{% from "components/time.html" import localized_time %}
+{% from "components/lists.html" import gl_list, gl_list_item %}
+
+{% set _is_archived = not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') %}
+{% set _connected = assistant is not none and assistant.is_connected %}
+{% set _lock = {'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id} %}
+
+{# -- What keeps the assistant from acting, said before anything else -------- #}
+{#- `problems` is account.problems(): the same answer the dashboard's "Items
+    that need your attention" gives about this course. -#}
+{% if 'token_rejected' in problems %}
+  {% call alert(variant='danger', title=t('GitLab no longer accepts the bot token')) %}
+    {{ t('GitLab refused it') }} {{ localized_time(assistant.token_rejected_at) }}. {{ t('Until a new token is connected, the assistant does nothing.') }}
+  {% endcall %}
+{% elif 'token_expired' in problems %}
+  {% call alert(variant='danger', title=t('The bot token has expired')) %}
+    {{ t('Until a new token is connected, the assistant does nothing.') }}
+  {% endcall %}
+{% elif 'no_bot' in problems %}
+  {% call alert(variant='warning', title=t('No bot is connected')) %}
+    {{ t('Tools are on, but without a bot account the assistant cannot act. Connect a token first.') }}
+  {% endcall %}
+{% endif %}
+{# The webhook is said as the Events page says it, in its two cases - none
+   set up, or one that has received nothing for 48 hours: a warning toast the
+   page raises once when it opens (course-assistant.js), not a block in the
+   page. An archived course gets none - its webhooks are dropped by design,
+   and the archived strip already says so. #}
+{% set _startup_warning = none %}
+{% set _hears_only = t('The assistant learns about pushes, merge requests and comments only through the course webhook.') %}
+{% if _is_archived %}
+{% elif not has_webhook %}
+  {% set _startup_warning = {
+    'message': t('Webhooks are not configured') ~ '. ' ~ _hears_only ~ ' ' ~ t('Set it up in the course: Settings, Webhooks.'),
+    'durationMs': 15000
+  } %}
+{% elif webhook_silent %}
+  {% set _startup_warning = {
+    'message': t('The course webhook has received no event from GitLab in 48 hours.') ~ ' ' ~ _hears_only ~ ' ' ~ t('Check the webhook in GitLab, or its secret.'),
+    'durationMs': 12000
+  } %}
+{% endif %}
+
+{# -- The bot account -------------------------------------------------------- #}
+{% set bot_actions %}
+  {% if _connected %}
+  {{ btn_icon(t('Replace token'), 'key', variant='secondary', size='sm', id='btnReplaceToken', class='btn-responsive',
+              disabled=_is_archived, disabled_reason=(_archived_reason if _is_archived else ''),
+              data_attrs={'modal-open': 'assistantTokenModal'}) }}
+  {{ btn_icon(t('Disconnect'), 'unlink', variant='danger', size='sm', id='btnDisconnectBot', class='btn-responsive',
+              disabled=_is_archived, disabled_reason=(_archived_reason if _is_archived else '')) }}
+  {% else %}
+  {{ btn_icon(t('Connect bot'), 'link', size='sm', id='btnConnectBot', class='btn-responsive',
+              disabled=_is_archived, disabled_reason=(_archived_reason if _is_archived else ''),
+              data_attrs={'modal-open': 'assistantTokenModal'}) }}
+  {% endif %}
+{% endset %}
+
+{% call card(title=t('Bot account'), icon_name='bot', header_actions=bot_actions,
+             data_attrs={'data-tour': 'assistant-bot'}, info_tip=t('The assistant comments, commits, approves and merges under this account. GitPulse itself keeps reading GitLab with its own read-only token.')) %}
+  {% if _connected %}
+  <div class="table-identity">
+    {{ avatar(assistant.bot_avatar_url, assistant.bot_name or assistant.bot_username, size=32) }}
+    <div class="member-info">
+      <span class="member-name">{{ assistant.bot_name or assistant.bot_username }}</span>
+      <span class="member-username">@{{ assistant.bot_username }}</span>
+    </div>
+    {# An expired token is said once, by the alert at the top. #}
+    {% if 'token_expiring' in problems %}
+      {{ badge(t('Token expires soon'), variant='warning', size='sm') }}
+    {% endif %}
+  </div>
+  <p class="muted text-sm mt-2">
+    {{ t('Connected by') }} {{ assistant.connected_by or '-' }}, {{ localized_time(assistant.connected_at) }}.
+    {% if assistant.token_expires_at %}{{ t('The token expires on') }} {{ localized_time(assistant.token_expires_at, date_only=true) }}.{% endif %}
+  </p>
+  {% else %}
+  <p class="muted">{{ t('The assistant works in GitLab under a bot account of its own, never under GitPulse\'s read-only token. Give it one:') }}</p>
+  <ol class="setup-steps">
+    <li>{{ t('In GitLab, open the course\'s group, then Settings > Access tokens.') }}</li>
+    <li>{{ t('Add a token with the Maintainer role and the api scope. GitLab creates a bot user for it.') }}</li>
+    <li>{{ t('Connect the token here. GitPulse checks it with GitLab, stores it encrypted and uses it only for the assistant.') }}</li>
+  </ol>
+  {% endif %}
+{% endcall %}
+
+{# -- The tools: one form, one save bar ---------------------------------------- #}
+{% set _run_state = exercise_run.state if exercise_run else '' %}
+{% if _is_archived %}{% set _prepare_reason = _archived_reason %}
+{% elif not _connected %}{% set _prepare_reason = t('Connect the bot account first.') %}
+{% elif not can_act %}{% set _prepare_reason = t('The bot token does not work. Connect a new one first.') %}
+{% elif not tools.mr_review_enabled %}{% set _prepare_reason = t('Turn on Issues and merge requests and save first.') %}
+{% elif _run_state == 'running' %}{% set _prepare_reason = t('The exercise is being prepared right now.') %}
+{% else %}{% set _prepare_reason = '' %}{% endif %}
+{% set _no_prepare = _prepare_reason != '' %}
+{% set _rules_link %}<a href="/dashboard/courses/{{ course.id }}/settings">{{ t('Settings') }}</a>{% endset %}
+
+<form id="assistantToolsForm" method="POST" action="/dashboard/courses/{{ course.id }}/assistant/tools" data-submit-action="saveAssistantTools" novalidate>
+  {{ csrf_field() }}
+
+  {% call card(title=t('Comments'), icon_name='message-square') %}
+    <p class="muted">{{ t("The language the assistant writes in GitLab: its comments, the issues it opens and the colleague's line.") }}</p>
+    <div class="form-row">
+      {{ select_field('comment_language', label=t('Language'), options=languages, value=tools.comment_language, id='comment_language', placeholder='', disabled=_is_archived) }}
+    </div>
+  {% endcall %}
+
+  {% call card(title=t('Push review'), icon_name='git-commit', data_attrs={'data-tour': 'assistant-tools'}) %}
+    <p class="muted">{{ t('After a student\'s push, the assistant comments on the pushed commit when something is off: a push straight to the default branch, a message the GitLab web editor wrote, a message too short to say what changed. A new branch gets a word of encouragement; a clean push to an existing branch gets no comment.') }}</p>
+    {% if branch_rule %}
+    <p class="muted text-sm">{{ t('A new branch is also checked against the course rule for branch names (R02):') }} <code>{{ branch_rule }}</code> - {{ _rules_link }}</p>
+    {% endif %}
+    {{ checkbox(name='push_review_enabled', id='push_review_enabled', label=t('Review pushes'), checked=tools.push_review_enabled, disabled=_is_archived) }}
+    <div class="form-row mt-2">
+      {% call form_group(label=t('Shortest commit message'), id='min_commit_title_length', help_text=t('Characters. A shorter first line of a commit message is pointed out.')) %}
+        {{ number_stepper(name='min_commit_title_length', id='min_commit_title_length', value=tools.min_commit_title_length, min=1, max=72, step=1, disabled=_is_archived) }}
+      {% endcall %}
+    </div>
+  {% endcall %}
+
+  {% call card(title=t('Merge conflict'), icon_name='git-merge') %}
+    <p class="muted">{{ t('The first time a student\'s branch changes the file below, a colleague commits to the default branch an edit of the very same lines, so merging the branch conflicts. Once the student has merged the default branch in, every push is checked: no conflict markers left, and both the colleague\'s line and the student\'s own change kept. The result goes to the merge request, or to the commit.') }}</p>
+    {{ checkbox(name='conflict_enabled', id='conflict_enabled', label=t('Plant a merge conflict'), checked=tools.conflict_enabled, disabled=_is_archived) }}
+    <div class="form-row mt-2">
+      {{ text_input('conflict_file_path', label=t('File'), id='conflict_file_path', value=tools.conflict_file_path, required=true, maxlength=300, disabled=_is_archived,
+                    help_text=t('The file the exercise has the students edit, relative to the repository root.')) }}
+    </div>
+  {% endcall %}
+
+  {% set mr_actions %}
+    {{ btn_icon(t('Prepare exercise'), 'play', variant='secondary', size='sm', id='btnPrepareExercise', class='btn-responsive',
+                disabled=_no_prepare, disabled_reason=_prepare_reason,
+                data_attrs=dict(_lock, **{'modal-open': 'assistantExerciseModal', 'tour': 'assistant-exercise'})) }}
+  {% endset %}
+  {% call card(title=t('Issues and merge requests'), icon_name='git-pull-request', header_actions=mr_actions) %}
+    <p class="muted">{{ t('Prepare exercise gives every student of the chosen projects a file of their own and an issue asking them to fill it in. The assistant then reviews the merge request the student opens: a branch of their own, a link to the issue, a change in the assigned file only. It asks for exactly what is missing; when nothing is, it approves it, and once it is merged it closes the issue and says well done.') }}</p>
+    <p class="muted text-sm">{{ t('The exercise is ordinary GitLab work: its issues and merge requests count in the checks R01 to R13 like any other. Prepare it in projects meant for practice, or before the team assignment starts.') }}</p>
+    {% if branch_rule or required_sections %}
+    <p class="muted text-sm">{{ t('The review also asks what the course grades:') }}
+      {% if branch_rule %}{{ t('branch names') }} <code>{{ branch_rule }}</code> (R02){% endif %}{% if branch_rule and required_sections %}, {% endif %}
+      {% if required_sections %}{{ t('description sections') }} {% for s in required_sections %}<code>{{ s }}</code>{% if not loop.last %}, {% endif %}{% endfor %} (R05){% endif %}
+      - {{ _rules_link }}</p>
+    {% endif %}
+    {{ checkbox(name='mr_review_enabled', id='mr_review_enabled', label=t('Review merge requests'), checked=tools.mr_review_enabled, disabled=_is_archived) }}
+    {{ checkbox(name='mr_bot_merges', id='mr_bot_merges', label=t('Merge the approved merge request'), checked=tools.mr_bot_merges, disabled=_is_archived,
+                help_text=t("Off, the assistant approves and asks the student to merge - check R10 does not count a merge by a bot as the student's. On, it merges the approved merge request itself.")) }}
+    <div class="form-row mt-2">
+      {{ text_input('exercise_file_template', label=t('Exercise file'), id='exercise_file_template', value=tools.exercise_file_template, required=true, maxlength=300, disabled=_is_archived,
+                    help_text=t('One file per student; {username} becomes the student\'s GitLab username.')) }}
+    </div>
+    {% if _run_state == 'running' %}
+    <p class="muted text-sm mt-4">{{ badge(t('Preparing'), variant='info', size='sm') }} {{ t('Started') }} {{ localized_time(exercise_run.at) }} ({{ exercise_run.by }}). {{ t('The top bar follows the run; the result appears here when it ends.') }}</p>
+    {% elif exercise_run and exercise_run.error %}
+    <p class="muted text-sm mt-4">{{ badge(t('Not prepared'), variant='danger', size='sm') }} {{ localized_time(exercise_run.at) }} ({{ exercise_run.by }}): {{ t(exercise_run.error) }}</p>
+    {% elif _run_state == 'stale' %}
+    <p class="muted text-sm mt-4">{{ badge(t('Not finished'), variant='warning', size='sm') }} {{ t('The run started') }} {{ localized_time(exercise_run.at) }} {{ t('did not finish. Prepare the exercise again - students who already have their issue are skipped.') }}</p>
+    {% elif exercise_run %}
+    <p class="muted text-sm mt-4">{{ t('Last prepared') }} {{ localized_time(exercise_run.at) }} ({{ exercise_run.by }}):</p>
+    {% call gl_list(flush=true, compact=true) %}
+      {% for p in exercise_run.projects %}
+        {% set _run_line %}<code>{{ p.path }}</code> {% if p.error %}{{ badge(t('GitLab refused'), variant='danger', size='sm') }} <span class="muted text-sm">{{ p.error }}</span>{% else %}<span class="muted text-sm">{{ t('new issues') }}: {{ p.created }}, {{ t('already assigned') }}: {{ p.skipped }}{% if p.unassignable %}, {{ t('without a GitLab account in GitPulse') }}: {{ p.unassignable }}{% endif %}</span>{% endif %}{% endset %}
+        {{ gl_list_item(_run_line, icon_name=('alert-triangle' if p.error or p.unassignable else 'check-circle')) }}
+      {% endfor %}
+    {% endcall %}
+    {% endif %}
+  {% endcall %}
+
+  <div class="settings-sticky-footer">
+    {{ btn(t('Save changes'), variant='primary', type='submit', id='btnSaveAssistantTools', disabled=true,
+           disabled_reason=(_archived_reason if _is_archived else t('Change something first - there is nothing to save yet.'))) }}
+    {{ btn_link(t('Cancel'), '/dashboard/courses/' ~ course.id, variant='secondary', id='btnCancelAssistantTools') }}
+  </div>
+</form>
+
+{# -- What the assistant did -------------------------------------------------- #}
+{% include "partials/course/_assistant_activity.html" %}
+
+{# -- Dialogs --------------------------------------------------------------- #}
+{% if not _is_archived %}
+{% call modal('assistantTokenModal', t('Connect bot') if not _connected else t('Replace token')) %}
+<form id="assistantTokenForm" method="POST" action="/dashboard/courses/{{ course.id }}/assistant/token" data-submit-action="connectAssistantBot" autocomplete="off">
+  {{ csrf_field() }}
+  {{ text_input('token', label=t('Access token'), type='password', id='assistantToken', required=true, autocomplete='off',
+                help_text=t('A group or project access token with the Maintainer role and the api scope.')) }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'assistantTokenModal'}) }}
+    {{ btn_icon(t('Connect'), 'link', type='submit', id='btnConnectSubmit') }}
+  </div>
+</form>
+{% endcall %}
+
+{% if _connected and tools.mr_review_enabled %}
+{% call modal('assistantExerciseModal', t('Prepare exercise')) %}
+<form id="assistantExerciseForm" method="POST" action="/dashboard/courses/{{ course.id }}/assistant/exercise" data-submit-action="prepareAssistantExercise">
+  {{ csrf_field() }}
+  <p class="muted">{{ t('Each student of the chosen projects gets a file and an issue assigned to them. Students who already have their issue are skipped, so running it again only adds the new ones.') }}</p>
+  {% if projects %}
+  {% call field_group(label=t('Projects')) %}
+    {% for p in projects %}
+    {{ checkbox(name='project_ids', id='assistantProject' ~ loop.index, value=p.id, label=p.team ~ ' - ' ~ p.path, checked=true) }}
+    {% endfor %}
+  {% endcall %}
+  {% else %}
+  <p class="muted">{{ t('This course has no projects yet.') }}</p>
+  {% endif %}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'assistantExerciseModal'}) }}
+    {{ btn_icon(t('Prepare exercise'), 'play', type='submit', id='btnPrepareSubmit', disabled=not projects,
+                disabled_reason=(t('This course has no projects yet.') if not projects else '')) }}
+  </div>
+</form>
+{% endcall %}
+{% endif %}
+
+<form id="assistantDisconnectForm" method="POST" action="/dashboard/courses/{{ course.id }}/assistant/disconnect" class="d-none">
+  {{ csrf_field() }}
+</form>
+{% endif %}
+
+{{ page_config({'startupWarning': _startup_warning}, csp_nonce) }}

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ t('System Settings') }}{% endblock %}
+
+{% from "components/badges.html" import badge %}
+{% from "components/layout.html" import page_header, page_config, filter_tabs with context %}
+{% from "components/alerts.html" import alert %}
+{% from "components/cards.html" import card %}
+{% from "components/tables.html" import data_table, sortable_header, table_controls, table_count, pagination_controls %}
+{% from "components/buttons.html" import btn_icon, btn_link_icon %}
+{% from "components/forms.html" import select_field, disabled_control with context %}
+{% from "components/dropdown.html" import dropdown_item, dropdown_divider with context %}
+{% from "components/bulk_actions.html" import bulk_action %}
+
+{% set nav_active = 'system' %}
+
+{% block content %}
+{% call page_header(t('System Settings'), t('Service health, background processing and deployment configuration.')) %}
+  {{ btn_icon(t('Clear Cache'), 'trash', variant='secondary', id='btnClearCache', data_attrs={'tippy-content': t('Clear server cache without removing sessions or running jobs')}) }}
+{% endcall %}
+
+{% set health_title %}{{ t('System Health') }}{% endset %}
+{% set health_actions %}
+<div class="d-flex gap-2 items-center">
+  {{ btn_link_icon(t('Raw JSON'), '/health', 'code', variant='secondary', size='sm', target='_blank', class='btn-responsive', data_attrs={'tippy-content': t('Open raw /health JSON endpoint')}) }}
+  {{ btn_icon(t('Check Now'), 'refresh-cw', variant='secondary', size='sm', id='btnHealthCheck', class='btn-responsive', data_attrs={'tippy-content': t('Run health check on all system components')}) }}
+</div>
+{% endset %}
+{% call card(title=health_title, icon_name='activity', id='systemHealth', header_actions=health_actions) %}
+  {% include 'partials/admin/_system_health.html' %}
+{% endcall %}
+
+{% if monitoring.configured or monitoring_enabled %}
+{% set mon_title %}{{ t('Monitoring') }}{% endset %}
+{% set mon_actions %}
+<div class="d-flex gap-2 items-center">
+  {% if monitoring_enabled %}
+  <div class="gl-dropdown" data-dropdown>
+    {{ btn_icon(t('Tools'), 'external-link', variant='secondary', size='sm', id='btnMonitoringTools', class='btn-responsive',
+         data_attrs={'dropdown-toggle': '', 'tippy-content': t('Open monitoring tools')}) }}
+    <div class="gl-dropdown-menu gl-dropdown-right" data-dropdown-menu>
+      {{ dropdown_item('Grafana', 'external-link', href='/grafana/', external=true) }}
+      {{ dropdown_item('Prometheus', 'external-link', href='/prometheus/', external=true) }}
+      {{ dropdown_item('Jaeger', 'external-link', href='/jaeger/', external=true) }}
+      {{ dropdown_item('Alertmanager', 'external-link', href='/alertmanager/', external=true) }}
+    </div>
+  </div>
+  {% endif %}
+  {{ btn_icon(t('Refresh'), 'refresh-cw', variant='secondary', size='sm', id='btnRefreshMonitoring', class='btn-responsive',
+       data_attrs={'tippy-content': t('Refresh monitoring metrics and active alerts')}) }}
+</div>
+{% endset %}
+{% call card(title=mon_title, icon_name='bar-chart-2', id='systemMonitoring', header_actions=mon_actions) %}
+  <div id="systemMonitoringResults">{% include 'partials/admin/_system_monitoring.html' %}</div>
+{% endcall %}
+{% endif %}
+
+{% set jh_title %}{{ t('Background Jobs') }}{% endset %}
+{% set jh_actions %}
+<div class="d-flex gap-2 items-center">
+  {{ bulk_action(t('Delete selected'), 'trash', 'btnDeleteSelectedJobs',
+       count_id='jobsSelectedCount', variant='danger',
+       tooltip=t('Delete selected finished jobs')) }}
+  <div class="gl-dropdown" data-dropdown>
+    {{ btn_icon(t('Purge Old'), 'trash', variant='secondary', size='sm', id='btnPurgeJobs', class='btn-responsive',
+         data_attrs={'dropdown-toggle': '', 'tippy-content': t('Remove finished jobs by age')}) }}
+    <div class="gl-dropdown-menu gl-dropdown-right" data-dropdown-menu>
+      {{ dropdown_item(t('Older than 24 hours'), data_attrs={'purge-hours': '24'}) }}
+      {{ dropdown_item(t('Older than 7 days'), data_attrs={'purge-hours': '168'}) }}
+      {{ dropdown_item(t('Older than 30 days'), data_attrs={'purge-hours': '720'}) }}
+      {{ dropdown_divider() }}
+      {{ dropdown_item(t('All finished jobs'), danger=true, data_attrs={'purge-hours': '87600'}) }}
+    </div>
+  </div>
+  {{ btn_icon(t('Refresh'), 'refresh-cw', variant='secondary', size='sm', id='btnRefreshJobs', class='btn-responsive',
+       data_attrs={'tippy-content': t('Refresh jobs and queue status')}) }}
+</div>
+{% endset %}
+{% call card(title=jh_title, icon_name='list', id='jobQueue', header_actions=jh_actions, data_attrs={'data-tour': 'job-queue'}) %}
+  <p class="muted text-sm">{{ t('Sync, checks and assistant runs, newest first. Open details for the result or error; active jobs can be cancelled. User actions are recorded in Events.') }}</p>
+  <div id="queueStatus" class="muted text-sm mb-2{% if queue_workers_zero %} text-warning{% endif %}" role="status" aria-live="polite">{{ queue_status_text }}</div>
+  <div id="jobsFailureHistory" class="mb-3" role="status" aria-live="polite">{% include 'partials/admin/_system_failure_info.html' %}</div>
+  {%- set jobs_filters %}
+    <div class="d-flex gap-3 flex-wrap items-center">
+      {{ select_field('jobStatusFilter', options=[
+          ('', t('All Statuses')),
+          ('enqueued', t('Enqueued')),
+          ('running', t('Running')),
+          ('started', t('Started')),
+          ('completed', t('Completed')),
+          ('failed', t('Failed')),
+          ('cancelled', t('Cancelled'))
+        ], placeholder='', class='gl-form-dropdown-sm') }}
+      {{ select_field('jobTypeFilter', options=[('', t('All Types'))] + job_type_options, placeholder='', class='gl-form-dropdown-sm') }}
+    </div>
+  {% endset %}
+  {{ table_controls(filters=jobs_filters) }}
+
+  {% call data_table(headers=[], id='jobsTable', class='table-scrollable table-sticky-actions', column_widths=['48px', '22%', '8rem', '160px', '96px', 'auto', '8rem']) %}
+      <thead>
+        <tr>
+          <th>{% call disabled_control(t('No finished tracked jobs are available for selection.') if not selectable_jobs else '') %}<input type="checkbox" class="form-check-input" id="jobsSelectAll" aria-label="{{ t('Select all') }}" data-tippy-content="{{ t('Select all') }}" data-disabled-reason="{{ t('No finished tracked jobs are available for selection.') }}"{% if not selectable_jobs %} disabled{% endif %}>{% endcall %}</th>
+          <th>{{ t('Type') }}</th>
+          <th>{{ t('Status') }}</th>
+          <th>{{ t('Last activity') }}</th>
+          <th>{{ t('Duration') }}</th>
+          <th>{{ t('Result / Error') }}</th>
+          <th class="text-right">{{ t('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody id="jobsTableBody">
+        {% include 'partials/admin/_system_job_rows.html' %}
+      </tbody>
+  {% endcall %}
+
+  {{ pagination_controls(id='jobsPagination', total=jobs_first_page_json.total, page_size=jobs_page_size) }}
+{% endcall %}
+
+{% set llm_rows = [
+  (t('Provider'), llm_config.provider, 'LLM_PROVIDER'),
+  (t('Model'), llm_config.model, 'LLM_MODEL'),
+  (t('Max Tokens'), llm_config.max_tokens, 'LLM_MAX_TOKENS'),
+  (t('Debug Mode'), badge(t('On'), 'warning') if llm_config.debug else badge(t('Off'), 'gray'), 'LLM_DEBUG_MODE'),
+  (t('API Key'), ('****' ~ llm_config.api_key_hint) if llm_config.api_key_hint else badge(t('Not set'), 'danger'), 'LLM_API_KEY')
+] %}
+{% set runtime_rows = [
+  (t('Python Version'), runtime.python_version, ''),
+  (t('Debug Mode'), badge(t('On'), 'warning') if runtime.debug else badge(t('Off'), 'gray'), 'DEBUG'),
+  (t('Base URL'), runtime.base_url, 'BASE_URL')
+] %}
+{% set config_title %}{{ t('Configuration') }}{% endset %}
+{% set config_actions %}
+  {% if llm_config.enabled %}
+  {{ btn_icon(t('Check Status'), 'zap', variant='secondary', size='sm', id='btnLlmStatus', class='btn-responsive',
+       data_attrs={'tippy-content': t('Check LLM API key validity and model availability')}) }}
+  {% endif %}
+{% endset %}
+{% set config_views %}
+  {{ filter_tabs([
+       {'value': 'all', 'label': t('All'), 'icon': 'list'},
+       {'value': 'flags', 'label': t('Feature Flags'), 'icon': 'toggle-left'},
+       {'value': 'llm', 'label': t('LLM'), 'icon': 'cpu'},
+       {'value': 'runtime', 'label': t('Runtime'), 'icon': 'server'}
+     ], active='all', aria_label=t('Filter configuration'), class='config-group-filter') }}
+{% endset %}
+{% call card(title=config_title, icon_name='sliders', id='systemConfiguration', header_actions=table_count(id='configCount', count=feature_flags|length + llm_rows|length + runtime_rows|length) ~ config_actions) %}
+{{ alert(t('Read-only. These values come from the environment the server was started with (.env); changing one requires a server restart.'), variant='info', icon_name='info', dismissible=false) }}
+{{ table_controls(filters=config_views) }}
+{% if llm_config.enabled %}<div id="llmStatusResult" class="d-none"></div>{% endif %}
+{% call data_table(headers=[], sortable=true, id='systemConfigTable', class='table-scrollable') %}
+    <colgroup>
+      <col class="col-cfg-parameter">
+      <col class="col-cfg-value">
+      <col class="col-cfg-description">
+      <col class="col-cfg-env">
+    </colgroup>
+    <thead>
+      <tr>
+        {{ sortable_header(t('Parameter'), 'parameter', default_sort='asc') }}
+        {{ sortable_header(t('Value'), 'value') }}
+        <th class="col-hide-sm">{{ t('Description') }}</th>
+        <th>{{ t('Environment Variable') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flag in feature_flags %}
+      <tr data-group="flags">
+        <td data-label="{{ t('Parameter') }}"><code>{{ flag.key }}</code></td>
+        <td data-label="{{ t('Value') }}">
+          {% if flag.enabled %}{{ badge(t('Enabled'), 'success') }}{% else %}{{ badge(t('Disabled'), 'gray') }}{% endif %}
+        </td>
+        <td class="col-hide-sm col-prose" data-label="{{ t('Description') }}">{{ t(flag.description) if flag.description else '-' }}</td>
+        <td data-label="{{ t('Environment Variable') }}"><code>{{ flag.key | upper }}={% if flag.enabled %}true{% else %}false{% endif %}</code></td>
+      </tr>
+      {% endfor %}
+      {% for label, value, env in llm_rows %}
+      <tr data-group="llm">
+        <td class="fw-500" data-label="{{ t('Parameter') }}">{{ label }}</td>
+        <td data-label="{{ t('Value') }}">{{ value }}</td>
+        <td class="col-hide-sm col-prose muted" data-label="{{ t('Description') }}">-</td>
+        <td class="muted" data-label="{{ t('Environment Variable') }}">{% if env %}<code>{{ env }}</code>{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+      {% for label, value, env in runtime_rows %}
+      <tr data-group="runtime">
+        <td class="fw-500" data-label="{{ t('Parameter') }}">{{ label }}</td>
+        <td data-label="{{ t('Value') }}">{{ value }}</td>
+        <td class="col-hide-sm col-prose muted" data-label="{{ t('Description') }}">-</td>
+        <td class="muted" data-label="{{ t('Environment Variable') }}">{% if env %}<code>{{ env }}</code>{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+{% endcall %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_scripts %}
+{{ page_config({
+  'isAdmin': is_admin,
+  'jobsTotal': jobs_first_page_json.total,
+  'jobsPageSize': jobs_page_size
+}, csp_nonce) }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/admin-system.js') }}"></script>
+{% endblock %}

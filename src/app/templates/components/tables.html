@@ -1,0 +1,223 @@
+{#
+  Table Components - Data tables, sortable headers, pagination
+  
+  Usage:
+    from "components/tables.html" import data_table, sortable_header, table_empty, pagination
+    call data_table(headers=['Name', 'Status', 'Actions']) ...endcall
+#}
+
+{% from "components/spinner.html" import spinner %}
+{% from "components/icons.html" import icon %}
+{% from "components/dropdown.html" import dropdown_check, dropdown_label, dropdown_chevron %}
+
+{% macro table_detail_row(id, columns, items) %}
+<tr id="{{ id }}" class="table-detail-row d-none"><td colspan="{{ columns }}"><dl class="table-detail-list">{% for item in items %}<dt>{{ item.label }}</dt><dd>{{ item.html or item.text }}</dd>{% endfor %}</dl></td></tr>
+{% endmacro %}
+
+{# Basic data table wrapper - GitLab Pajamas style #}
+{# `paginated=true`: page JS hands this table to ClientPaginator (not inside a
+   `data-paginator` wrapper). Until the paginator marks it ready, only the first
+   page of rows is drawn (tables.css) - never on a table whose pager is fed by
+   fetch and never marks it ready. #}
+{% macro data_table(headers=[], class='', id='', striped=false, hoverable=true, responsive=true, compact=false, bordered=false, sortable=false, reserve_rows=0, reserve_row_px=0, paginated=false, column_widths=[]) %}
+{% set table_classes = ['data-table'] %}
+{% if column_widths %}{% set _ = table_classes.extend(['tbl-fixed', 'table-column-widths']) %}{% endif %}
+{% if striped %}{% set _ = table_classes.append('table-striped') %}{% endif %}
+{% if hoverable %}{% set _ = table_classes.append('table-hover') %}{% endif %}
+{% if compact %}{% set _ = table_classes.append('table-compact') %}{% endif %}
+{% if bordered %}{% set _ = table_classes.append('table-bordered') %}{% endif %}
+{% if responsive %}
+{# .table-scroll is the non-scrolling positioning wrapper; .table-responsive is
+   the horizontal scroll viewport. The right-edge scroll affordance (fade) is
+   painted on .table-scroll so it stays pinned to the visible edge above the
+   scrolling cells; table-scroll.js toggles its is-scrollable-x / at-scroll-end
+   state. #}
+<div class="table-scroll">
+{#- `reserve_rows` holds the table's final height from the FIRST frame. A table
+    whose rows paint from an inlined island still has an empty <tbody> until the
+    deferred page bundle runs, and the card jumped 206px -> 901px when they
+    landed. Reserving the rows up front means they drop into space that was
+    already theirs. Capped by the same `max-height` .table-responsive already
+    carries, so a long list reserves the scroll viewport and no more. 37px is
+    the single-line compact row and 40px the header, both measured;
+    `reserve_row_px` overrides it for tables whose rows wrap two lines (e.g. the
+    checks table's name + description at ~58px), so they reserve their real
+    height instead of under-shooting and still jumping.
+
+    The default was a flat 37px per row and a flat 40px of header, and NO table
+    in the app draws either: measured, a normal row is 57px over a 55px head and
+    a compact row is 40px over a 39px head. So the Event Pipeline reserved 151px
+    for rows that came to 226px and grew 75px anyway - the jump this parameter
+    exists to prevent.
+
+    The reservation has to be RIGHT, not generous: when the rows land it is
+    released, so an over-reservation collapses to the content and drags
+    everything below it UP, which reads exactly like the jump it was meant to
+    remove. `compact` picks the row; `reserve_row_px` overrides both for tables
+    whose rows wrap two lines (the checks table's name + description measures
+    79px).
+
+    It is a height to hold UNTIL the rows are there, so it is handed to CSS
+    (tables.css, `[data-reserve]`) rather than set inline: the rule holds it
+    while the body is empty or shows only the loader. Inline, it outlived the
+    rows of every table that drew them on its first render - only a re-render
+    cleared it - and stood as blank space under the last row (41px under the
+    student's two issues) until a filter switch, back again on reload. -#}
+{%- set _row_px = reserve_row_px or (40 if compact else 57) %}
+{%- set _head_px = 39 if compact else 55 %}
+<div class="table-responsive"{% if reserve_rows %} data-reserve style="--table-reserve: {{ reserve_rows * _row_px + _head_px }}px"{% endif %}>
+{% endif %}
+<table class="{{ table_classes|join(' ') }} {{ class }}"{% if id %} id="{{ id }}"{% endif %}{% if sortable %} data-sortable{% endif %}{% if paginated %} data-paginated{% endif %}>
+  {% if column_widths %}<colgroup>{% for width in column_widths %}<col style="width: {{ width }}">{% endfor %}</colgroup>{% endif %}
+  {% if headers %}
+  <thead>
+    <tr>
+      {% for header in headers %}
+        <th>{{ header }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {{ caller() }}
+  </tbody>
+  {% else %}
+  {{ caller() }}
+  {% endif %}
+</table>
+{% if responsive %}
+</div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Sortable table header (client-side - works with sortable-table.js) #}
+{% macro sortable_header(text, sort_key, sort_type='string', class='', default_sort='', tooltip='') %}
+<th class="sortable-header {{ class }}{% if default_sort %} sorted{% endif %}" data-sort-key="{{ sort_key }}" data-sort-type="{{ sort_type }}"
+    {%- if default_sort %} data-sort-default="{{ default_sort }}"{% endif %}{% if tooltip %} data-tippy-content="{{ tooltip }}"{% endif %}>
+  <span class="sort-link">
+    {{ text }}
+    <span class="sort-arrow{% if default_sort == 'desc' %} desc{% elif default_sort == 'asc' %} asc{% endif %}" data-sort-arrow="{{ sort_key }}" aria-hidden="true"></span>
+  </span>
+</th>
+{% endmacro %}
+
+{# Table empty state row. Led by a GitLab illustration like every other
+   empty state (GlEmptyState, sm size): `status-nothing-sm` when there is
+   nothing, `search-sm` when a filter narrowed the rows to none. It sits in the
+   slot the loading spinner takes, so loading -> empty moves nothing. #}
+{% macro table_empty(message=t('No data available'), colspan=1, action_text='', action_href='', illustration='status-nothing-sm') %}
+<tr class="table-empty-row">
+  <td colspan="{{ colspan }}">
+    <div class="table-empty-state">
+      <div class="table-empty-icon" aria-hidden="true">{% include 'components/illustrations/' ~ illustration ~ '.svg' %}</div>
+      <p class="table-empty-message">{{ message }}</p>
+      {% if action_text %}
+        <a href="{{ action_href }}" class="btn btn-sm btn-primary">{{ action_text }}</a>
+      {% endif %}
+    </div>
+  </td>
+</tr>
+{% endmacro %}
+
+
+
+
+
+
+
+
+
+
+{# The bar under a table.
+   Given `total` (the rows the table opens with) and `page_size` (the reader's
+   Rows per page, `default_page_size`), it is rendered here as page 1 - the
+   markup ClientPaginator._paintControls writes, so when the paginator takes
+   over it draws the same bar again and nothing moves. Born empty, the bar was
+   filled by the script after first paint: "Showing 1-25 of 54", the page
+   buttons, the arrows and the per-page menu all appeared a moment after the
+   table, on every list in the app.
+   Without `total` - a table whose rows arrive by fetch - it is the empty bar,
+   held at its height by the placeholder child so the footer does not move. #}
+{% macro pagination_controls(id='paginationControls', total=none, page_size='50') %}
+{%- if total is none -%}
+<div class="pagination-controls" id="{{ id }}"><span class="gp-pagination-placeholder" aria-hidden="true"></span></div>
+{%- else -%}
+{%- set _all = (page_size | string) == 'all' -%}
+{%- set _ps = (page_size | int) if (page_size | int) in [25, 50, 100] else 50 -%}
+{%- set _pages = 1 if _all else [(total + _ps - 1) // _ps, 1] | max -%}
+{%- set _end = total if _all else [total, _ps] | min -%}
+{%- set _shown_pages = range(1, _pages + 1) | list if _pages <= 7 else [1, 2, '...', _pages] -%}
+{%- set _sizes = [(25, '25 ' ~ t('per page')), (50, '50 ' ~ t('per page')), (100, '100 ' ~ t('per page')), ('all', t('Show all'))] -%}
+{%- set _current = 'all' if _all else _ps -%}
+<div class="pagination-controls" id="{{ id }}">
+<span class="gl-pagination-info">{{ t('Showing') }} <strong>{{ 1 if total else 0 }}</strong>-<strong>{{ _end }}</strong> {{ t('of') }} <strong>{{ total }}</strong></span>
+<nav class="pagination{% if _all %} d-none{% endif %}" aria-label="Pagination">
+<button class="btn btn-secondary btn-icon-only pagination-btn pagination-prev disabled" data-tippy-content="{{ t('Previous page') }}" data-disabled-reason="{{ t('You are on the first page.') }}" data-page="0" disabled aria-label="{{ t('Previous page') }}">{{ icon('chevron-lg-left', size='sm') }}</button>
+<div class="pagination-pages">
+{%- if total -%}
+{%- for p in _shown_pages -%}
+{%- if p == '...' -%}<span class="pagination-ellipsis">...</span>
+{%- else -%}<button class="pagination-page{% if p == 1 %} pagination-current{% endif %}" data-page="{{ p }}"{% if p == 1 %} aria-current="page"{% endif %}>{{ p }}</button>
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+</div>
+<button class="btn btn-secondary btn-icon-only pagination-btn pagination-next{% if _pages <= 1 %} disabled{% endif %}" data-tippy-content="{{ t('Next page') }}" data-disabled-reason="{{ t('You are on the last page.') }}" data-page="2"{% if _pages <= 1 %} disabled{% endif %} aria-label="{{ t('Next page') }}">{{ icon('chevron-lg-right', size='sm') }}</button>
+</nav>
+<div class="gl-pagination-size"><div class="gl-dropdown gl-page-size-dropdown" data-dropdown-portal>
+{{- '' -}}<button type="button" class="gl-dropdown-toggle" aria-haspopup="listbox"><span>{% for v, label in _sizes %}{% if v == _current %}{{ label }}{% endif %}{% endfor %}</span>{{ dropdown_chevron() }}</button>
+{{- '' -}}<ul class="gl-dropdown-menu" role="listbox">
+{%- for v, label in _sizes -%}
+<li role="option"{% if v == _current %} aria-selected="true"{% endif %}><button type="button" class="gl-dropdown-item{% if v == _current %} active{% endif %}" data-size="{{ v }}">{{ dropdown_check() }}{{ dropdown_label(label) }}</button></li>
+{%- endfor -%}
+</ul></div></div>
+</div>
+{%- endif -%}
+{% endmacro %}
+
+{#
+  THE band between a card's header and its table.
+
+  Every table surface had grown its own answer to "where do the search box and
+  the filters go": some put them in the card header beside the title, some in a
+  `.table-toolbar`, one in both, and the Users page in a strip of its own with
+  bespoke classes. Three different shapes for one job, so the same control was
+  in a different place on every page.
+
+  One shape, three bands, and each says what it is:
+
+    card header   what you can DO to this table - buttons, and only buttons
+    table controls how you NARROW it - the search on the left, the views on the
+                   right, on their own line with their own edge
+    the table      the rows
+
+  `search` and `filters` are `{% set %}` blocks, so a caller passes either, both
+  or neither and the band lays out the same way whichever it gets.
+#}
+{% macro table_controls(search='', filters='', class='') %}
+{%- set search_content = (search|string)|trim %}
+{%- set filters_content = (filters|string)|trim %}
+{%- if search_content or filters_content %}
+<div class="table-controls{{ ' ' + class if class else '' }}">
+  {%- if search_content %}<div class="table-controls-search">{{ search }}</div>{% endif %}
+  {%- if filters_content %}<div class="table-controls-filters">{{ filters }}</div>{% endif %}
+</div>
+{%- endif %}
+{% endmacro %}
+
+{#
+  How many rows a table is showing, in its card header's right edge.
+
+  "Showing 1-50 of 341" already existed - at the BOTTOM of the table, in the
+  pagination bar, where a reader has to scroll past every row to reach it. The
+  same sentence belongs where the table is introduced.
+
+  It is filled by whatever drives the table: `ClientPaginator` writes into any
+  `.table-count` inside its own card, and a table without a paginator fills it
+  from its own code. Empty until then, so it never states a number it has not
+  been given.
+#}
+{% macro table_count(id='', class='', count=none, total=none) %}
+<span class="table-count muted font-sm{% if class %} {{ class }}{% endif %}"
+      {%- if id %} id="{{ id }}"{% endif %} aria-live="polite">{% if count is not none and total is not none %}{{ t('Showing') }} {{ count }} {{ t('of') }} {{ total }}{% elif count is not none %}{{ t('Showing') }} {{ count }}{% endif %}</span>
+{% endmacro %}

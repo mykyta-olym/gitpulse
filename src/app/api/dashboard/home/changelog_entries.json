@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2026-11-04",
+    "tag": "fix",
+    "title": "Skupiny majú jednotné živé stavy, vysvetlivky a triedenie. Rozhoduje najnovšia úloha; chýbajúce metriky vymažú staré hodnoty.",
+    "title_en": "Groups share live states, explanations and sorting. The newest job determines sync status; missing metrics clear old values."
+  },
+  {
+    "date": "2026-11-04",
+    "tag": "fix",
+    "title": "Živé skóre a kontroly zachovávajú stavy servera. Študentom sa neposielajú cudzie známky; odstránené sú výpočty už neexistujúcich kariet.",
+    "title_en": "Live scores and checks preserve server-rendered states. Students receive no peer grades; calculations for removed group cards are deleted."
+  },
+  {
+    "date": "2026-11-04",
+    "tag": "fix",
+    "title": "Aktivita, skupiny a projekty rešpektujú oprávnenia v kurze aj v cache. Synchronizácia a zmeny nastavení používajú rovnaké kontroly prístupu.",
+    "title_en": "Activity, groups and projects respect course permissions in cached views. Sync tracking and configuration changes use the same access checks."
+  }
+]

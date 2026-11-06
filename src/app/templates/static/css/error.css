@@ -1,0 +1,419 @@
+/**
+ * Standalone error surfaces built from the same semantic Pajamas tokens as
+ * the application shell. Color mode is resolved by theme-bootstrap.js.
+ */
+
+:root {
+  --err-bg: var(--gl-background-color-default);
+  --err-surface: var(--gl-background-color-subtle);
+  --err-border: var(--gl-border-color-default);
+  --err-text-strong: var(--gl-text-color-heading);
+  --err-text-default: var(--gl-text-color-default);
+  --err-text-subtle: var(--gl-text-color-subtle);
+  --err-text-muted: var(--text-tertiary);
+  /* Links use the app's link colour, not the raw brand blue - the error pages
+     were the only place rendering links a shade off from the rest. */
+  --err-primary: var(--gl-text-color-link);
+  --err-primary-hover: var(--gl-text-color-link);
+  /* Same radius every control and action uses in the app (GitLab: 8px). This
+     used to alias the generic 4px, so the error pages' input and buttons were
+     visibly squarer than the identical controls on every other page. */
+  --err-radius: var(--gl-action-border-radius);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--err-bg);
+  color: var(--err-text-default);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+/* -- Error page layout -- */
+.error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* 600px was the width of the TEXT, and it capped the illustration with it -
+     an error page's picture is the first thing a reader sees and it was a
+     240px thumbnail in the middle of a screen. The card takes the room the
+     illustration needs; the paragraph keeps its own measure below. */
+  max-width: 760px;
+  width: 100%;
+}
+.error-page h1,
+.error-page > p {
+  max-width: 600px;
+}
+
+/* Brand lockup at the top of the error/offline page (GitLab shows the logo on
+   its error pages). The favicon.svg is precached by the service worker, so it
+   renders even fully offline. */
+.error-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  text-decoration: none;
+  color: var(--text-primary, inherit);
+}
+.error-brand img {
+  width: 34px;
+  height: 34px;
+  display: block;
+}
+.error-brand-name {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: -0.01em;
+}
+
+/* Pajamas uses the medium 144px illustration size for error states. */
+.error-illustration {
+  margin-bottom: 1.5rem;
+}
+.error-illustration img {
+  /* 288px: the size the illustrations are drawn at, and the size GitLab's own
+     404 layout renders them at (see the docs theme, copied unchanged). 240px
+     was a thumbnail above the text; 640px, tried in between, took over the
+     page. `62vw` only ever applies on a narrow screen, so the drawing shrinks
+     with a phone instead of being cropped. */
+  width: min(288px, 62vw);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  object-fit: contain;
+}
+/* -- Error title - large heading -- */
+.error-page h1 {
+  /* GitLab's error page heading measures 40px at weight 600. */
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: var(--err-text-strong);
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+
+/* -- Error description -- */
+.error-page p {
+  font-size: 1rem;
+  color: var(--err-text-subtle);
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+.error-page p a {
+  color: var(--err-primary);
+}
+
+/* -- Search form - GitLab style -- */
+.error-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Search-box on error pages (standalone - forms.css is NOT loaded). */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  /* Lets the field shrink on a phone instead of pushing the button out. */
+  min-width: 0;
+}
+.search-icon {
+  position: absolute;
+  left: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--err-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  line-height: 0;
+}
+.search-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.error-search-input {
+  width: 100%;
+  /* 32px like every other control in the app; this one was 39px. */
+  height: 32px;
+  padding: 0 var(--gl-spacing-4) 0 2.125rem;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--err-text-default);
+  background: var(--err-surface);
+  border: 1px solid var(--err-border);
+  border-radius: var(--err-radius);
+  outline: none;
+  transition: border-color var(--transition-control), box-shadow var(--transition-control);
+}
+
+.error-search-input::placeholder {
+  color: var(--err-text-muted);
+}
+
+.error-search-input:focus {
+  border-color: var(--err-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err-primary) 25%, transparent);
+}
+
+/* The error pages' one button - Retry, Search, Sign in again (an <a>). */
+.error-btn {
+  display: inline-flex;
+  flex: none;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  /* Same confirm tokens as .btn-confirm, so the error pages do not drift into a
+     second primary-button colour. --err-primary stays blue for links only. */
+  color: var(--gl-btn-confirm-text);
+  background: var(--gl-btn-confirm-bg);
+  border: none;
+  border-radius: var(--err-radius);
+  cursor: pointer;
+  transition: background-color var(--transition-normal);
+  text-decoration: none;
+}
+
+.error-btn:hover {
+  background: var(--gl-btn-confirm-bg-hover);
+}
+
+/* Retry's loading state. The error pages load neither core.bundle.js nor
+   buttons.css, so the app's shared button spinner cannot reach them - and this
+   is the one button in the product most likely to be pressed on a connection
+   that is still down, where nothing happens for several seconds. Without a
+   state it reads as a dead button and gets pressed again.
+   The rotation is THE `spin` keyframe (animations.css, which error_base.html
+   loads for this), not a second one of its own. */
+.error-btn[aria-busy="true"] {
+  pointer-events: none;
+  opacity: 0.85;
+}
+.error-btn[aria-busy="true"]::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  margin-right: 0.5rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .error-btn[aria-busy="true"]::before { animation-duration: 2.4s; }
+}
+
+/* -- Divider -- */
+.error-divider {
+  width: 100%;
+  max-width: 420px;
+  height: 1px;
+  background: var(--err-border);
+  margin: 1.25rem 0;
+  border: none;
+}
+
+/* -- Footer links - GitLab style -- */
+.error-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+}
+
+.error-footer a {
+  color: var(--err-primary);
+  text-decoration: none;
+}
+
+.error-footer a:hover {
+  text-decoration: underline;
+}
+
+.error-footer-sep {
+  color: var(--err-text-muted);
+  margin: 0 0.25rem;
+}
+
+/* -- Feature disabled extras -- */
+.error-feature-info {
+  text-align: left;
+  background: var(--err-surface);
+  border: 1px solid var(--err-border);
+  border-radius: var(--err-radius);
+  padding: 1rem 1.25rem;
+  margin-top: 1.5rem;
+  width: 100%;
+  max-width: 420px;
+  font-size: 0.875rem;
+}
+
+.error-feature-info dt {
+  color: var(--err-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: 0.125rem;
+}
+
+.error-feature-info dd {
+  color: var(--err-text-default);
+  margin: 0 0 0.75rem;
+}
+
+.error-feature-info dd:last-child {
+  margin-bottom: 0;
+}
+
+.error-feature-info code {
+  font-family: var(--font-mono);
+  font-size: 1em;   /* GitLab renders inline code at body size */
+  background: var(--gl-action-neutral-bg-hover);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+}
+
+/* -- Error reference ID -- */
+.error-page .error-reference {
+  margin-top: 1.25rem;
+  font-size: 0.75rem;
+  color: var(--err-text-muted);
+}
+
+.error-reference code {
+  font-family: var(--font-mono);
+  font-size: 1em;   /* GitLab renders inline code at body size */
+  background: var(--gl-action-neutral-bg-hover);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  color: var(--err-text-subtle);
+}
+
+/* -- Error suggestions list -- */
+.error-suggestions {
+  text-align: left;
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem auto 0;
+  max-width: 420px;
+  font-size: 0.875rem;
+  color: var(--err-text-subtle);
+}
+.error-suggestions li {
+  padding: 0.375rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+}
+.error-suggestions li::before {
+  content: '·';
+  position: absolute;
+  left: 0.375rem;
+  color: var(--err-text-muted);
+  font-weight: 700;
+}
+
+/* -- The line under the actions: a countdown, the automatic reload, the
+   redirect to sign-in. Muted, secondary to the message above it. -- */
+.error-page .error-note {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--err-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Action buttons (Retry, etc.) -- */
+.error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+}
+.error-actions .error-btn {
+  min-width: 120px;
+}
+
+/* -- Responsive -- */
+/* A one-line link is 20px tall; on a touch screen the room round it is the
+   target too (a pseudo-element - no layout). */
+@media (pointer: coarse) {
+  .error-suggestions a,
+  .error-footer a {
+    position: relative;
+  }
+  .error-suggestions a::after,
+  .error-footer a::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 1.5rem 1rem;
+  }
+
+  .error-page h1 {
+    font-size: 1.375rem;
+  }
+
+  .error-footer {
+    gap: 0.125rem;
+    font-size: 0.8125rem;
+  }
+  .error-footer-sep {
+    margin: 0 0.125rem;
+  }
+}
+
+/* Very narrow phones - collapse separators that wrap awkwardly */
+@media (max-width: 360px) {
+  .error-page h1 {
+    font-size: 1.25rem;
+  }
+  .error-page p {
+    font-size: 0.9375rem;
+  }
+}
+
+/* Honor reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .error-search-input,
+  .error-btn {
+    transition: none;
+  }
+}

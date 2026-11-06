@@ -1,0 +1,7 @@
+{{- $title := .Get "title" -}}
+{{- $content := .Inner | .Page.RenderString -}}
+
+{{/* Validate that title parameter is present */}}
+{{- partial "functions/validate-shortcode.html" (dict "shortcodeName" "collapsible" "paramName" "title" "paramValue" $title "sourceFile" .Position.Filename "lineNumber" .Position.LineNumber "required" true "errorLevel" "error") -}}
+
+{{- partial "collapsible.html" (dict "id" $.Ordinal "title" $title "content" $content) -}}

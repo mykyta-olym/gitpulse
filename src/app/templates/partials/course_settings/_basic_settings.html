@@ -1,0 +1,19 @@
+{# -- Course Basic Information -- #}
+{% from "components/cards.html" import card %}
+{% from "components/forms.html" import text_input, textarea with context %}
+{% from "components/academic_period.html" import period_select with context %}
+
+{% set ct %}{{ t('Course Information') }}{% endset %}
+{% call card(title=ct, icon_name='book') %}
+    <div class="form-row">
+      {{ text_input('course_code', label=t('Course Code'), value=course.code, maxlength='20', required=true) }}
+      {{ text_input('course_name', label=t('Course Name'), value=course.name, maxlength='200', required=true) }}
+    </div>
+    <div class="form-row">
+      {#- One set with the semester dates below (see the form's period
+          fields in course_settings.html): change the term here and the dates
+          that follow the calendar move with it. -#}
+      {{ period_select({'period': 'course_period', 'year': 'course_academic_year', 'semester': 'course_semester'}, course.academic_year, course.semester, year_name='course_academic_year', semester_name='course_semester', help_text=t('Moving the course to another term moves its official dates with it; dates you set yourself stay.')) }}
+    </div>
+    {{ textarea('course_description', label=t('Description'), id='course_description', rows=4, placeholder=t('Course description...'), value=(course.description or '')) }}
+{% endcall %}

@@ -1,0 +1,243 @@
+{#
+  The academic period a page is scoped to - one selector, one badge, everywhere.
+
+  A course carries the period; a person does not. So "the students of 2026/2027
+  summer" is a question about the courses they are in, and the answer has to be
+  worded the same way on every page that asks it - hence one component rather
+  than a dropdown per page.
+
+  The route hands over `scope`, built by
+  `app.services.academic_periods.period_scope_context()`. Every fact in it is
+  settled in Python, where it is tested; this file only puts words around them.
+  The semester arrives raw ("winter" / "summer") rather than pre-labelled
+  because a label built in the worker would be built in whichever language that
+  worker happened to start in.
+
+  Usage:
+    {% from "components/academic_period.html" import period_selector, period_badge with context %}
+    {{ period_selector(period_scope) }}
+    {{ period_badge('2026/2027', 'summer') }}
+#}
+{% from "components/dropdown.html" import dropdown_divider, dropdown_check, dropdown_chevron with context %}
+{% from "components/badges.html" import badge %}
+{% from "components/forms.html" import select_field, text_input with context %}
+
+{# "2026/2027 · Summer". The separator is the one the course cards use, so a
+   period reads the same in the header, on a card and in a row. #}
+{% macro period_label(academic_year, semester) -%}
+{{ academic_year }} · {{ t('Winter') if semester == 'winter' else t('Summer') }}
+{%- endmacro %}
+
+{# A period as a row / page badge. `current` marks the one the calendar says we
+   are in, which is not always the one being looked at. #}
+{% macro period_badge(academic_year, semester, current=false, class='') -%}
+{{ badge(period_label(academic_year, semester), variant='info' if current else 'gray', size='sm', class='gl-period-badge ' ~ class) }}
+{%- endmacro %}
+
+{#
+  The scope selector. A dropdown of LINKS, not a form control: the period
+  belongs in the URL so a cohort can be deep-linked, bookmarked and shared, and
+  so the page still works with no JavaScript at all.
+
+  It LOOKS like every other filter in a table's controls band - the Events
+  type and status filters are `select_field`s - because it is one: the same
+  control box, text and chevron, the same menu with the tick in front of the
+  chosen row. It used to be a secondary button with a calendar icon, the one
+  filter in the app drawn differently from the rest.
+
+  Every link keeps the page's other query parameters - the role tab, the
+  search, the sort - so switching the period keeps the rest of what the reader
+  had set up. They are rendered from the request, which is right for a reader
+  without JavaScript; academic-period.js rebuilds the link at click time from
+  the live address bar, which search and sort rewrite without a reload, and
+  remembers the pick (see services/academic_periods.requested_period). The
+  page number is dropped: page 4 of one term is not page 4 of another.
+#}
+{% macro period_selector(scope, label=t('Academic period'), class='') %}
+{% if scope %}
+{%- set _sel = scope.selected -%}
+{%- set _keep = request.query_params.multi_items() | rejectattr('0', 'in', [scope.param, 'page', '_gp_refresh']) | list if request is defined else [] -%}
+{%- set _sep = ((_keep | urlencode) ~ '&') if _keep else '' -%}
+{%- set _tip = label ~ ': ' ~ t('the term this page shows. Your choice is remembered until the next term starts; then the page follows the calendar again.') -%}
+<div class="gl-dropdown gl-form-dropdown gl-period-selector {{ class }}" data-dropdown data-period-selector
+     data-period-param="{{ scope.param }}" data-period-selected="{{ scope.selected_key }}"
+     data-period-current="{{ scope.current_key }}" data-period-all="{{ scope.all_key }}">
+  <button type="button"
+          class="gl-dropdown-toggle gl-form-dropdown-toggle"
+          data-dropdown-toggle
+          aria-haspopup="listbox"
+          aria-expanded="false"
+          aria-label="{{ label }}"
+          data-tippy-content="{{ _tip }}">
+    <span class="gl-form-dropdown-text">
+      {%- if scope.selected_key == scope.all_key -%}
+        {{ t('All periods') }}
+      {%- elif scope.selected_key == scope.none_key -%}
+        {{ t('No period') }}
+      {%- elif _sel -%}
+        {{ period_label(_sel.academic_year, _sel.semester) }}
+      {%- else -%}
+        {{ label }}
+      {%- endif -%}
+    </span>
+    {{ dropdown_chevron() }}
+  </button>
+  {#- Anchored to the toggle's RIGHT edge: the selector sits at the right end
+      of a controls band or a section header, and a left-anchored menu there
+      hangs past the page edge even while closed. -#}
+  <div class="gl-dropdown-menu gl-dropdown-right gl-period-menu" data-dropdown-menu role="listbox" aria-label="{{ label }}" aria-hidden="true" inert>
+    {% for opt in scope.options %}
+    <a href="?{{ _sep }}{{ scope.param }}={{ opt.key }}"
+       data-period-key="{{ opt.key }}"
+       class="gl-dropdown-item"
+       role="option"
+       {% if opt.key == scope.selected_key %}aria-selected="true"{% endif %}
+       data-dropdown-close>
+      {{ dropdown_check() }}
+      <span class="gl-dropdown-item-content">
+        <span class="gl-dropdown-item-title">{{ period_label(opt.academic_year, opt.semester) }}</span>
+        {#- The calendar's answer, which is not always the one being shown: a
+            deployment running only summer courses sits in "winter" for half the
+            year. Saying which is which beats silently defaulting to one. -#}
+        {% if opt.is_current %}
+        <span class="gl-dropdown-item-note" data-tippy-content="{{ t('The term the TUKE calendar is in today.') if scope.current_is_running else t('The next term by the TUKE calendar - it has not started yet.') }}">{{ t('Current') if scope.current_is_running else t('Upcoming') }}</span>
+        {% elif not opt.has_courses %}
+        <span class="gl-dropdown-item-note gl-dropdown-item-note--muted" data-tippy-content="{{ t('No course you can see runs in this term.') }}">{{ t('No courses') }}</span>
+        {% endif %}
+      </span>
+    </a>
+    {% endfor %}
+
+    {{ dropdown_divider() }}
+    <a href="?{{ _sep }}{{ scope.param }}={{ scope.all_key }}"
+       data-period-key="{{ scope.all_key }}"
+       class="gl-dropdown-item"
+       role="option"
+       {% if scope.selected_key == scope.all_key %}aria-selected="true"{% endif %}
+       data-tippy-content="{{ t('Every term at once - nothing is narrowed.') }}"
+       data-dropdown-close>
+      {{ dropdown_check() }}
+      <span class="gl-dropdown-item-content"><span class="gl-dropdown-item-title">{{ t('All periods') }}</span></span>
+    </a>
+    {% if scope.include_none %}
+    {#- Students who reach no course at all - the one who signed in through
+        GitLab this morning and has not been synced into a group yet. Without a
+        view of their own they are invisible in every period, which is exactly
+        when someone needs to find them. -#}
+    <a href="?{{ _sep }}{{ scope.param }}={{ scope.none_key }}"
+       data-period-key="{{ scope.none_key }}"
+       class="gl-dropdown-item"
+       role="option"
+       {% if scope.selected_key == scope.none_key %}aria-selected="true"{% endif %}
+       data-tippy-content="{{ t('Students who are not in a group of any course yet - for example someone who signed in through GitLab before their group was synced. They belong to no term until then.') }}"
+       data-dropdown-close>
+      {{ dropdown_check() }}
+      <span class="gl-dropdown-item-content"><span class="gl-dropdown-item-title">{{ t('No period') }}</span></span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{#
+  The period of a course and its dates, as ONE set of fields.
+
+  A course's academic year + semester and its semester start / end dates are
+  one fact told twice, and every dialog that asked for them let the two drift
+  apart: pick the Winter preset, then switch the semester to Summer, and the
+  course was created in summer with winter's dates. Four dialogs (Create,
+  Import from GitLab, Edit, Transfer) and the course settings page each had
+  a year list, a semester list and a "Quick preset" list - three controls for
+  one choice - and the year list offered a fixed six-year span, two of them
+  already over, with no word of which one was now.
+
+  One control now: "Academic period", listing the TERMS a dialog can mean -
+  the calendar's term and the ones after it, marked Current / Upcoming, and a
+  finished term only where one is a real answer (importing last summer's
+  GitLab group). Picking a term fills its official TUKE dates when the
+  calendar has them. The year and semester still travel as two hidden fields
+  under their old names, so every form and API reads them as before.
+
+  academic-period.js wires every element carrying `period_fields_attrs()`:
+
+  * picking a term moves the dates with it - while they are the calendar's
+    (or empty); dates the teacher typed are theirs and stay;
+  * typed dates that fall in another term are pointed out, and so is an end
+    before the start;
+  * "Use the official dates" puts the calendar's back after a manual edit.
+
+  The parts are separate macros so the course settings page, where the term
+  and the dates live in two different cards of one form, can place them apart
+  and still be one set: roles are looked up by id inside the element that
+  carries the attributes.
+#}
+
+{# The attributes that make an element (a wrapper, or a whole form) one set of
+   period fields. `ids` maps role -> element id: period (the visible select),
+   year and semester (its hidden values), start, end. `empty_hint` is shown
+   while both dates are empty - Transfer uses it to say what empty means there. #}
+{% macro period_fields_attrs(ids, empty_hint='') -%}
+data-period-fields data-period-roles="{{ ids | tojson_attr }}" data-period-windows="{{ period_windows() | tojson_attr }}"{% if empty_hint %} data-period-empty-hint="{{ empty_hint }}"{% endif %}
+{%- endmacro %}
+
+{# One term as a dialog option: "2026/2027 · Winter (current)". #}
+{% macro period_choice_label(choice) -%}
+{{ period_label(choice.academic_year, choice.semester) }}
+{%- if choice.state == 'current' %} ({{ t('Current') | lower }})
+{%- elif choice.state == 'upcoming' %} ({{ t('Upcoming') | lower }})
+{%- elif choice.state == 'ended' %} ({{ t('Ended') | lower }}){% endif %}
+{%- endmacro %}
+
+{#
+  The term, as one select, plus the two hidden fields the forms submit.
+  `past_terms` finished terms are offered below the current one - 0 for a new
+  course, a move or a transfer; Import offers the last year's two, to bring
+  in a finished course for its history. The term the field holds is always
+  listed, however old: Edit and the settings page show where the course is.
+  `exclude_key` leaves one term out - Transfer never offers the term the
+  course is already in, which would be a duplicate the server refuses.
+#}
+{% macro period_select(ids, academic_year='', semester='', year_name='academic_year', semester_name='semester', past_terms=0, help_text='', exclude_key='') %}
+{%- set _opts = [] %}
+{%- for c in period_choices(academic_year, semester, past_terms) if c.key != exclude_key %}{% set _ = _opts.append((c.key, period_choice_label(c) | trim)) %}{% endfor %}
+{%- set _value = ((academic_year | replace('/', '-')) ~ '-' ~ semester) if academic_year and semester else '' %}
+{{ select_field('_period', label=t('Academic period'), options=_opts, value=_value, id=ids.period, required=true, placeholder='', help_text=help_text or t('The term the course runs in. Its official TUKE dates are filled in below when the calendar has them.')) }}
+<input type="hidden" name="{{ year_name }}" id="{{ ids.year }}" value="{{ academic_year }}">
+<input type="hidden" name="{{ semester_name }}" id="{{ ids.semester }}" value="{{ semester }}">
+{% endmacro %}
+
+{# The two dates, bounded by what the server accepts. #}
+{% macro period_date_inputs(start_id, end_id, start='', end='', start_help='', end_help='', start_placeholder='YYYY-MM-DD', end_placeholder='YYYY-MM-DD') %}
+{%- set _b = semester_date_bounds() %}
+{{ text_input('semester_start_date', label=t('Semester Start Date'), id=start_id, value=start or '', placeholder=start_placeholder, autocomplete='off', class='date-picker', min=_b.min, max=_b.max, help_text=start_help or t('YYYY-MM-DD. Defines the lower bound for all dashboards, sync, and scoring - older GitLab activity is hidden from the course view.')) }}
+{{ text_input('semester_end_date', label=t('Semester End Date'), id=end_id, value=end or '', placeholder=end_placeholder, autocomplete='off', class='date-picker', min=_b.min, max=_b.max, help_text=end_help or t('Optional - enables automatic archiving once the semester ends. Must be after the start date.')) }}
+{% endmacro %}
+
+{# What the fields have to say about the dates: that they fall in another
+   term, that the end is before the start, that the calendar has no dates for
+   the term yet - and, when the dates are not the official ones, the way back
+   to them. #}
+{% macro period_hint() -%}
+<div class="period-fields-hint" data-period-hint-wrap hidden>
+  <p class="form-help period-fields-hint-text" data-period-hint role="status" aria-live="polite"></p>
+  <button type="button" class="btn btn-link btn-sm period-fields-official" data-period-official hidden>{{ t('Use the official TUKE dates') }}</button>
+</div>
+{%- endmacro %}
+
+{#
+  The whole set, for a dialog. `start` / `end` left as none default to the
+  official dates of the term, so a dialog opens with a term and the dates that
+  belong to it rather than a term and two blanks.
+#}
+{% macro period_fields(ids, academic_year='', semester='', start=none, end=none, past_terms=0, empty_hint='', help_text='', exclude_key='') %}
+{%- set _w = period_window(academic_year, semester) if academic_year and semester else none %}
+{%- set _start = start if start is not none else (_w.start if _w else '') %}
+{%- set _end = end if end is not none else (_w.end if _w else '') %}
+<div class="period-fields" {{ period_fields_attrs(ids, empty_hint) }}>
+  {{ period_select(ids, academic_year, semester, past_terms=past_terms, help_text=help_text, exclude_key=exclude_key) }}
+  {{ period_date_inputs(ids.start, ids.end, _start, _end) }}
+  {{ period_hint() }}
+</div>
+{% endmacro %}

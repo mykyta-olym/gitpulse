@@ -1,0 +1,173 @@
+{#
+  Shared "Run Compliance Checks" modal - used by team_detail and project_detail.
+
+  Required context:
+    - checks            : list of (db_field, code, name) - built-in + custom checks
+    - can_edit          : bool
+    - btn_data_attrs    : dict of data attributes for the Run button (carries team-id / project-id)
+    - snapshots         : dict[UUID, MetricSnapshot] (optional; powers per-check pass-rate chips)
+    - course / team / project : optional, used for scope label and default selection
+
+  Categories & descriptions are pulled dynamically from globals registered
+  in main.py (CHECK_CATEGORIES, CHECK_DESCRIPTIONS) - no hard-coded list.
+  Behavior lives in static/js/run-checks-modal.js (auto-init via [data-rcm-grid]).
+#}
+{% from "components/modals.html" import modal %}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import block_empty %}
+{% from "components/forms.html" import search_input %}
+{% from "components/academic_period.html" import period_label with context %}
+
+{# -- Aggregate per-check pass stats from snapshots -- #}
+{% set ns = namespace(check_status={}) %}
+{% if snapshots is defined and snapshots %}
+  {% for _sid, snap in snapshots.items() %}
+    {% if snap and snap.checks_detail %}
+      {% for code, info in snap.checks_detail.items() %}
+        {% if code not in ns.check_status %}
+          {% set _ = ns.check_status.update({code: {'total': 0, 'passing': 0}}) %}
+        {% endif %}
+        {% set _ = ns.check_status[code].update({'total': ns.check_status[code].total + 1}) %}
+        {% if info.get('pass') %}
+          {% set _ = ns.check_status[code].update({'passing': ns.check_status[code].passing + 1}) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set _CATEGORIES   = CHECK_CATEGORIES   | default({}) %}
+{% set _DESCRIPTIONS = CHECK_DESCRIPTIONS | default({}) %}
+
+{% set _ENABLED_DEFAULTS = [] %}
+{% if course is defined and course and course.settings and course.settings.enabled_checks %}
+  {% set _ENABLED_DEFAULTS = course.settings.enabled_checks %}
+{% endif %}
+
+{# Cosmetic hints for known categories. Anything missing falls back to the
+   raw category name + a generic icon, so adding a new category in
+   builtin_checks.json requires zero template changes. #}
+{% set _CAT_HINTS = {
+  'issue':   {'label': t('Issues'),         'icon': 'tag',                'priority': 10},
+  'mr':      {'label': t('Merge Requests'), 'icon': 'git-pull-request',   'priority': 20},
+  'review':  {'label': t('Reviews'),        'icon': 'message-square',     'priority': 30},
+  'ci':      {'label': t('CI / CD'),        'icon': 'check-circle',       'priority': 40},
+  'commit':  {'label': t('Commits'),        'icon': 'git-commit',         'priority': 50},
+  'quality': {'label': t('Quality'),        'icon': 'star',               'priority': 60},
+  'custom':  {'label': t('Custom'),         'icon': 'sliders',            'priority': 90},
+} %}
+
+{# -- Group checks by their actual category (dynamic) -- #}
+{% set grouped = namespace(map={}) %}
+{% for db_field, code, name in checks %}
+  {% set cat = _CATEGORIES.get(code, 'custom') %}
+  {% if cat not in grouped.map %}
+    {% set _ = grouped.map.update({cat: []}) %}
+  {% endif %}
+  {% set _ = grouped.map[cat].append((db_field, code, name)) %}
+{% endfor %}
+
+{# Sort categories by priority hint, then alphabetical for unknown ones #}
+{% set _sortable = [] %}
+{% for cat, _items in grouped.map.items() %}
+  {% set hint = _CAT_HINTS.get(cat) %}
+  {% set prio = hint.priority if hint else 100 %}
+  {% set label = hint.label if hint else (cat | replace('_', ' ') | title) %}
+  {% set ic = hint.icon if hint else 'box' %}
+  {% set _ = _sortable.append((prio, cat, label, ic)) %}
+{% endfor %}
+{% set _ordered = _sortable | sort(attribute=0) %}
+
+{% if can_edit %}
+{% call modal('runChecksModal', title=t('Run Compliance Checks'), size='lg') %}
+  <div class="rcm">
+    {# -- Scope banner -- #}
+    <div class="rcm-scope">
+      {{ icon('target', size='sm') }}
+      <div class="rcm-scope-text">
+        <span class="rcm-scope-label">{{ t('Scope') }}</span>
+        {% if team is defined and team %}
+          <span class="rcm-scope-kind">{{ t('Group') }}</span>
+          <span class="rcm-scope-name">{{ team.name }}</span>
+          {% if course %}<span class="rcm-scope-muted">· {{ course.code }}</span>{% endif %}
+        {% elif course is defined and course %}
+          <span class="rcm-scope-kind">{{ t('Course') }}</span>
+          <span class="rcm-scope-name">{{ course.code }}{% if course.name %} - {{ course.name }}{% endif %}</span>
+          <span class="rcm-scope-muted">· {{ period_label(course.academic_year, course.semester) }} · {{ t('all active groups') }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <p class="rcm-help text-muted text-sm">
+      {{ t('Recompute compliance metrics for every student in scope. Results overwrite the latest snapshot.') }}
+      {{ t('Per-check thresholds come from Course Settings - change them there, not here.') }}
+    </p>
+
+    {# -- Toolbar -- #}
+    <div class="rcm-toolbar">
+      <div class="rcm-toolbar-search">
+        {{ search_input(name='rcSearch', id='rcSearch', placeholder=t('Filter checks...'), data_attrs={'rcm-search': '1', 'dirty-ignore': '1'}) }}
+      </div>
+      <div class="rcm-toolbar-actions">
+        {{ btn(t('Select all'),   variant='ghost', size='xs', id='rcSelectAll',   data_attrs={'rcm-action': 'select-all', 'dirty-action': '1'}) }}
+        {{ btn(t('Deselect all'), variant='ghost', size='xs', id='rcDeselectAll', data_attrs={'rcm-action': 'deselect-all', 'dirty-action': '1'}) }}
+        {{ btn_icon(t('Reset to defaults'), 'rotate-ccw', variant='ghost', size='xs', id='rcResetDefaults',
+                    data_attrs={'rcm-action': 'reset-defaults', 'dirty-action': '1', 'tippy-content': t('Select only the checks enabled in Course Settings')}) }}
+      </div>
+    </div>
+
+    {# -- Categorised check list (dynamic) -- #}
+    <div class="rcm-grid"
+         id="runChecksGrid"
+         data-rcm-grid="1"
+         data-defaults="{{ _ENABLED_DEFAULTS | join(',') }}">
+      {% for prio, cat, label, ic in _ordered %}
+        {% if grouped.map[cat] %}
+          <div class="rcm-group" data-category="{{ cat }}">
+            <div class="rcm-group-head">
+              <span class="rcm-group-label">{{ icon(ic, size='sm') }} {{ label }}</span>
+              <span class="rcm-group-count" data-role="count"></span>
+            </div>
+            <div class="rcm-group-items">
+              {% for db_field, code, name in grouped.map[cat] %}
+                {% set cs = ns.check_status.get(code) %}
+                {% set rc_id = 'rc-' ~ code %}
+                {% set pct = ((cs.passing / cs.total * 100) | round(0, 'floor') | int) if cs and cs.total > 0 else none %}
+                {% set status_class = 'rcm-stat--good' if pct is not none and pct >= 80 else ('rcm-stat--warn' if pct is not none and pct >= 50 else ('rcm-stat--bad' if pct is not none else '')) %}
+                {% set desc = _DESCRIPTIONS.get(code, '') %}
+                <label class="rcm-item"
+                       data-code="{{ code }}"
+                       data-name="{{ name | lower }}"
+                       data-category="{{ cat }}"
+                       {% if desc %}data-tippy-content="{{ desc }}"{% endif %}>
+                  <input type="checkbox" id="{{ rc_id }}" class="form-check-input rcm-cb" name="check_codes" value="{{ code }}">
+                  <span class="rcm-code">{{ code }}</span>
+                  <span class="rcm-name">{{ name }}</span>
+                  {% if pct is not none %}
+                    <span class="rcm-stat {{ status_class }}" data-tippy-content="{{ cs.passing }}/{{ cs.total }} {{ t('passing') }}">{{ pct }}%</span>
+                  {% endif %}
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="d-none" data-rcm-empty>{{ block_empty(t('No checks match your filter.'), 'search-sm') }}</div>
+
+    {# -- Footer -- #}
+    <div class="rcm-footer">
+      <span class="rcm-counter">
+        <strong data-rcm-count="selected">0</strong>
+        <span class="text-muted text-sm">/ <span data-rcm-count="total">0</span> {{ t('selected') }}</span>
+      </span>
+      {% set _run_btn_attrs = btn_data_attrs|default({}) %}
+      {% set _ = _run_btn_attrs.update({'process-lock-when': 'run_checks sync'}) %}
+      {{ btn_icon(t('Run selected checks'), 'play-circle', variant='warning', id='btnRunChecks',
+                  data_attrs=_run_btn_attrs) }}
+    </div>
+  </div>
+{% endcall %}
+{% endif %}

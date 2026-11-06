@@ -1,0 +1,49 @@
+{{/*
+  Assembles the breadcrumb trail for the current page.
+
+  Shared by the server-rendered nav (_partials/breadcrumbs.html) and the
+  BreadcrumbList structured data (_partials/breadcrumb-schema.html) so the two
+  can't drift apart. Mirrors the client-side `assembleBreadcrumbs` util
+  (src/utils/breadcrumbs.js), which the Vue `BreadcrumbNav` component uses to
+  replace the nav markup on hydration.
+
+  Pages outside the global navigation have no active trail, so they get only the
+  "GitLab Docs" root crumb: a length of 1 means "this page has no breadcrumbs".
+
+  @param Page
+    The page object (passed as the dot context).
+
+  @return slice
+    Crumbs ordered root-first, each a dict of:
+      text string  Display title, truncated to 24 chars except for the last crumb
+      href string  Relative URL of the crumb
+      full string  Untruncated title, for the title attribute and structured data
+*/}}
+
+{{- $lang := .Language.Lang | default site.Params.defaultLang -}}
+
+{{- /* The root crumb is this language's home. relLangURL adds the prefix only
+       where there is one to add, so the default language keeps `/docs/`. */ -}}
+{{- $homeHref := relLangURL "" -}}
+{{- $home := T "breadcrumbs.home" -}}
+{{- $crumbs := slice (dict "text" $home "href" $homeHref "full" $home) -}}
+
+{{- /* Append the active trail from page metadata. */ -}}
+{{- $trailJSON := partial "functions/page-metadata" (dict "Context" . "field" "trail_json") | default "[]" | string -}}
+{{- $trail := slice -}}
+{{- /* Guard against unmarshalling "[]": Hugo can't detect the format of an empty array. */ -}}
+{{- if ne $trailJSON "[]" -}}
+  {{- $trail = unmarshal $trailJSON -}}
+{{- end -}}
+{{- $trailLen := len $trail -}}
+{{- range $i, $crumb := $trail -}}
+  {{- $isLast := eq (add $i 1) $trailLen -}}
+  {{- $text := $crumb.title -}}
+  {{- /* Truncate all crumbs except the last to 24 chars, matching the Vue util. */ -}}
+  {{- if and (not $isLast) (gt (strings.RuneCount $text) 24) -}}
+    {{- $text = printf "%s…" (strings.SliceString $text 0 24) -}}
+  {{- end -}}
+  {{- $crumbs = $crumbs | append (dict "text" $text "href" (relURL $crumb.path) "full" $crumb.title) -}}
+{{- end -}}
+
+{{- return $crumbs -}}

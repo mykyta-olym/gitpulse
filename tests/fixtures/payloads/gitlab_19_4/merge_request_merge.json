@@ -1,0 +1,164 @@
+{
+  "event": "Merge Request Hook",
+  "payload": {
+    "user": {
+      "id": 8,
+      "name": "Asistent cvičení",
+      "email": "[REDACTED]",
+      "username": "group_3_bot_596ca9c752b0b40b0190223f3496802d",
+      "avatar_url": "https://www.gravatar.com/avatar/fb0fba3dd1e88ad36dfce89f3da99428ec945c0bac1aa039f89b207beb330093?s=80&d=identicon"
+    },
+    "labels": [],
+    "changes": {
+      "state_id": {
+        "current": 3,
+        "previous": 1
+      },
+      "updated_at": {
+        "current": "2026-10-19T13:17:04.676Z",
+        "previous": "2026-10-19T13:16:57.892Z"
+      },
+      "merge_commit_sha": {
+        "current": "392d26bcab512a05bbd7f4ed4faf9b8ff950fbcb",
+        "previous": null
+      }
+    },
+    "project": {
+      "id": 2,
+      "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "namespace": "TIM-02",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-02/projekt"
+    },
+    "reviewers": [
+      {
+        "id": 8,
+        "name": "Asistent cvičení",
+        "email": "[REDACTED]",
+        "state": "approved",
+        "username": "group_3_bot_596ca9c752b0b40b0190223f3496802d",
+        "avatar_url": "https://www.gravatar.com/avatar/fb0fba3dd1e88ad36dfce89f3da99428ec945c0bac1aa039f89b207beb330093?s=80&d=identicon",
+        "re_requested": false
+      }
+    ],
+    "event_type": "merge_request",
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "description": null
+    },
+    "object_kind": "merge_request",
+    "object_attributes": {
+      "id": 8,
+      "iid": 1,
+      "url": "http://localhost:8929/zsi-e2e/tim-02/projekt/-/merge_requests/1",
+      "draft": false,
+      "state": "merged",
+      "title": "Úloha Dana",
+      "action": "merge",
+      "labels": [],
+      "source": {
+        "id": 2,
+        "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+        "name": "projekt",
+        "ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+        "web_url": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+        "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+        "http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+        "namespace": "TIM-02",
+        "avatar_url": null,
+        "description": null,
+        "git_ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+        "git_http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+        "ci_config_path": null,
+        "default_branch": "main",
+        "visibility_level": 0,
+        "path_with_namespace": "zsi-e2e/tim-02/projekt"
+      },
+      "system": false,
+      "target": {
+        "id": 2,
+        "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+        "name": "projekt",
+        "ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+        "web_url": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+        "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+        "http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+        "namespace": "TIM-02",
+        "avatar_url": null,
+        "description": null,
+        "git_ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+        "git_http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+        "ci_config_path": null,
+        "default_branch": "main",
+        "visibility_level": 0,
+        "path_with_namespace": "zsi-e2e/tim-02/projekt"
+      },
+      "state_id": 3,
+      "author_id": 6,
+      "merged_at": "2026-10-19T13:17:04.692Z",
+      "created_at": "2026-10-19T13:16:55.562Z",
+      "updated_at": "2026-10-19T13:17:04.676Z",
+      "actioned_at": "2026-10-19T13:17:04.895Z",
+      "assignee_id": null,
+      "description": "## Description\n\nVyplnil som svoj súbor.\n\n## Testing\n\nSkontroloval som obsah súboru.\n\nCloses #2",
+      "last_commit": {
+        "id": "d98075c6a2159a73ba8fb404be5cd38d1ae9e00e",
+        "url": "http://localhost:8929/zsi-e2e/tim-02/projekt/-/commit/d98075c6a2159a73ba8fb404be5cd38d1ae9e00e",
+        "title": "Vyplniť svoj súbor s úlohou",
+        "author": {
+          "name": "Dana Malá",
+          "email": "dana.mala@e2e.example.edu"
+        },
+        "message": "Vyplniť svoj súbor s úlohou",
+        "timestamp": "2026-10-19T13:16:54+00:00"
+      },
+      "merge_error": null,
+      "prepared_at": "2026-10-19T13:16:57.885Z",
+      "time_change": 0,
+      "assignee_ids": [],
+      "merge_params": {
+        "force_remove_source_branch": true
+      },
+      "merge_status": "can_be_merged",
+      "milestone_id": null,
+      "reviewer_ids": [
+        8
+      ],
+      "merge_user_id": null,
+      "source_branch": "2-dana",
+      "target_branch": "main",
+      "time_estimate": 0,
+      "updated_by_id": null,
+      "last_edited_at": null,
+      "head_pipeline_id": null,
+      "merge_commit_sha": "392d26bcab512a05bbd7f4ed4faf9b8ff950fbcb",
+      "total_time_spent": 0,
+      "work_in_progress": false,
+      "human_time_change": null,
+      "last_edited_by_id": null,
+      "source_project_id": 2,
+      "squash_commit_sha": null,
+      "target_project_id": 2,
+      "first_contribution": true,
+      "human_time_estimate": null,
+      "detailed_merge_status": "not_open",
+      "human_total_time_spent": null,
+      "target_branch_protected": true,
+      "merge_when_pipeline_succeeds": false,
+      "blocking_discussions_resolved": true
+    }
+  }
+}

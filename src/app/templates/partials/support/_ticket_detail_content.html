@@ -1,0 +1,235 @@
+{# Ticket Detail content fragment - loaded via HTMX on page load #}
+{% from "components/layout.html" import page_header %}
+{% from "components/buttons.html" import btn_icon, btn_icon_only %}
+{% from "components/badges.html" import badge, person_badge with context %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% from "components/cards.html" import card %}
+{% from "components/forms.html" import select_field, checkbox with context %}
+{% from "components/icons.html" import icon %}
+{% from "components/support_badges.html" import status_badge_detail as status_badge %}
+{% from "components/markdown_editor.html" import md_editor with context %}
+{% from "components/layout.html" import page_config with context %}
+{% from "components/avatar.html" import avatar, avatar_labeled %}
+{% from "components/alerts.html" import alert %}
+{% from "components/typeahead.html" import person_typeahead with context %}
+{% from "components/time.html" import localized_time %}
+
+{# One comment in the thread. The live update clones #ghCommentTemplate,
+   rendered from this same macro, so a comment that arrives while the page is
+   open is the same component as the ones the page was served with. #}
+{% macro thread_comment(author='', avatar_url='', info=none, created=none, content='', internal=false, staff=false, id='') %}
+<div class="gh-thread-entry{% if internal %} gh-thread-internal{% endif %}"{% if id %} data-comment-id="{{ id }}"{% endif %}>
+  <div class="gh-thread-avatar-col">{{ avatar(avatar_url, author or '?', size=32) }}</div>
+  <div class="gh-thread-bubble{% if internal %} gh-thread-bubble--internal{% endif %}">
+    <div class="gh-thread-header">
+      <strong class="gh-thread-author">{{ author }}</strong>
+      {{ person_badge(info) }}
+      <span class="gh-thread-time-text">{{ t('commented') }}</span>
+      <span class="gh-thread-time">{{ localized_time(created, empty='') }}</span>
+      {% if internal %}{{ badge(t('Internal'), variant='warning') }}{% elif staff %}{{ badge(t('GitPulse Support'), variant='info', class='gh-thread-role') }}{% endif %}
+    </div>
+    <div class="gh-thread-body">
+      <div class="gh-thread-text gh-md-render">{{ content }}</div>
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+<div x-data="ticketDetailManager()" @change="updateSelectedField($event)">
+
+{# -- Page header -- #}
+{{ page_header(
+     ticket.title or t('Untitled ticket'),
+     '#' ~ ticket.id ~ (' · ' ~ course.code ~ ' - ' ~ course.name if course else ''),
+     back_link='/dashboard/support/tickets' ~ ('?course_id=' ~ (course.id | string) if course else ''),
+     back_text=t('Back to Tickets')
+) }}
+
+{# -- Assignment banner - shown when ticket is assigned to current user -- #}
+{% if ticket.assigned_to and ticket.assigned_to == current_username %}
+{% call alert(variant='info', title=t('This ticket is assigned to you.')) %}
+  {% if assigned_by %}{{ t('Assigned by') }} <strong>{{ assigned_by }}</strong>.{% endif %}
+  {% if ticket.status in ('open', 'in_progress') %}{{ t('Please review and respond to the submitter.') }}{% endif %}
+{% endcall %}
+{% endif %}
+
+{# -- Meta bar -- #}
+<div class="gh-ticket-meta-row" id="ghStatusRow" data-tour="ticket-meta">
+  <span id="ghStatusBadge">{{ status_badge(ticket.status) }}</span>
+  {% if course %}{{ period_badge(course.academic_year, course.semester, current=is_current_period(course.academic_year, course.semester)) }}{% endif %}
+  {{ badge(t('Connecting...'), variant='gray', x_text='liveLabel') }}
+  <span x-show="liveState === 'unavailable'" x-cloak>
+    {{ btn_icon_only('refresh-cw', title=t('Retry'), x_click='resumeLive') }}
+  </span>
+  <span class="gh-ticket-meta-text">
+    <span class="gh-comment-count">{{ comments|length }}</span> {{ t('comments') }}
+  </span>
+</div>
+
+{# Description, attributes, discussion: the same reading and keyboard order at
+   every width. On desktop the attributes occupy the right-hand grid track. #}
+<div class="gh-ticket-layout">
+  <div class="gh-thread-entry gh-ticket-description" data-tour="ticket-description">
+    <div class="gh-thread-avatar-col">
+      {{ avatar(submitter_profile.avatar_url if submitter_profile else '',
+                ticket.submitted_by or t('Submitter'), size=32) }}
+    </div>
+    <div class="gh-thread-bubble">
+      <div class="gh-thread-header">
+        {% if ticket.submitted_by %}
+        <strong>@{{ ticket.submitted_by }}</strong>
+        {{ person_badge((people or {}).get(ticket.submitted_by)) }}
+        {% else %}
+        <strong>{{ t('Submitter') }}</strong>
+        {% endif %}
+        <time class="gh-thread-time">{{ ticket.submitted_at[:16]|replace('T', ' ') if ticket.submitted_at else '' }}</time>
+      </div>
+      <div class="gh-thread-body">
+        {% if ticket.responses.get('description') %}
+        <div class="gh-thread-text gh-md-render">{{ ticket.responses.description }}</div>
+        {% elif not (ticket.responses|reject('equalto', 'description')|list) %}
+        {# A request opened without a word: say so, the way GitLab's issue
+           body reads "No description provided" - an empty box read as a
+           rendering fault. #}
+        <p class="gh-thread-text muted gh-thread-empty">{{ t('No description provided.') }}</p>
+        {% endif %}
+
+        {% set question_labels = {} %}
+        {% if ticket.form and ticket.form.questions %}
+          {% for q in ticket.form.questions %}
+            {% set _ = question_labels.update({q.id: q.label}) %}
+          {% endfor %}
+        {% endif %}
+
+        {% for key, val in ticket.responses.items() if key != 'description' and val is not none and val != '' %}
+        <div class="gh-response-field">
+          <span class="gh-response-label">
+            {% if key in question_labels %}
+              {{ t(question_labels[key]) }}
+            {% else %}
+              {{ t(key|replace('_', ' ')|title) }}
+            {% endif %}
+          </span>
+          <span class="gh-response-value">
+            {% if val is sameas true %}{{ icon('check', size='xs') }}{% elif val is sameas false %}{{ icon('x', size='xs') }}{% else %}{{ val }}{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# -- SIDEBAR -- #}
+  <aside class="gh-ticket-attributes" data-tour="ticket-sidebar">
+    <div class="gh-ticket-sidebar sidebar-sticky">
+
+      {# Details card #}
+      {% call card(title=t('Details'), icon_name='info') %}
+          {{ select_field('status', options=[('open', t('Open')), ('in_progress', t('In Progress')), ('resolved', t('Resolved')), ('closed', t('Closed'))], label=t('Status'), value=ticket.status, class='gh-sidebar-select') }}
+          {{ select_field('priority', options=[('low', t('Low')), ('medium', t('Medium')), ('high', t('High')), ('critical', t('Critical'))], label=t('Priority'), value=ticket.priority, class='gh-sidebar-select') }}
+          {{ select_field('category', options=[('general', t('General')), ('bug', t('Bug Report')), ('feature_request', t('Feature Request')), ('account', t('Account Issues')), ('grade', t('Grade Inquiry')), ('question', t('Question')), ('dashboard', t('Dashboard')), ('cicd', t('CI/CD Pipeline')), ('code_review', t('Code Reviews')), ('evaluation', t('Evaluations')), ('repositories', t('Repositories'))], label=t('Category'), value=ticket.category, class='gh-sidebar-select') }}
+          <div class="form-group">
+          <label for="assignee_search" class="form-label">{{ t('Assignee') }}</label>
+          {% if ticket.assigned_to %}
+          {% set ns = namespace(avatar='') %}
+          {% for su in staff_users if su.username == ticket.assigned_to and su.avatar_url %}{% set ns.avatar = su.avatar_url %}{% endfor %}
+          <div class="gh-assignee-current">
+            {{ avatar_labeled(ns.avatar, ticket.assigned_to, size=24, class='flex-1') }}
+            {{ btn_icon_only('x', variant='ghost', size='xs', x_click="updateField('assigned_to', '')", title=t('Unassign'), class='gh-assignee-remove') }}
+          </div>
+          {% endif %}
+          {{ person_typeahead(input_id='assignee_search', placeholder=t('Search for a user to assign...'),
+                              model='assigneeSearch', open_when='assigneeDropdown', items='filteredStaff',
+                              item='user', on_pick='pickAssignee(user)', empty_text=t('No matching users'),
+                              more_text=t('more, keep typing to narrow'), class='gh-assignee-search') }}
+          </div>
+
+      {# The live timestamp uses the same field as the server-rendered one. #}
+      {% set _timeline_updated %}
+      <div>
+        <span class="form-label">{{ t('Last updated') }}</span>
+        <span class="muted" id="ghLastUpdated">{{ ticket.updated_at[:16]|replace('T', ' ') if ticket.updated_at else '' }}</span>
+      </div>
+      {% endset %}
+      <template id="ghTimelineTemplate">
+        {{ _timeline_updated }}
+      </template>
+      <div id="ghTicketTimeline">
+          {% if ticket.resolved_at %}
+          <div class="mb-3">
+            <span class="form-label">{{ t('Resolved') }}</span>
+            <span class="muted">{{ ticket.resolved_at[:16]|replace('T', ' ') }}</span>
+          </div>
+          {% endif %}
+          {% if ticket.updated_at %}{{ _timeline_updated }}{% endif %}
+      </div>
+      {% endcall %}
+
+    </div>
+  </aside>
+
+  <div class="gh-ticket-thread" data-tour="ticket-thread">
+      {# -- Comments -- #}
+      {% for comment in comments %}
+      {% set _info = (people or {}).get(comment.author) %}
+      {{ thread_comment(comment.author, _info.avatar_url if _info else '', _info,
+                        comment.created_at, comment.content, comment.is_internal,
+                        comment.author and comment.author != 'Submitter', id=comment.id) }}
+      {% endfor %}
+      <template id="ghCommentTemplate">{{ thread_comment() }}</template>
+
+      {# -- Reply form (only for admins or assigned teacher) -- #}
+      {% if can_comment %}
+      <div class="gh-thread-entry gh-thread-reply">
+        <div class="gh-thread-avatar-col">{{ avatar(avatar_url, full_name or current_username, size=32) }}</div>
+        <div class="gh-thread-bubble">
+          <form class="gh-reply-form" data-tour="ticket-reply" @submit.prevent="addComment($event)" @input="trackReply" @gp:region-settled="_syncReplyButtons">
+            {{ md_editor(
+              name='content',
+              id='reply_content',
+              ref='replyTextarea',
+              tab_var='replyTab',
+              rows=6,
+              required=true,
+              placeholder=t('Leave a comment...'),
+              label=t('Reply'),
+              label_sr_only=true,
+              show_paste_hint=true,
+            ) }}
+            <div class="gh-reply-actions">
+                {{ checkbox(name='is_internal', label=t('Internal note'), bare=true) }}
+              {# Both sets, rendered here once: the page shows the one for the
+                 current status, and a live status change swaps in the other. #}
+              {% set _reply_open %}{{ btn_icon(t('Close with comment'), 'git-merge', variant='secondary', type='submit', name='action', value='close') }}
+                {{ btn_icon(t('Comment'), 'message-circle', variant='primary', type='submit', name='action', value='comment') }}{% endset %}
+              {% set _reply_reopen %}{{ btn_icon(t('Reopen and comment'), 'refresh-cw', variant='primary', type='submit', name='action', value='reopen') }}{% endset %}
+              <div class="gh-reply-buttons" data-closed="{{ 'true' if ticket.status in ('resolved', 'closed') else 'false' }}">
+                {{ _reply_reopen if ticket.status in ('resolved', 'closed') else _reply_open }}
+              </div>
+              <template id="ghReplyButtonsOpen">{{ _reply_open }}</template>
+              <template id="ghReplyButtonsReopen">{{ _reply_reopen }}</template>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="gh-thread-entry gh-thread-reply">
+        <div class="gh-thread-avatar-col">{{ avatar(avatar_url, full_name or current_username, size=32) }}</div>
+        <div class="gh-thread-bubble">
+          <p class="gh-md-hint gh-md-hint--standalone">{{ icon('info', size='xs') }} {{ t('Only admins or the assigned teacher can comment on this ticket.') }}</p>
+        </div>
+      </div>
+      {% endif %}
+  </div>
+</div>
+</div>
+
+{{ page_config({
+  'ticketId': ticket.id,
+  'currentFields': {'status': ticket.status, 'priority': ticket.priority, 'category': ticket.category, 'assigned_to': ticket.assigned_to},
+  'staffUsers': staff_users,
+  'authorAvatar': avatar_url,
+  'authorRole': user_role,
+}, csp_nonce, id='gh-ticket-cfg') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/markdown-helpers.js') }}"></script>
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/support-ticket-detail.js') }}"></script>

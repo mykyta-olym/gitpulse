@@ -1,0 +1,4 @@
+{# Keep descriptive desktop labels; use a shorter equivalent on narrow screens. #}
+{% macro responsive_text(full, compact) -%}
+<span class="responsive-text-full">{{ full }}</span><span class="responsive-text-compact">{{ compact }}</span>
+{%- endmacro %}

@@ -1,0 +1,189 @@
+/* =============================================
+   Cookie Consent Banner  -  GitLab Pajamas Docs Style
+   Matches Photo 1 & 2 aesthetic: top gradient line,
+   elevated card, crisp typography, and fluid motion.
+   ============================================= */
+
+.cookie-banner {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(980px, calc(100vw - 3rem));
+  z-index: var(--z-cookie-banner, 1050);
+  /* A floating surface, like the search palette and the modals: the overlap
+     background and the theme's own large shadow, per mode from tokens. */
+  background: var(--gl-background-color-overlap);
+  color: var(--gl-text-color-default);
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--gl-spacing-4, 1rem) var(--gl-spacing-5, 1.25rem);
+  font-size: var(--font-size-base, 0.875rem);
+  overflow: hidden;
+  opacity: 1;
+  animation: cookieBannerSlideUp var(--motion-duration-normal) var(--motion-ease-standard) both;
+}
+
+/* -- Signature GitLab Docs Top Gradient Line -- */
+.cookie-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--gl-blue-400, #428fdc) 50%,
+    transparent 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cookie-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4, 1rem);
+  width: 100%;
+}
+
+/* -- Icon -- */
+.cookie-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--gl-blue-400, #428fdc);
+}
+
+.cookie-banner-icon svg {
+  display: block;
+}
+
+/* -- Text -- */
+.cookie-banner-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cookie-banner-text p {
+  margin: 0;
+  color: var(--gl-text-color-default, #ececef);
+  line-height: var(--line-height-normal, 1.5);
+}
+
+.cookie-banner-title {
+  color: var(--gl-text-color-strong, #ffffff);
+  font-weight: var(--font-weight-bold, 700);
+  margin-right: var(--gl-spacing-1, 0.25rem);
+}
+
+.cookie-banner-link {
+  color: var(--gl-blue-400, #428fdc);
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: var(--font-weight-medium, 500);
+  white-space: nowrap;
+  transition: color var(--transition-normal);
+}
+
+.cookie-banner-link:hover {
+  color: var(--gl-blue-300, #63a2eb);
+}
+
+.cookie-banner-link svg {
+  vertical-align: -1px;
+}
+
+/* -- Actions -- */
+.cookie-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2, 0.5rem);
+  flex-shrink: 0;
+}
+
+/* -- Motion & Animations -- */
+@keyframes cookieBannerSlideUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes cookieBannerSlideDown {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+}
+
+.cookie-banner.cookie-banner-leaving {
+  animation: cookieBannerSlideDown var(--motion-duration-normal) var(--motion-ease-exit) forwards;
+  pointer-events: none;
+}
+
+/* -- Responsive Mobile -- */
+@media (max-width: 768px) {
+  .cookie-banner {
+    bottom: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    transform: none;
+    padding: var(--gl-spacing-3, 0.75rem) var(--gl-spacing-4, 1rem);
+  }
+
+  @keyframes cookieBannerSlideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes cookieBannerSlideDown {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  }
+
+  .cookie-banner-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--gl-spacing-3, 0.75rem);
+  }
+
+  .cookie-banner-icon {
+    display: none;
+  }
+
+  .cookie-banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+

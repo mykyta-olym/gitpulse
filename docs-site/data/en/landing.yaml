@@ -1,0 +1,44 @@
+# Cards on the documentation home page, English.
+quickLinks:
+  - title: Thesis objectives
+    url: 'uvod/ciele/'
+  - title: Handbook for teachers
+    url: 'ucitelia/'
+  - title: Student guide
+    url: 'studenti/'
+  - title: API reference
+    url: 'api/'
+
+siteSection:
+  - title: Handbook for teachers
+    docUrl: 'ucitelia/_index.md'
+    svgUrl: 'gitlab_ui/svgs/book.svg'
+    contentUrl: 'ucitelia/'
+  - title: Student guide
+    docUrl: 'studenti/_index.md'
+    svgUrl: 'gitlab_ui/svgs/rocket.svg'
+    contentUrl: 'studenti/'
+  - title: Developer guide
+    docUrl: 'vyvojari/_index.md'
+    svgUrl: 'gitlab_ui/svgs/code.svg'
+    contentUrl: 'vyvojari/'
+  - title: Operations
+    docUrl: 'operatori/_index.md'
+    svgUrl: 'gitlab_ui/svgs/admin.svg'
+    contentUrl: 'operatori/'
+  - title: GitLab integration
+    docUrl: 'gitlab/_index.md'
+    svgUrl: 'gitlab_ui/svgs/connected.svg'
+    contentUrl: 'gitlab/'
+  - title: API reference
+    docUrl: 'api/_index.md'
+    svgUrl: 'gitlab_ui/svgs/compass.svg'
+    contentUrl: 'api/'
+  - title: Security
+    docUrl: 'bezpecnost/_index.md'
+    svgUrl: 'gitlab_ui/svgs/license.svg'
+    contentUrl: 'bezpecnost/'
+  - title: Master's thesis
+    docUrl: 'diplomovka/_index.md'
+    svgUrl: 'gitlab_ui/svgs/book.svg'
+    contentUrl: 'diplomovka/'

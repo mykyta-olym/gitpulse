@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_label, period_fields_attrs with context %}
+{% block title %}{{ t('Settings') }} - {{ course.code }}{% endblock %}
+
+{# No page-specific vendor libs: flatpickr (date picker) is loaded globally in
+   base.html. tom-select was removed - its only consumer, initTomSelect(), was
+   never called and select_field's `searchable` flag was never implemented, so
+   the page was shipping ~60 KB of JS+CSS for a feature that did not exist. #}
+
+{# Import component macros #}
+{% from "components/icons.html" import icon %}
+{% from "components/alerts.html" import alert %}
+{% from "components/cards.html" import empty_state %}
+{% from "components/forms.html" import csrf_field, number_stepper with context %}
+{% from "components/layout.html" import page_header, page_config, tab_content with context %}
+{% from "components/badges.html" import course_role_badge %}
+{% from "components/buttons.html" import btn, btn_link %}
+
+{% set nav_active = 'course' %}
+{% set page_footer = false %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'href': '/dashboard/courses/' ~ course.id, 'label': course.code}, {'label': t('Settings')}] %}
+
+{% block extra_head %}{% endblock %}
+
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{% if not can_edit %}
+{{ page_header(course.code ~ ' - ' ~ t('Settings'), period_label(course.academic_year, course.semester), back_link='/dashboard/courses/' ~ course.id, back_text=t('Back to Course')) }}
+{{ empty_state(t('Access Denied'), t("You don't have permission to modify course settings. Only admins and teachers can make changes."), illustration='empty-access', action_text=t('Back to Course'), action_href='/dashboard/courses/' ~ course.id, action_class='btn-secondary') }}
+{% else %}
+
+{% set _badge = course_role_badge('owner') if course_role == 'owner' else (course_role_badge('teacher') if course_role == 'teacher' else '') %}
+{{ page_header(course.code ~ ' - ' ~ (course.name or ''), period_label(course.academic_year, course.semester), badge=_badge) }}
+
+{% if course.description %}
+<p class="course-description muted">{{ course.description }}</p>
+{% endif %}
+
+{% set active_tab = 'settings' %}
+{% include "partials/course/_course_nav.html" %}
+
+{% call tab_content(course) %}
+{% if request.query_params.get("error") == "missing_start_date" %}
+{% call alert(variant='danger', title=t('Action Required:')) %}
+  {{ t('Please set the') }} <strong>{{ t('Semester Start Date') }}</strong> {{ t('below to enable weekly deadlines.') }}
+{% endcall %}
+{% endif %}
+
+<form method="post" action="/dashboard/courses/{{ course.id }}/settings" id="courseSettingsForm" class="{% if not course.is_active %}is-course-archived{% endif %}" {{ period_fields_attrs({'period': 'course_period', 'year': 'course_academic_year', 'semester': 'course_semester', 'start': 'semester_start_date', 'end': 'semester_end_date'}) }} data-course-id="{{ course.id }}" data-course-updated-at="{{ course.updated_at.isoformat() if course.updated_at else '' }}" data-settings-updated-at="{{ settings.updated_at.isoformat() if settings.updated_at else '' }}">
+  {{ csrf_field() }}
+  <input type="hidden" name="expected_course_updated_at" id="expected_course_updated_at" data-dirty-ignore value="{{ course.updated_at.isoformat() if course.updated_at else '' }}">
+  <input type="hidden" name="checks_present" value="1">
+  <input type="hidden" name="skip_auto_archive_present" value="1">
+  <input type="hidden" name="expected_settings_updated_at" id="expected_settings_updated_at" data-dirty-ignore value="{{ settings.updated_at.isoformat() if settings.updated_at else '' }}">
+  <input type="hidden" name="check_edits_revision" id="check_edits_revision" value="0">
+
+  {% include "partials/course_settings/_basic_settings.html" %}
+
+  {% include "partials/course_settings/_webhook_settings.html" %}
+
+  {% include "partials/course_settings/_compliance_settings.html" %}
+
+  {% include "partials/course_settings/_semester_settings.html" %}
+
+  {% include "partials/course_settings/_weekly_deadlines.html" %}
+
+  {# AI analysis is a SETTINGS section, so it belongs inside the form and above
+     the save bar. It used to render after </form>, below "Update settings":
+     its values were still collected by id, but the save guard only snapshots
+     fields inside the form, so editing a prompt or a resource URL never armed
+     the save button. #}
+  {% include "partials/course_settings/_ai_settings.html" %}
+
+  {# Save / Cancel - GitLab-style action bar. Lives here rather than trailing
+     the weekly-deadlines partial, so it stays the last thing in the form no
+     matter which sections are added above it. #}
+  <div class="settings-sticky-footer">
+    {# Rendered disabled so it never flashes enabled before initSaveGuard runs;
+       the guard enables it the moment the form becomes dirty. A fresh form is
+       never dirty, so disabled-by-default is the correct initial state. #}
+    {{ btn(t('Update settings'), variant='primary', type='submit', id='btnSaveSettings', disabled=true, data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id}) }}
+    {{ btn_link(t('Cancel'), '/dashboard/courses/' ~ course.id, variant='secondary', id='btnCancelSettings') }}
+  </div>
+</form>
+
+{# Actions, not settings - these run immediately and are not part of a save. #}
+{% include "partials/course_settings/_import_export_settings.html" %}
+
+{% include "partials/course_settings/_danger_zone.html" %}
+{% endcall %}
+
+{% endif %}
+
+{% endblock %}
+
+{% block modals %}
+{% include "partials/course_settings/_modals.html" %}
+
+{# -- Icon template for JS (no inline SVGs) -- #}
+
+{# Canonical number stepper. The check editor builds parameter rows at runtime
+   and clones THIS node, so the control's markup is defined exactly once. #}
+<template id="tplNumberStepper">{{ number_stepper() }}</template>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ page_config({
+  'courseId': course.id|string,
+  'isAdmin': is_admin|default(false),
+  'isTeacher': is_teacher|default(false),
+  'canEdit': can_edit|default(false),
+  'disabledFeatures': {
+    'llm_suggestions': not llm_enabled|default(false),
+    'classroom_assistant': not feature_classroom_assistant|default(false)
+  },
+  'llmApiKeyConfigured': llm_api_key_configured|default(false)
+}, csp_nonce) }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/config-import.js') }}"></script>
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/course-settings.js') }}"></script>
+{% endblock %}

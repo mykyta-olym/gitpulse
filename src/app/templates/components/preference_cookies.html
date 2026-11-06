@@ -1,0 +1,9 @@
+{# Only public preferences, never session or CSRF cookies. Safe on fallback error pages. #}
+{% macro preference_cookie_data(request) -%}
+data-preference-cookies="{{ {
+  'gitpulse_color_mode': request.cookies.get('gitpulse_color_mode', '') if request else '',
+  'gp_lang': request.cookies.get('gp_lang', '') if request else '',
+  'gp_cookie_consent': request.cookies.get('gp_cookie_consent', '') if request else '',
+  'gp_period': request.cookies.get('gp_period', '') if request else ''
+} | tojson | forceescape }}"
+{%- endmacro %}

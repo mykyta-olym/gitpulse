@@ -1,0 +1,31 @@
+{# Show more / show less disclosure.
+
+   The behaviour is a declarative controller in core/39-tabs-and-toggles.js: clicking
+   [data-show-more-toggle] flips `is-expanded` on the nearest [data-show-more]
+   ancestor, and CSS (utilities.css) hides `.gl-show-more-extra` until then. It
+   deliberately avoids Alpine - the production @alpinejs/csp build evaluates
+   neither `x-show` expressions nor click assignments, which is how the original
+   feed shipped with permanently hidden rows and an inert button.
+
+   Contract for callers:
+     1. put `data-show-more` on the element that wraps BOTH the items and this
+        footer (the toggle looks upwards for it),
+     2. add `gl-show-more-extra` to every item past the visible limit,
+     3. render `show_more_footer(total, limit)` inside that wrapper.
+
+   Works for list items, cards and table rows alike - `display: none` on a <tr>
+   is legal, so a <tbody> can host the extras as long as the footer sits inside
+   the same wrapper (typically a <div data-show-more> around the whole table).
+#}
+{% from 'components/buttons.html' import btn_icon %}
+
+{% macro show_more_footer(total, limit=5, expand_label='', collapse_label='', class='') %}
+{% if total > limit %}
+<div class="gl-show-more gl-show-more--expand {{ class }}">
+  {{ btn_icon((expand_label or t('Show all')) ~ ' (' ~ total ~ ')', 'chevron-down', variant='ghost', size='sm', data_attrs={'show-more-toggle': 'expand', 'tippy-content': t('Show the remaining entries')}) }}
+</div>
+<div class="gl-show-more gl-show-more--collapse {{ class }}">
+  {{ btn_icon(collapse_label or t('Show less'), 'chevron-up', variant='ghost', size='sm', data_attrs={'show-more-toggle': 'collapse', 'tippy-content': t('Collapse the list back to the first entries')}) }}
+</div>
+{% endif %}
+{% endmacro %}

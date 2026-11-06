@@ -1,0 +1,135 @@
+{% from "components/academic_period.html" import period_label with context %}
+{# Dashboard content fragment - loaded via HTMX on page load #}
+{% from "components/buttons.html" import btn, btn_icon_only, btn_link_icon_only %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, stat_card %}
+{% from "components/tables.html" import data_table, sortable_header %}
+{% from "components/layout.html" import page_config with context %}
+{% from "components/time.html" import localized_time %}
+
+<!-- Greeting is server-rendered in the shell (dashboard.html) to avoid a flash;
+     the content fragment below starts at the layout. -->
+
+<!-- GitLab-style Dashboard Layout -->
+<div class="gl-home-layout">
+  <div class="gl-home-main">
+
+    <!-- Stats Cards Row - role-based, GitLab two-layer style -->
+    <div class="gl-home-stats" data-tour="home-stats kpi-cards">
+      {#- A card that counts the courses on screen names their period, not a
+          fixed "Current semester" that stopped being true the moment the
+          reader picked another term. -#}
+      {%- set _scope_sel = period_scope.selected if period_scope else none %}
+      {%- set _scope_all = period_scope and period_scope.selected_key == period_scope.all_key %}
+      {% for c in stat_cards %}
+      {%- if c.scoped and _scope_sel %}{% set _time = period_label(_scope_sel.academic_year, _scope_sel.semester) %}
+      {%- elif c.scoped and _scope_all %}{% set _time = t('All periods') %}
+      {%- else %}{% set _time = t(c.time) %}{% endif %}
+      {{ stat_card(t(c.label), c.value, icon_name=c.icon, desc=t(c.desc), time=_time, id=c.id, href=c.link|default(''), state=c.state|default('')) }}
+      {% endfor %}
+    </div>
+
+    {% include "partials/dashboard/_courses_grid.html" %}
+
+    <!-- Items that need your attention (below courses) -->
+    <div class="gl-home-card" data-tour="deadlines needs-attention" data-tour-alt="flagged my-feedback">
+      <div class="gl-home-card-head">
+        <h2 class="gl-home-card-title">{{ t('Items that need your attention') }}</h2>
+      </div>
+      <div class="gl-home-card-body" id="attention-items-body">
+        {% include "partials/dashboard/_attention_items.html" %}
+      </div>
+    </div>
+
+    <!-- Follow the latest updates -->
+    <div class="gl-home-card" id="activity" data-tour="activity latest-feedback latest-changes">
+      <div class="gl-home-card-head">
+        <h2 class="gl-home-card-title">{{ t('Follow the latest updates') }}</h2>
+      </div>
+      {% include "partials/dashboard/_activity_feed.html" %}
+    </div>
+
+    {% if archived_courses %}
+    <div class="gl-home-section">
+      {# Same header anatomy as Service Accounts, and now literally the same
+         markup: the icon, the count badge and the note are the card component's
+         own header slots, not HTML smuggled in through the title string. Passed
+         as a string they ended up nested inside the <h3>, where the grid could
+         not reach them. #}
+      {% call card(title=t('Archived Courses'), icon_name='archive', badge_text=archived_courses | length | string, class='gl-home-archived', collapsible=true, collapsed=true, header_note=t('Read-only')) %}
+            {# Pinned Actions, like every other table in the app: this one let
+               View / Re-activate / Delete scroll 274px off the right edge. #}
+            {% call data_table(headers=[], sortable=true, class='table-scrollable table-scrollable-lg table-sticky-actions') %}
+                {# Columns declared so the browser does not size them from whichever rows
+                         happen to be visible - that set changes on every load, and the whole
+                         table slides sideways and back. Measured at 1440px. #}
+                <colgroup>
+                  <col class="col-arch-code">
+                  <col class="col-arch-name">
+                  <col class="col-arch-year">
+                  <col class="col-arch-archived">
+                  <col class="col-arch-actions">
+                </colgroup>
+                <thead>
+                  <tr>
+                    {{ sortable_header(t('Code'), 'code', default_sort='asc') }}
+                    {{ sortable_header(t('Name'), 'name') }}
+                    {{ sortable_header(t('Year / Semester'), 'year_semester') }}
+                    {{ sortable_header(t('Archived'), 'archived', sort_type='date') }}
+                    <th class="text-right">{{ t('Actions') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in archived_courses %}
+                  <tr data-course-id="{{ c.id }}" id="course-{{ c.id }}" data-course-period="{{ period_label(c.academic_year, c.semester) }}">
+                    <td>{{ badge(c.code, variant='gray') }}</td>
+                    <td>{{ c.name }}</td>
+                    <td>{{ period_label(c.academic_year, c.semester) }}</td>
+                    <td>{{ localized_time(c.archived_at, date_only=true) }}</td>
+                    <td class="text-right">
+                      <div class="gl-row-actions">
+                        {# Archived courses ARE viewable (read-only): the detail
+                           page shows the archived banner and blocks mutations. #}
+                        {# Row actions are icon-only, the same 24px squares as
+                           the admin Courses table's - and the same glyph and
+                           colour for the same action there: activate is the
+                           green check, delete the red trash. These were
+                           labelled buttons with the words hidden by a page
+                           rule, 26px wide, a grey refresh and a filled red
+                           trash. #}
+                        {{ btn_link_icon_only('eye', '/dashboard/courses/' ~ c.id, t('View'), size='sm') }}
+                        {% if can_edit %}
+                        {{ btn_icon_only('check-circle', variant='success', size='sm', data_attrs={'action': 'activateCourse', 'action-args': [c.id|string, '$event']|tojson_attr, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ c.id, 'tippy-content': t('Re-activate')}) }}
+                        {% if is_admin %}
+                        {{ btn_icon_only('trash', variant='danger', size='sm', data_attrs={'action': 'deleteCourse', 'action-args': [c.id|string, c.code, '$event']|tojson_attr, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ c.id, 'tippy-content': t('Delete')}) }}
+                        {% endif %}
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+            {% endcall %}
+      {% endcall %}
+    </div>
+    {% endif %}
+
+  </div><!-- /.gl-home-main -->
+
+  {% include "partials/dashboard/_sidebar.html" %}
+
+</div><!-- /.gl-home-layout -->
+
+{# -- Modals -- #}
+{% include "partials/dashboard/_modals.html" %}
+
+{# -- Page scripts (executed after HTMX swap) -- #}
+{#- hasCourses: courses in ANY term. An empty term on screen is not "you
+    have no courses", and must not tell the reader so. -#}
+{{ page_config({
+  'hasCourses': (active_courses | default([]) | length > 0) or (has_courses_elsewhere | default(false)),
+  'disabledFeatures': {'llm_suggestions': not llm_enabled,
+                       'classroom_assistant': not feature_classroom_assistant | default(false)},
+}, csp_nonce, id='gp-dashboard-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/config-import.js') }}"></script>
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/dashboard.js') }}"></script>

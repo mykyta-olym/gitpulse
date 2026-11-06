@@ -1,0 +1,67 @@
+{{/*
+  Validates a shortcode with parameters
+
+  @param dict
+    $shortcodeName string
+      The name of the shortcode the error is generated from
+    $allowedValues slice (optional)
+      Valid parameter values - if provided, will validate against this list
+    $paramName string
+      Name of the parameter we're validating
+    $paramValue string
+      Actual value the author used
+    $sourceFile string
+      Filename of where the error is located
+    $lineNumber string
+      Line number of where the error is located
+    $errorLevel string
+      Level of error to throw ("error" or "warning"), defaults to "error"
+    $required bool (optional)
+      Whether this parameter is required, defaults to false
+
+  @returns errorf/warnf
+    Fatal error or warning on build, with an actionable message
+*/}}
+
+{{- $shortcodeName := .shortcodeName -}}
+{{- $allowedValues := .allowedValues -}}
+{{- $paramName := .paramName -}}
+{{- $paramValue := .paramValue -}}
+{{- $sourceFile := .sourceFile -}}
+{{- $lineNumber := .lineNumber -}}
+{{- $errorLevel := default "error" .errorLevel -}}
+{{- $required := default false .required -}}
+
+{{/* Check if required parameter is missing */}}
+{{- if and $required (not $paramValue) -}}
+  {{- $msg := printf "Missing required parameter '%s' for %s shortcode." $paramName $shortcodeName -}}
+  {{- $fullMsg := "" -}}
+  {{/* Hugo's .Position will report line 1 for nested shortcodes instead of the actual line.
+       If line number is 1, omit it since it's almost definitely incorrect. */}}
+  {{- if eq $lineNumber 1 -}}
+    {{- $fullMsg = printf "%s (File: %s)" $msg $sourceFile -}}
+  {{- else -}}
+    {{- $fullMsg = printf "%s (File: %s, Line: %d)" $msg $sourceFile $lineNumber -}}
+  {{- end -}}
+  {{- if eq $errorLevel "warning" -}}
+    {{- warnf $fullMsg -}}
+  {{- else -}}
+    {{- errorf $fullMsg -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* Check against allowed values if provided */}}
+{{- if and $allowedValues $paramValue (not (in $allowedValues $paramValue)) -}}
+  {{- $msg := "" -}}
+  {{- if eq $shortcodeName "icon" -}}
+    {{- $msg = printf "Invalid icon name '%s'. See https://gitlab-org.gitlab.io/gitlab-svgs/ for valid icons." $paramValue -}}
+  {{- else -}}
+    {{- $msg = printf "Invalid value for %s parameter '%s': %s. Allowed values are %s." $shortcodeName $paramName $paramValue (delimit $allowedValues ", ") -}}
+  {{- end -}}
+  {{- $fullMsg := printf "%s (File: %s, Line: %d)" $msg $sourceFile $lineNumber -}}
+  {{- if eq $errorLevel "warning" -}}
+    {{- warnf $fullMsg -}}
+  {{- else -}}
+    {{- errorf $fullMsg -}}
+  {{- end -}}
+{{- end -}}

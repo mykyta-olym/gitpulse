@@ -1,0 +1,72 @@
+/* Codeblock */
+
+/* Set a height to prevent layout shift when Vue loads */
+.codeblock-toolbar:has(.gl-badge) {
+  height: 1.625rem;
+}
+
+/*
+  Scoping all styles for codeblock under parent .codeblock-wrapper
+  Additional TW styles affecting the codeblock are in codeblock_copy_button.vue
+*/
+.codeblock-wrapper {
+  background-color: var(--gl-background-color-subtle);
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  position: relative;
+
+  &:has(.gl-badge) {
+    padding-top: 1.25rem;
+    padding-bottom: 0;
+
+    pre {
+      padding-bottom: 1.25rem;
+    }
+  }
+  &:not(:has(.gl-badge)) {
+    padding-top: 1rem;
+    padding-bottom: 0;
+
+    pre {
+      padding-bottom: 1rem;
+    }
+
+    /* prevents text from overlapping copy button */
+    .highlight {
+      margin-right: 1.5rem;
+    }
+  }
+
+  .clipboard-icon {
+    outline: none;
+  }
+
+  /* to keep the overflow scroll bar at the bottom of the block */
+  pre {
+    color: var(--gl-text-color-default);
+    margin-bottom: 0;
+  }
+}
+
+/*
+  Editable placeholders in editable code blocks.
+*/
+.editable-var {
+  padding: 0 0.1em;
+  border-bottom: 1px dashed var(--gl-text-color-link);
+}
+
+.editable-var:focus {
+  border-bottom-style: solid;
+}
+
+.editable-var-icon {
+  opacity: 0.7;
+}
+
+.editable-var:focus + .editable-var-icon {
+  display: none;
+}

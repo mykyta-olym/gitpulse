@@ -1,0 +1,15 @@
+# Docker Compose overrides for LOCAL DEVELOPMENT monitoring.
+# Prometheus scrapes the API running on the host (not a Docker container).
+services:
+  prometheus:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./monitoring/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+
+  grafana:
+    environment:
+      GF_SERVER_ROOT_URL: "http://localhost:3000/grafana/"
+

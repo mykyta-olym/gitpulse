@@ -1,0 +1,226 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gitlab-push-event",
+  "title": "GitLab Push Event Webhook",
+  "description": "Schema for GitLab push event webhooks per official GitLab documentation",
+  "type": "object",
+  "required": ["object_kind", "event_name", "before", "after", "ref", "checkout_sha", "user_id", "user_name", "user_email", "user_avatar", "project_id", "project", "commits", "total_commits_count"],
+  "properties": {
+    "object_kind": {
+      "type": "string",
+      "const": "push"
+    },
+    "event_name": {
+      "type": "string",
+      "const": "push"
+    },
+    "before": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "Git SHA before the push"
+    },
+    "after": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "Git SHA after the push"
+    },
+    "ref": {
+      "type": "string",
+      "pattern": "^refs/(heads|tags)/",
+      "description": "Git ref being pushed to"
+    },
+    "checkout_sha": {
+      "type": ["string", "null"],
+      "description": "SHA of the checked out commit (null for branch deletion)"
+    },
+    "message": {
+      "type": ["string", "null"],
+      "description": "Commit message (if single commit)"
+    },
+    "user_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "user_username": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "user_avatar": {
+      "type": "string",
+      "format": "uri"
+    },
+    "project_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "project": {
+      "$ref": "#/definitions/project"
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/commit"
+      }
+    },
+    "total_commits_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "push_options": {
+      "type": "object"
+    },
+    "repository": {
+      "$ref": "#/definitions/repository"
+    }
+  },
+  "definitions": {
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "web_url", "git_ssh_url", "git_http_url", "namespace", "path_with_namespace", "default_branch"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "web_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "git_ssh_url": {
+          "type": "string"
+        },
+        "git_http_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "visibility_level": {
+          "type": "integer"
+        },
+        "path_with_namespace": {
+          "type": "string"
+        },
+        "default_branch": {
+          "type": "string"
+        },
+        "ci_config_path": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri"
+        },
+        "url": {
+          "type": "string"
+        },
+        "ssh_url": {
+          "type": "string"
+        },
+        "http_url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "commit": {
+      "type": "object",
+      "required": ["id", "message", "timestamp", "url", "author"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "message": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "author": {
+          "type": "object",
+          "required": ["name", "email"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        },
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri"
+        },
+        "git_http_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "git_ssh_url": {
+          "type": "string"
+        },
+        "visibility_level": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

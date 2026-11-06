@@ -1,0 +1,90 @@
+{#
+  Badge Components - Status indicators and labels
+  
+  Usage:
+    from "components/badges.html" import badge, traffic_light, status_badge, count_badge
+    badge('Active', variant='success')
+    traffic_light('GREEN')
+    status_badge('passed', 8, 10)
+#}
+
+{% from "components/icons.html" import icon %}
+
+{# Main badge macro. `icon_name` is GlBadge's `icon`: a 12px glyph before the
+   text - there were badges with an icon written out by hand as spans. `href`
+   is GlBadge's too: the badge is then a link (`target` for a new tab). #}
+{% macro badge(text, variant='gray', size='md', class='', id='', data_attrs={}, x_text='', icon_name='', href='', target='') %}
+  {% set size_class = {'sm': 'badge-sm', 'md': '', 'lg': 'badge-lg'}.get(size, '') %}
+  {% set variant_class = 'badge-' ~ variant %}
+  {% set full_class = ['badge', variant_class, size_class, class]|select|join(' ') %}
+  {% set tag = 'a' if href else 'span' %}
+  <{{ tag }} class="{{ full_class }}"{% if href %} href="{{ href }}"{% if target %} target="{{ target }}" rel="noopener"{% endif %}{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if x_text %} x-text="{{ x_text }}"{% endif %}{% for k, v in data_attrs.items() %} data-{{ k }}="{{ v|force_escape }}"{% endfor %}>{% if icon_name %}{{ icon(icon_name, size='xs') }}{% endif %}{{ text }}</{{ tag }}>
+{% endmacro %}
+
+{# Traffic light badge (GREEN/AMBER/RED) with descriptive tooltip #}
+{% macro traffic_light(status, class='', show_text=true) %}
+  {% set status_upper = status|upper if status else 'GRAY' %}
+  {% set variant_map = {'GREEN': 'success', 'AMBER': 'warning', 'YELLOW': 'warning', 'RED': 'danger', 'GRAY': 'gray', 'GREY': 'gray'} %}
+  {% set tooltip_map = {'GREEN': t('All compliance checks are passing'), 'AMBER': t('Some compliance checks need attention'), 'YELLOW': t('Some compliance checks need attention'), 'RED': t('Critical compliance checks are failing'), 'GRAY': t('No compliance data available'), 'GREY': t('No compliance data available')} %}
+  {% set variant = variant_map.get(status_upper, 'gray') %}
+  {% set tooltip = tooltip_map.get(status_upper, '') %}
+  {% if show_text %}
+    {{ badge(t(status_upper), variant=variant, class=class, data_attrs={'tippy-content': tooltip}) }}
+  {% else %}
+    <span class="traffic-dot traffic-{{ variant }} {{ class }}" data-tippy-content="{{ tooltip }}"></span>
+  {% endif %}
+{% endmacro %}
+
+
+
+{# Status badge with count (e.g., "8/10") #}
+{% macro status_badge(passed, total, show_percent=false, class='') %}
+  {% set pct = (passed / total * 100)|int if total > 0 else 0 %}
+  {% set variant = 'success' if pct >= DEFAULT_GREEN_PCT else ('warning' if pct >= DEFAULT_YELLOW_PCT else 'danger') %}
+  {% set text = '%d/%d'|format(passed, total) ~ (' (%d%%)'|format(pct) if show_percent else '') %}
+  {{ badge(text, variant=variant, class=class) }}
+{% endmacro %}
+
+
+
+{# Role badge - colours must match member_role_badges in members.html #}
+{% macro role_badge(role, class='') %}
+  {#- Translated here, not by the page's i18n script after paint. "TA" is an
+      abbreviation, the same in both languages. -#}
+  {% set role_map = {
+    'admin': (t('Admin'), 'warning'),
+    'teacher': (t('Teacher'), 'purple'),
+    'ta': ('TA', 'info'),
+    'student': (t('Student'), 'secondary')
+  } %}
+  {% set text, variant = role_map.get(role|lower, (role|title, 'secondary')) %}
+  {{ badge(text, variant=variant, class=class, size='sm') }}
+{% endmacro %}
+
+{# What kind of person a username is, beside the name: their role badge, or
+   "Bot" for a service account - the same two badges User Management shows.
+   `info` comes from `people_by_name()`; an unknown name gets nothing. #}
+{% macro person_badge(info, class='') -%}
+{%- if info -%}
+{%- if info.is_bot %}{{ badge(t('Bot'), variant='muted', size='sm', class=class) }}{% else %}{{ role_badge(info.role, class=class) }}{% endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{# Course-level role badge - visually distinct from global role_badge #}
+{% macro course_role_badge(role, class='') %}
+  {#- Translated here: an English label the page's i18n script swapped after
+      paint read "Teacher" for a frame on every course tab. -#}
+  {% set crole_map = {
+    'owner': (t('Course Owner'), 'teal'),
+    'teacher': (t('Teacher'), 'info')
+  } %}
+  {% set text, variant = crole_map.get(role|lower, (role|title, 'secondary')) %}
+  {{ badge(text, variant=variant, class=class, size='sm') }}
+{% endmacro %}
+
+
+
+
+
+
+

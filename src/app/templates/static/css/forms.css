@@ -1,0 +1,1165 @@
+/* ============================================
+   FORMS - GitLab Pajamas Design System
+   https://design.gitlab.com/components/form
+   ============================================ */
+
+/* Form group */
+.form-group {
+  margin-bottom: var(--gl-spacing-5);
+}
+fieldset.form-group {
+  border: none;
+  margin-inline: 0;
+  padding: 0;
+  /* A fieldset's intrinsic minimum width is its content's, which ignores a flex
+     or grid track and makes the group refuse to shrink inside a modal. */
+  min-width: 0;
+}
+/* A group caption (`field_group()` -> <legend class="form-label">) has to sit
+   exactly where a field's <label> sits. <legend> carries a UA
+   `padding-inline: 2px` and only fills its own shrink-to-fit box, so without
+   these two lines the caption is indented 2px from the controls under it and any
+   help text beside it wraps around it. */
+legend.form-label {
+  padding-inline: 0;
+  width: 100%;
+}
+.form-group-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+}
+.form-group.has-error .form-input {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-error);
+}
+
+/* Label - GitLab: 14px bold (600), default color */
+.form-label {
+  display: block;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--gl-text-color-strong);
+  margin-bottom: var(--gl-spacing-2);
+  transition: color var(--transition-control);
+}
+/* No colour change on the caption when a control inside the group takes focus.
+   GitLab shows focus with the control's own ring and leaves the label alone;
+   recolouring it meant picking an accent radio lit "Accent color" blue, which
+   reads as a state the label does not have. */
+/* red-300 is GitLab's dark-theme text step and their light-theme ICON step;
+   on white it measures 2.55:1. Their danger TEXT is red-700/800. */
+.required-mark {
+  color: var(--gl-feedback-danger-text);
+  margin-left: 2px;
+}
+
+/* Input - GitLab Pajamas: auto height, 4px radius, box-shadow border */
+.form-input {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  font-weight: var(--font-weight-normal);
+  line-height: 1rem;
+  color: var(--gl-text-color-default);
+  background: var(--gl-control-bg-default);
+  border: none;
+  border-radius: var(--gl-control-border-radius);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-default);
+  box-sizing: border-box;
+  transition: box-shadow var(--transition-control),
+    background var(--transition-control);
+  appearance: none;
+}
+/* Never over a focused control: `:hover:not(:disabled)` outranks `:focus`,
+   so the pointer resting on the field the reader was typing in swapped the
+   focus ring for the hover border - "the blue outline disappears when I
+   move the cursor over an input". The ring is the state; hover yields. */
+.form-input:hover:not(:disabled):not(:focus) {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-hover);
+}
+.form-input:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  background: var(--gl-control-bg-default);
+}
+.form-input:disabled,
+.search-box input:disabled,
+.gl-form-dropdown-toggle:disabled {
+  background: var(--gl-control-bg-disabled);
+  color: var(--gl-text-color-disabled);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-disabled);
+  cursor: not-allowed;
+}
+.form-input::placeholder {
+  color: var(--gl-control-placeholder-color);
+}
+textarea.form-input {
+  resize: vertical;
+  max-width: 100%;
+}
+
+.form-input.input-error {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-error);
+}
+.form-input.input-error:focus {
+  box-shadow: var(--focus-ring);
+}
+
+/* Input loading indicator (for async autofill) */
+.form-input.input-loading {
+  background-image: var(--gl-input-busy-icon);
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  /* An <input> cannot carry a pseudo-element, so the indicator has to be a
+     background image - and a background image cannot be rotated. This used to
+     run a `spin-bg` keyframe that hue-rotated it instead, which was invisible:
+     the icon is grey, and grey has no hue to rotate. Pulsing the background
+     SIZE is the one thing that reads as motion without touching the input's own
+     opacity (which would fade the text the user is typing). */
+  animation: gp-input-busy var(--gl-anim-loop) var(--motion-ease-loop) infinite;
+}
+/* Named for what it does. `spin-bg` spun nothing - it pulses the background
+   image's SIZE, because an <input> cannot carry a pseudo-element and a
+   background image cannot be rotated. The old name invited reuse as a spinner. */
+@keyframes gp-input-busy {
+  0%, 100% { background-size: 16px; }
+  50%      { background-size: 12px; }
+}
+
+/* Invalid input style for login form */
+.form-input.is-invalid {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-error);
+}
+/* Textarea */
+.form-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  /* 1rem (16px) was cramped - lines nearly touched. 1.5 gives comfortable,
+     readable prose spacing in Description / prompt fields. */
+  line-height: 1.5;
+  resize: vertical;
+}
+.form-textarea.monospace {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+/* Phones: comfortable typing space. The default rows=4 / 80px floor is cramped
+   for Description / note fields on a small screen (the "increase the description
+   fields on mobile by default - everywhere, not just here" report). min-height
+   is a floor, so taller fields (e.g. rows=8 JSON config) are unaffected. */
+@media (max-width: 768px) {
+  textarea.form-input,
+  .form-textarea,
+  .code-textarea {
+    min-height: 148px;
+  }
+}
+
+/* Select - GitLab Pajamas style (GlFormSelect) */
+.form-select,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--gl-control-bg-default);
+  color: var(--gl-text-color-default);
+  border: none;
+  border-radius: var(--gl-control-border-radius);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-default);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  height: auto;
+  padding: var(--gl-spacing-3) 1.75rem var(--gl-spacing-3) var(--gl-spacing-4);
+  box-sizing: border-box;
+  background-image: var(--gl-select-chevron);
+  background-repeat: no-repeat;
+  /* GitLab's .gl-form-select-wrapper::after: the 8x5 chevron, 12px in. */
+  background-position: right var(--gl-spacing-4) center;
+  background-size: 8px 5px;
+  cursor: pointer;
+  transition: box-shadow var(--transition-control),
+              background-color var(--transition-control);
+  line-height: 1rem;
+}
+.form-select:hover,
+select:hover {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-hover);
+}
+.form-select:focus,
+select:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.form-select:disabled,
+select:disabled {
+  background-color: var(--gl-control-bg-disabled);
+  color: var(--gl-text-color-disabled);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-disabled);
+  cursor: not-allowed;
+}
+
+/* Select size variants */
+.form-select-sm,
+select.form-input-sm {
+  height: auto;
+  font-size: var(--font-size-sm);
+  padding: var(--gl-spacing-2) 1.75rem var(--gl-spacing-2) var(--gl-spacing-3);
+  line-height: 1rem;
+}
+
+/* Native option colors follow the active semantic mode. */
+option {
+  background-color: var(--gl-background-color-overlap);
+  color: var(--gl-text-color-default);
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+}
+option:checked {
+  background-color: var(--gl-control-bg-selected);
+  color: var(--gl-gray-0);
+}
+option:hover {
+  background-color: var(--gl-hover-subtle);
+}
+
+/* -- Filter bar (list / table filters, e.g. the Events page) --
+   Bare filter dropdowns shrank to their label width and read as tiny. Give the
+   bar's controls a comfortable, consistent width and drop the stacked-label
+   bottom margin so they align as one clean row.
+   The bar sits the SAME 16px (gl-spacing-5) off the table that .table-toolbar
+   does, so a filter row reads identically whether a page uses the toolbar (e.g.
+   System) or this bar (e.g. Events) - one spacing scheme, not per-page guesses. */
+
+/* -- GlFormDropdown - component select (replaces native <select>) -- */
+/* `.gl-dropdown.` prefix so this beats `.gl-dropdown { display: inline-flex }`:
+   dropdowns.css loads AFTER forms.css in styles.css, and at equal specificity
+   the later file won - so every select in the app shrank to its content and
+   drifted to the end of its form cell while the text input beside it filled
+   the row. */
+.gl-dropdown.gl-form-dropdown {
+  display: block;
+  width: 100%;
+  position: relative;
+}
+/* `.gl-dropdown-toggle.` prefix for the same reason the wrapper needs it:
+   dropdowns.css loads after forms.css, so at equal specificity the BUTTON
+   treatment won and a select rendered with a button's background, 1px border,
+   action radius and inline-flex - beside text inputs wearing the control
+   background, no border and the control radius. Six properties, so the select
+   simply did not look like the field next to it. */
+.gl-dropdown-toggle.gl-form-dropdown-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--gl-spacing-3);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--gl-text-color-default);
+  background: var(--gl-control-bg-default);
+  border: none;
+  border-radius: var(--gl-control-border-radius);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-default);
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: box-shadow var(--transition-control),
+              background var(--transition-control);
+  line-height: 1rem;
+  text-align: left;
+}
+.gl-form-dropdown-toggle:hover {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-hover);
+}
+.gl-form-dropdown-toggle:focus,
+.gl-form-dropdown-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}.gl-form-dropdown-toggle:disabled .gl-dropdown-chevron {
+  opacity: 0.3;
+}
+.gl-form-dropdown-validator {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 50%;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.gl-form-dropdown.is-invalid .gl-form-dropdown-toggle,
+.gl-form-dropdown.has-error .gl-form-dropdown-toggle {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-error);
+}
+.gl-form-dropdown .gl-dropdown-menu {
+  min-width: max(100%, 160px);
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  max-height: 260px;
+  overflow-y: auto;
+}
+.table-controls .gl-form-dropdown,
+.table-controls .gl-dropdown {
+  width: auto;
+  min-width: 130px;
+}
+.gl-form-dropdown-text {
+  grid-area: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: normal;
+  padding: 1px 0;
+}
+.gl-form-dropdown-text.is-placeholder {
+  color: var(--gl-text-color-subtle);
+}
+.gl-form-dropdown-sizer {
+  grid-area: 1 / 1;
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.gl-form-dropdown-sizer > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+/* Narrow variant for inline / builder contexts: only its width differs - a
+   field is 32px with 14px text at every width, as every GlFormInput is. */
+.gl-form-dropdown-sm { flex: 0 0 auto; min-width: 140px; width: auto; }
+.gl-form-dropdown-sm .gl-dropdown-menu {
+  min-width: 160px;
+}
+
+/* Transitions for gl-form-dropdown are now handled by Alpine (class-based) */
+
+/* Ensure open dropdown's form-group is above siblings */
+.form-group:has(.gl-form-dropdown.open) {
+  position: relative;
+  z-index: var(--z-dropdown);
+}
+
+/* Form error / help */
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--gl-text-color-danger);
+  margin-top: var(--gl-spacing-2);
+}
+
+.form-help {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: var(--gl-spacing-2);
+}
+
+/* Import status */
+.import-status {
+  margin-top: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius);
+  background: var(--info-bg);
+  margin-bottom: 0;
+}
+.import-status[hidden] { display: none !important; }
+.import-status-line {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  color: var(--info);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+.import-status-meta {
+  margin-top: var(--gl-spacing-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.import-counters {
+  display: flex;
+  gap: var(--gl-spacing-5);
+  margin-top: var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+.import-counter strong {
+  color: var(--info);
+  font-variant-numeric: tabular-nums;
+}
+.import-log {
+  margin-top: var(--gl-spacing-3);
+  max-height: 10rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  line-height: 1.45;
+  background: var(--surface-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+}
+.import-log-entry {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+.import-status.success {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+}
+.import-status.success .import-status-line { color: var(--success); }
+.import-status.error {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+.import-status.error .import-status-line { color: var(--danger); }
+/* Same: the import box renders the app's mark, and the rule that was to
+   stop it on success / error named the ring it no longer draws. */
+.import-status.error .gp-spinner,
+.import-status.success .gp-spinner { display: none; }
+
+/* Checkbox & Radio - GitLab Pajamas style (GlFormCheckbox / GlFormRadio) */
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  padding: var(--gl-spacing-1) 0;
+}
+.form-check .form-help {
+  flex-basis: 100%;
+  padding-left: calc(16px + var(--gl-spacing-3));
+  margin-top: 0;
+}
+.form-check-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1px solid var(--gl-control-border-default);
+  border-radius: var(--radius);
+  background: var(--gl-control-bg-default);
+  transition: box-shadow var(--transition-control),
+              background-color var(--transition-control),
+              border-color var(--transition-control);
+  position: relative;
+}
+.form-check-input[type="radio"] {
+  border-radius: 50%;
+}
+.form-check-input:hover:not(:disabled):not(:focus-visible) {
+  border-color: var(--gl-control-border-hover);
+  box-shadow: var(--shadow-sm);
+}
+/* One focus ring for every control that takes text or a click.
+   These three declared it separately - a checkbox here, a search input here, and
+   the topbar's search button in topbar.css - with identical declarations. Kept
+   apart they drift the moment one is adjusted, and controls that look alike stop
+   behaving alike. */
+.form-check-input:focus-visible,
+.search-box input:focus,
+.gl-search-btn:focus-visible {
+  outline: none;
+  border-color: var(--gl-control-border-focus);
+  box-shadow: var(--focus-ring);
+}
+.form-check-input:checked {
+  background-color: var(--gl-control-bg-selected);
+  border-color: var(--gl-control-border-selected);
+}
+.form-check-input:checked:hover:not(:disabled) {
+  background-color: var(--gl-control-bg-selected-hover);
+  border-color: var(--gl-control-bg-selected-hover);
+}
+/* The tick and the dot are GitLab's own marks - form_checkbox.scss masks
+   $gl-icon-check (10x8) and $gl-icon-radio (6x6) from @gitlab/ui variables
+   over the whole box, centred - so they sit right at any box size and no
+   size rule has to know about them. The mask takes the indicator colour,
+   which follows the box: neutral-800 on light, neutral-50 on dark. */
+.form-check-input[type="checkbox"]::after,
+.form-check-input[type="radio"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--gl-control-indicator-selected);
+  opacity: 0;
+  transition: opacity var(--transition-control);
+}
+.form-check-input[type="checkbox"]::after {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg width='10' height='8' viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0.75 4.76289L3.15312 7.24678L9.25 1.1499' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+  mask: url("data:image/svg+xml,%3Csvg width='10' height='8' viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0.75 4.76289L3.15312 7.24678L9.25 1.1499' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+}
+.form-check-input[type="radio"]::after {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='3' cy='3' r='3' fill='white'/%3E%3C/svg%3E") no-repeat center;
+  mask: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='3' cy='3' r='3' fill='white'/%3E%3C/svg%3E") no-repeat center;
+}
+.form-check-input:checked::after {
+  opacity: 1;
+}
+/* GitLab's disabled checkbox (form_checkbox.scss): the disabled box colours and,
+   when checked, the same box with the tick greyed - so a read-only form still
+   shows which boxes are ticked. It used to be the same box at 40% opacity, which
+   on the light theme left an outline of 1.1:1 against the page: the Active
+   column of an archived course's checks read as empty. */
+.form-check-input:disabled,
+.form-check-input:checked:disabled {
+  cursor: not-allowed;
+  background-color: var(--gl-control-bg-disabled);
+  border-color: var(--gl-control-border-disabled);
+}
+.form-check-input:disabled::after {
+  background-color: var(--gl-control-indicator-disabled);
+}
+.form-check-label {
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  color: var(--gl-text-color-default);
+  line-height: 1.4;
+  user-select: none;
+}
+
+/* Search input - GitLab style
+   The canonical search component.  Every search input uses:
+     <div class="search-box">
+       <span class="search-icon">{{ icon('search') }}</span>
+       <input class="search-input" ...>
+     </div>
+   .search-icon absolutely-positions the wrapper; the SVG inside
+   it inherits size and stays static - no extra overrides needed. */
+.search-box {
+  position: relative;
+  height: auto;
+  padding: 0;
+  line-height: normal;
+}
+.search-box input {
+  height: 32px;
+  padding: 0 var(--gl-spacing-4) 0 2.25rem;
+  border: 1px solid var(--gl-control-border-default);
+  border-radius: var(--gl-control-border-radius);
+  background: var(--gl-control-bg-default);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  min-width: 200px;
+  transition: border-color var(--transition-control),
+              box-shadow var(--transition-control);
+}
+.search-box input:hover:not(:disabled):not(:focus) {
+  border-color: var(--gl-control-border-hover);
+}
+.search-box input::placeholder {
+  color: var(--gl-control-placeholder-color);
+}
+.search-box input[type="search"]::-webkit-search-decoration,
+.search-box input[type="search"]::-webkit-search-cancel-button,
+.search-box input[type="search"]::-webkit-search-results-button,
+.search-box input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Icon wrapper - the ONLY rule that positions the search icon.
+   The inner SVG (.icon) inherits width/height and stays in normal
+   flow inside this flex container - no position overrides needed. */
+.search-icon {
+  position: absolute;
+  left: var(--gl-spacing-4);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  line-height: 0;
+}
+.search-icon .icon {
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* Borderless variant - GlSearchBoxByType `borderless`, in the band at the top
+   of the search palette: no border of its own, the palette field's 40px and
+   12px radius, and the focus ring drawn inset so the band never clips it. */
+.search-box-borderless input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+}
+.search-box-borderless input:focus {
+  box-shadow: var(--focus-ring-inset);
+}
+
+/* The right-icons slot (`{% call search_input() %}`): controls inside the
+   field at its end, where GlSearchBoxByType keeps its own. The text stops
+   short of them. */
+.search-box-actions {
+  position: absolute;
+  top: 0;
+  right: var(--gl-spacing-2);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+}
+.search-box:has(> .search-box-actions) input {
+  padding-right: 2.75rem;
+}
+
+/* Inline search box variant - fits inside flex/inline-flex containers */
+.search-box-inline {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Specificity override: .form-input / .form-input-sm must NOT reset
+   the left-padding that leaves room for the absolutely-positioned icon. */
+.search-box input.form-input,
+.search-box input.form-input-sm {
+  padding-left: 2.25rem;
+}
+
+/* Number stepper - ONE segmented control.
+   The buttons live inside the field's border and share its focus ring, so the
+   stepper reads as a single input instead of three detached blocks (a chunky
+   btn-secondary, a boxed number, another btn-secondary). */
+.gl-number-input {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  background: var(--gl-control-bg-default);
+  border-radius: var(--gl-control-border-radius);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-default);
+  transition: box-shadow var(--transition-control);
+}
+.gl-number-input:hover {
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-hover);
+}
+/* Focus ring on the GROUP, not the bare input - otherwise the ring is drawn
+   between the buttons and cuts the control in half. */
+.gl-number-input:focus-within {
+  box-shadow: var(--focus-ring);
+}
+.gl-number-input-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  flex: 0 0 2rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gl-text-color-secondary);
+  border-radius: inherit;
+  cursor: pointer;
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+.gl-number-input-btn:hover:not(:disabled) {
+  background: var(--gl-color-alpha-light-8);
+  color: var(--gl-text-color-default);
+}
+.gl-number-input-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.gl-number-input-field {
+  width: 3.25rem;
+  flex: 0 0 3.25rem;
+  min-width: 0;
+  padding: var(--gl-spacing-3) 0;
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  line-height: 1rem;
+  text-align: center;
+  color: var(--gl-text-color-default);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  appearance: none;
+  -moz-appearance: textfield;
+}
+.gl-number-input-field:focus {
+  outline: none;
+  box-shadow: none;
+}
+.gl-number-input-field::placeholder {
+  color: var(--gl-control-placeholder-color);
+}
+.gl-number-input-field::-webkit-outer-spin-button,
+.gl-number-input-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.gl-number-input:has(.gl-number-input-field:disabled) {
+  background: var(--gl-control-bg-disabled);
+  box-shadow: inset 0 0 0 1px var(--gl-control-border-disabled);
+}
+
+/* JSON drop editor - one surface that is both the editor and the drop target. */
+.gl-json-drop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+}
+.gl-json-drop-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  min-height: 1.75rem;
+}
+.gl-json-drop-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.gl-json-drop-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin-left: auto;
+  min-width: 0;
+}
+.gl-json-drop-file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  padding: 2px var(--gl-spacing-2) 2px var(--gl-spacing-3);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: var(--gl-color-alpha-light-8);
+  border-radius: var(--radius-pill, 999px);
+  max-width: 16rem;
+  min-width: 0;
+}
+/* `display: inline-flex` above out-ranks the UA's `[hidden] { display: none }`,
+   so the chip - meant to appear only once a file is loaded - was always on
+   screen: an empty pill with a file icon and an x beside "Upload file". */
+.gl-json-drop-file[hidden] { display: none; }
+/* The label is the visible control; the input it stands for carries the focus
+   and the disabled state (the archived-course guard disables inputs). */
+.gl-file-upload {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.gl-file-upload:has(.gl-file-upload-input:focus-visible) > .btn {
+  box-shadow: var(--focus-ring);
+}
+.gl-file-upload:has(.gl-file-upload-input:disabled) > .btn {
+  color: var(--gl-btn-disabled-text);
+  background: var(--gl-btn-disabled-bg);
+  cursor: not-allowed;
+}
+.gl-json-drop-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-json-drop-surface {
+  position: relative;
+}
+.gl-json-drop-input {
+  display: block;
+  width: 100%;
+}
+/* Overlay only covers the editor while a file is actually being dragged over,
+   so it never steals a normal click or blocks typing. */
+.gl-json-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-link);
+  background: var(--gl-control-bg-default);
+  border: 2px dashed var(--gl-feedback-info-icon);
+  border-radius: var(--radius);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+.gl-json-drop.is-dragging .gl-json-drop-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+.gl-json-drop-help {
+  display: block;
+}
+
+/* Settings row - label (+ hint) left, control right.
+   Shared by every "parameter with a default" list. The default used to be a
+   span pushed out with `margin-left:auto`, which stranded "default: false"
+   against the far edge, disconnected from the control it describes; it is now
+   a hint directly under its label. */
+.gl-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-5);
+  padding: var(--gl-spacing-4) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.gl-setting-row:last-child {
+  border-bottom: none;
+}
+.gl-setting-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-1);
+  min-width: 0;
+}
+.gl-setting-row-label {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+.gl-setting-row:has(.form-check-input) .gl-setting-row-label {
+  cursor: pointer;
+}
+.gl-setting-row-hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+/* Fixed-basis control column so every row's control lines up in a column
+   instead of each one starting wherever its label happens to end. */
+.gl-setting-row-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+/* A row whose governing switch is off. The value is kept (turning the switch
+   back on restores it), so dim rather than hide: the pattern is still there,
+   it is simply not being enforced. */
+.gl-setting-row.is-dependency-off .gl-setting-row-text,
+.gl-setting-row.is-dependency-off .gl-setting-row-control {
+  opacity: 0.5;
+}
+/* Free-text values (a regex, a comma-separated list) get the full row width:
+   squeezed into the narrow control column a toggle needs, they are unreadable. */
+.gl-setting-row--wide {
+  align-items: stretch;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+}
+.gl-setting-row--wide .gl-setting-row-control {
+  justify-content: stretch;
+}
+.gl-setting-row--wide .gl-setting-row-control > * {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .gl-setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--gl-spacing-3);
+  }
+  .gl-setting-row-control {
+    justify-content: flex-start;
+  }
+}
+
+.gl-dropdown-item .gl-dropdown-item-content {
+  display: flex;
+  gap: var(--gl-spacing-3);
+  align-items: flex-start;
+}
+/* -- Settings save bar --------------------------------------------------
+   GitLab's own `.settings-sticky-footer`, copied from
+   app/assets/stylesheets/pages/settings.scss:
+
+     .settings-sticky-footer {
+       z-index: $settings-sticky-footer-z-index;  // 98 + 1
+       position: sticky;
+       bottom: 0;
+       min-height: $settings-sticky-footer-height;  // 2.5rem
+       @apply gl-bg-default;
+       @apply gl-pt-3;                              // 8px
+       @apply gl-border-t;                          // gl-border-color-default
+     }
+
+   A dirty guard only reads as a guard if you can SEE the button it arms.
+   Course settings had a sticky bar under a course-specific name; the
+   Preferences form had a static row that scrolled away with the page, so
+   its Save button was off-screen at exactly the moment it armed. Both
+   forms are one bar now, under GitLab's name.
+
+   It is the page's own background under a top border, flush with the content
+   - no shadow, and not pulled out into `.main-container`'s padding. Both of
+   those were ours: on the light theme they made the bar a white box floating
+   over the page, 16px wider on each side than the cards above it.
+
+   The page shell owns its bottom gutter. A save bar may be followed by more
+   content (course settings ends with the Danger Zone), including content
+   nested in a tab panel, so the bar must not reset its ancestors' padding. */
+
+.settings-sticky-footer {
+  position: sticky;
+  /* Paint through the scrollport's bottom padding; keep the buttons above it. */
+  bottom: calc(-1 * var(--page-bottom-gutter, 0px));
+  margin-bottom: 0;
+  z-index: var(--z-sticky);
+  margin-top: var(--gl-spacing-5);
+  padding: var(--gl-spacing-3) 0 max(var(--gl-spacing-3), var(--page-bottom-gutter, 0px));
+  background: var(--gl-background-color-default);
+  border-top: 1px solid var(--gl-border-color-default);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--gl-spacing-3);
+}
+
+/* The final action bar paints through the page gutter once, both while sticky
+   and at the end of the form. Following sections retain their own spacing. */
+.settings-sticky-footer:last-child {
+  margin-bottom: calc(-1 * var(--page-bottom-gutter, 0px));
+}
+
+/* A following card is a new section, rather than the page's bottom gutter. */
+form:has(> .settings-sticky-footer) + .card {
+  margin-top: calc(var(--gl-spacing-5) + var(--page-bottom-gutter, 0px));
+}
+
+@media (max-width: 768px) {
+  .settings-sticky-footer {
+    gap: var(--gl-spacing-2);
+  }
+}
+
+/* Shared settings form sections. */
+.settings-form {
+  --settings-section-gap: var(--gl-spacing-6);
+}
+.settings-form .content-section {
+  position: relative;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--settings-section-gap);
+}
+
+.settings-form .content-section:last-of-type {
+  border-bottom: none;
+}
+
+.settings-form .content-section + .content-section {
+  border-top: none;
+  padding-top: 0;
+}
+
+.settings-form .section-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  /* Cover control shadows and focus rings in the side gutter while sticky. */
+  margin-inline: calc(-1 * var(--gl-spacing-3));
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: var(--gl-spacing-4) var(--gl-spacing-3) var(--gl-spacing-2);
+  background: var(--gl-background-color-default);
+}
+
+.settings-form .section-title {
+  font-size: var(--gl-font-size-600);
+  line-height: var(--gl-line-height-heading);
+  letter-spacing: var(--gl-letter-spacing-heading);
+  font-weight: var(--gl-font-weight-heading);
+  margin-bottom: var(--gl-spacing-1);
+  color: var(--text-primary);
+}
+
+.settings-form .section-title-group {
+  gap: 0;
+}
+
+.settings-form .section-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+  margin-bottom: var(--gl-spacing-4);
+  line-height: var(--gl-line-height-20);
+}
+
+.settings-form .section-content {
+  margin-top: 0;
+  /* Keep control shadows inside the sticky header's trailing cover area. */
+  padding-bottom: var(--settings-section-gap);
+}
+
+/* Keep settings choices close to their labels on a wide form. */
+.settings-form .gl-form-dropdown {
+  max-width: 30rem;
+}
+
+.settings-form .section-content .form-group:last-child {
+  margin-bottom: 0;
+}
+@media (max-width: 768px) {
+  .settings-form { --settings-section-gap: var(--gl-spacing-5); }
+}
+
+/* -- Typeahead: a search box that suggests people --
+   Ten class names beginning `invite-` and about twenty rules had lived in
+   pages/course.css, because the Teachers page was the first to need this.
+   None of it is about inviting a teacher: it is what "suggest a person" looks
+   like, so it is a component (components/typeahead.html), built from the
+   shared search box and dropdown parts; only the box it sits in is here. */
+.typeahead {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+/* The field is the width of the typeahead, wherever that sits - in a form
+   field it stopped at the search box's 200px floor. */
+.typeahead .search-box input {
+  width: 100%;
+}
+/* In a dialog the suggestions open in the flow and make the dialog taller: the
+   dialog body scrolls (overflow-y: auto), and a menu laid over it was cut off
+   at its bottom edge, three people in and over the field below. */
+.modal .typeahead > .gl-dropdown-menu {
+  position: static;
+  max-height: 280px;
+  box-shadow: none;
+}
+
+/* Shared code_reference disclosure and properties. */
+.code-details {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  margin-top: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-5);
+}
+
+.code-details summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  list-style: none;
+}
+
+/* Hide native disclosure marker (Chrome/Safari/Firefox). */
+.code-details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Animated chevron: @gitlab/ui's $gl-icon-chevron-right, rotated 90deg when
+   <details open>. */
+.code-details summary::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M10.707 7.293a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L8.586 8 6.293 5.707a1 1 0 0 1 1.414-1.414l3 3z'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M10.707 7.293a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L8.586 8 6.293 5.707a1 1 0 0 1 1.414-1.414l3 3z'/%3E%3C/svg%3E") no-repeat center / contain;
+  transition: transform var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.code-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.code-details summary:hover {
+  color: var(--text-primary);
+}
+
+.code-details pre {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  margin: var(--gl-spacing-4) 0 0;
+  padding: var(--gl-spacing-4);
+  background: var(--surface-default);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.prop-list {
+  list-style: none;
+  padding: var(--gl-spacing-4) 0 0 0;
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.prop-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.prop-list li:last-child {
+  border-bottom: none;
+}
+
+.prop-list code {
+  background: var(--gl-feedback-info-bg);
+  color: var(--gl-text-color-link);
+  padding: var(--gl-spacing-1) var(--gl-spacing-3);
+  border-radius: var(--radius);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.prop-list .prop-default {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.prop-list .muted {
+  flex: 1;
+  min-width: 0;
+}

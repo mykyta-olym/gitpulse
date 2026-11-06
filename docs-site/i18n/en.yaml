@@ -1,0 +1,122 @@
+# Header
+header:
+  skipToMainContent: "Skip to main content"
+  toggleMenu: "Toggle menu"
+  logo: "Go to GitPulse Docs homepage"
+
+# Meta tags
+meta:
+  siteDescription: "GitPulse documentation - assessing student teamwork in GitLab for DevOps teaching at KPI FEI TUKE."
+  descriptionFallback: "More about %s in the GitPulse documentation."
+
+# Breadcrumbs
+breadcrumbs:
+  home: "GitPulse Docs"
+  ariaLabel: "Breadcrumb"
+
+# Side navigation
+navBar:
+  mainNavigation: "Main Navigation"
+  main: "Main"
+
+# On-page table of contents (right sidebar)
+toc:
+  tableOfContents: "Table of Contents"
+
+# Landing page - Search
+landing-search:
+  findGLAnswers: "GitPulse Documentation"
+
+# Landing page - Get started
+get-started:
+  mainTitle: "Get started with GitPulse"
+  mainSubtitle: "New to GitPulse? Start here."
+
+# Landing page - Reference Architectures
+
+# Landing page - Install GitLab Self-Managed
+  # Install self-maganged section main text
+  # Linux installation card
+  # Kubernetes installation card
+  # Install with Docker card
+  # Compile from source card
+  # Install from cloud provider card
+
+# Landing / content page - Footer
+footer:
+  editWebIDE: "Edit in Web IDE"
+  privacyStmt: "Privacy statement"
+  suggestUpdates: "Suggest updates"
+  termsOfUse: "Terms"
+  viewPageSrc: "View page source"
+
+  aboutTitle: "About"
+  projectTitle: "Project"
+  docsTitle: "Documentation"
+  legalTitle: "Legal"
+  repository: "Repository"
+  reportIssue: "Report an issue"
+  email: "Email"
+  logoAlt: "GitPulse documentation logo"
+  tagline: "Assessing student teamwork in GitLab."
+  linkIntro: "Introduction"
+  linkTeachers: "For teachers"
+  linkStudents: "For students"
+  linkApi: "API"
+  linkChangelog: "Changelog"
+# Content pages - Title header contribute/solutions badges
+badges:
+  contribute: "contribute"
+  contributeHoverTxt: "This content is about development of the GitLab product."
+  solutions: "solutions"
+  solutionsHoverTxt: "This content is provided by GitLab Solution Architects."
+
+# Shortcodes - Alerts
+alerts:
+  # Any changes to this text will also need to be made in https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/help/hugo_transformer.rb for /help.
+  disclaimerTxt: "This page contains information related to upcoming products, features, and functionality.
+    It is important to note that the information presented is for informational purposes only.
+    Please do not rely on this information for purchasing or planning purposes.
+    The development, release, and timing of any products, features, or functionality may be subject
+    to change or delay and remain at the sole discretion of GitLab Inc."
+
+# Shortcodes - Feature flags
+  # Product names
+  # Available feature flags table column names
+  # Ownership by groups table data
+  # Count by milestone table data
+  # Fields shared by both ownership by groups and count by milestone tables
+
+# Shortcodes - History and Details
+history:
+  title: "History"
+
+# Shortcodes - Collapsible
+collapsible:
+  toggleAriaLabel: "Toggle section"
+
+# Shortcodes - Maintained versions
+
+# Shortcodes - Yes/No
+yesNo:
+  "no": "No"
+  "yes": "Yes"
+
+# 404
+pageNotFound:
+  pageDoesNotExist: "We're sorry, no page exists at this address."
+  searchSite: "Search this site"
+  browseLatestDocs: "Browse the latest docs"
+  accessOlderDocs: "Access older docs"
+
+# Elastic search results page
+
+# Release posts
+
+about:
+  workLabel: "Thesis"
+  work: "Master's thesis · Informatics"
+  departmentLabel: "Department"
+  department: "Department of Computers and Informatics · FEI TUKE"
+  supervisorLabel: "Supervisor"
+  copyright: "© 2026 Technical University of Košice"

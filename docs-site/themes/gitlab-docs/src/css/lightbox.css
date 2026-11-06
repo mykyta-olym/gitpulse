@@ -1,0 +1,55 @@
+/* Image lightbox overlay (see src/features/lightbox.js) */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* above the header (z-index: 500) */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: var(--gl-color-alpha-dark-800, rgba(0, 0, 0, 0.8));
+  cursor: zoom-out;
+}
+
+.lightbox-overlay.is-open {
+  display: flex;
+}
+
+.lightbox-image {
+  max-width: 95vw;
+  max-height: 90vh;
+  object-fit: contain;
+  cursor: default;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--gl-color-brand-white, #fff);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox-close:hover,
+.lightbox-close:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  outline: none;
+}
+
+/* Prevent the page behind the overlay from scrolling while it is open. */
+body.lightbox-open {
+  overflow: hidden;
+}

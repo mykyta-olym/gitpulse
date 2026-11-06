@@ -1,0 +1,180 @@
+# TLS is terminated by the upstream university reverse proxy, so Caddy MUST
+# serve plain HTTP. Using an http:// site address disables Caddy's automatic
+# HTTP->HTTPS redirect; without this, every request the proxy forwards over
+# plain HTTP gets 308-redirected back to https:// and the browser loops with
+# ERR_TOO_MANY_REDIRECTS. The proxy handles certificates / HTTPS externally.
+(api_upstream) {
+    header_up X-Real-IP {remote_host}
+    health_uri /health/live
+    # Recover as soon as the API is ready, rather than retaining a failed
+    # startup probe for another fifteen seconds.
+    health_interval 1s
+    health_timeout 1s
+    # Cover the API's 20-second startup period before serving maintenance.
+    lb_try_duration 20s
+    lb_try_interval 250ms
+    transport http {
+        # Uvicorn expires idle connections after 5s.
+        keepalive 4s
+    }
+}
+
+http://{$DOMAIN:localhost} http://localhost {
+
+    # -- SSE streams: no compression, immediate flush --
+    @streaming {
+        path_regexp stream_path /stream$
+    }
+    handle @streaming {
+        reverse_proxy api:8000 {
+            import api_upstream
+            # text/event-stream flushes immediately by default. A negative
+            # flush_interval would keep orphan streams alive after a tab exits.
+        }
+    }
+
+    # -- Compression for all other responses --
+    encode zstd gzip
+
+    # -- Documentation site --
+    handle_path /docs/* {
+        # The documentation is a static site and cannot know who is reading it,
+        # so the application decides. It receives the ORIGINAL path in
+        # X-Forwarded-Uri and answers 204 (serve), 401 (sign in) or 403.
+        # Public sections never reach a session check - see api/docs_authz.py.
+        forward_auth api:8000 {
+            uri /internal/docs-authz
+            copy_headers X-Docs-Role
+        }
+        reverse_proxy gitpulse-docs:80
+    }
+
+    # Slovak is the default language and lives at /docs/, not /docs/sk/.
+    # Readers guess /docs/sk/ because English is at /docs/en/, so that guess is
+    # answered rather than 404'd.
+    @docs_sk path_regexp docs_sk ^/docs/sk(/.*)?$
+    redir @docs_sk /docs{re.docs_sk.1} 301
+
+    # `en-us` was the language code before the site became bilingual, so links
+    # written then still carry it.
+    @docs_enus path_regexp docs_enus ^/docs/en-us(/.*)?$
+    redir @docs_enus /docs/en{re.docs_enus.1} 301
+
+    # Redirect /docs to /docs/ (trailing slash for MkDocs)
+    @docs_noslash path /docs
+    redir @docs_noslash /docs/ 301
+
+    # Redirect /en/* to /docs/en/* (MkDocs i18n generates root-relative links)
+    @lang_en path /en /en/ /en/*
+    redir @lang_en /docs{uri} 301
+
+    # -- Monitoring: Grafana, Prometheus, Jaeger, Alertmanager --
+    # A GitPulse administrator's session opens them; nothing else does. Caddy
+    # asks the application before each request, as for /docs/
+    # (api/monitoring_authz.py: 204 serve, 302 sign in, 403 not an admin).
+    # They used to share one Basic Auth password, which had ended up in the
+    # operator documentation. The application down means the tools are
+    # closed too; on the host they stay at 127.0.0.1 (DEPLOY.md).
+    # The 401/302 these return is what Search Console flagged as "Blocked due
+    # to unauthorized request". robots.txt keeps well-behaved crawlers away;
+    # X-Robots-Tag makes the intent explicit for anything that ignores it.
+    handle /grafana/* {
+        header X-Robots-Tag "noindex, nofollow"
+        # Grafana's auth proxy signs in the login named here. copy_headers sets
+        # it from the gate's answer and drops a value the client sent itself.
+        forward_auth api:8000 {
+            uri /internal/monitoring-authz?service=grafana
+            copy_headers X-Grafana-User X-Grafana-Email
+        }
+        reverse_proxy grafana:3000
+    }
+    @grafana_noslash path /grafana
+    redir @grafana_noslash /grafana/ 301
+
+    # -- Monitoring: Prometheus --
+    handle_path /prometheus/* {
+        header X-Robots-Tag "noindex, nofollow"
+        forward_auth api:8000 {
+            uri /internal/monitoring-authz?service=prometheus
+        }
+        reverse_proxy prometheus:9090
+    }
+    @prom_noslash path /prometheus
+    redir @prom_noslash /prometheus/ 301
+
+    # -- Monitoring: Jaeger --
+    handle /jaeger/* {
+        header X-Robots-Tag "noindex, nofollow"
+        forward_auth api:8000 {
+            uri /internal/monitoring-authz?service=jaeger
+        }
+        reverse_proxy jaeger:16686
+    }
+    @jaeger_noslash path /jaeger
+    redir @jaeger_noslash /jaeger/ 301
+
+    # -- Monitoring: Alertmanager --
+    # Where an alert email's "Silence" link goes; served at / inside, like
+    # Prometheus, with --web.external-url pointing here.
+    handle_path /alertmanager/* {
+        header X-Robots-Tag "noindex, nofollow"
+        forward_auth api:8000 {
+            uri /internal/monitoring-authz?service=alertmanager
+        }
+        reverse_proxy alertmanager:9093
+    }
+    @alertmanager_noslash path /alertmanager
+    redir @alertmanager_noslash /alertmanager/ 301
+
+    reverse_proxy api:8000 {
+        import api_upstream
+    }
+
+    # Security headers (defence-in-depth - CSP is set by FastAPI SecurityHeadersMiddleware
+    # to avoid conflicts; Caddy only adds transport/framing headers)
+    header {
+        X-Content-Type-Options    nosniff
+        X-Frame-Options           DENY
+        Referrer-Policy            strict-origin-when-cross-origin
+        Permissions-Policy         "camera=(), microphone=(), geolocation=()"
+        Strict-Transport-Security  "max-age=31536000; includeSubDomains"
+        -Server
+        -X-XSS-Protection
+    }
+
+    # Note: Rate limiting is handled by FastAPI middleware
+    # Caddy rate_limit requires caddy-ratelimit plugin
+
+    # Block access to metrics from public (only allow from internal/Prometheus)
+    @metrics path /metrics
+    respond @metrics "Forbidden" 403
+
+    # When the api container is unreachable - the window during a redeploy,
+    # or a crash - `reverse_proxy` produces a 502/503 with an EMPTY body, and
+    # the browser draws its own "This page isn't working". Serve our own page
+    # instead. It has to be a static file baked in here: /static is served by
+    # the application, which is exactly what is down.
+    #
+    # The status code is preserved rather than answered 200, so monitoring and
+    # crawlers still see an outage instead of a healthy page.
+    handle_errors {
+        @unavailable expression {err.status_code} in [502, 503, 504]
+        handle @unavailable {
+            root * /srv/errors
+            rewrite * /maintenance.html
+            header Retry-After 30
+            header Cache-Control "no-store"
+            file_server {
+                status {err.status_code}
+            }
+        }
+        handle {
+            respond "{err.status_code} {err.status_text}" {err.status_code}
+        }
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}

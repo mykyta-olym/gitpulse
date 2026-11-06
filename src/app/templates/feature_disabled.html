@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% from "components/cards.html" import card %}
+{% from "components/buttons.html" import btn_link, btn_link_icon %}
+
+{% block title %}{{ t('Feature Not Available') }}{% endblock %}
+
+{# Without these the page inherits base.html's default crumb, which reads
+   "Your work / Dashboard" - so opening a page whose feature is off, or
+   Support with the forms off, told the reader they were on the dashboard. The
+   page is not the dashboard; say what it is. #}
+{% set breadcrumb_items = [
+     {'href': '/dashboard/', 'label': t('Dashboard')},
+     {'label': t('Feature Not Available')}
+   ] %}
+
+{% block content %}
+<div class="container error-container">
+  {% call card() %}
+  <div class="error-card-body">
+      <div class="mb-6">
+        <img src="{{ static_url('img/error-403.svg') }}" alt="" width="144" height="144">
+      </div>
+      
+      <h1 class="error-title">
+        {{ t('Feature Not Available') }}
+      </h1>
+      
+      <p class="color-gray-600 mb-6">
+        {{ message | default(t('This feature is currently disabled or not yet implemented.'), true) }}
+      </p>
+      
+      {% if feature_name %}
+      <div class="feature-info-box">
+        <p class="feature-info-text">
+          <strong>{{ t('Feature:') }}</strong> {{ feature_name }}
+        </p>
+        {% if config_hint and is_admin|default(false) %}
+        <p class="config-hint-text">
+          <strong>{{ t('To enable:') }}</strong> {{ t('Set') }} <code class="config-code">{{ config_hint }}</code> {{ t('in your environment.') }}
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {# Two buttons, one destination, was what this offered: "Go Back" and
+         "Dashboard" both went to /dashboard/. `data-nav-back` makes the first
+         one mean it - the core handler steps back through history when there is
+         somewhere to step back to, and falls through to the href when there is
+         not. #}
+      <div class="action-buttons">
+        {{ btn_link_icon(t('Go Back'), '/dashboard/', 'arrow-left', variant='secondary', data_attrs={'nav-back': ''}) }}
+        {{ btn_link(t('Dashboard'), '/dashboard/') }}
+      </div>
+  </div>
+  {% endcall %}
+</div>
+{% endblock %}

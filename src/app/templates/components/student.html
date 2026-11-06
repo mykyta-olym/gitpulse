@@ -1,0 +1,613 @@
+{#
+  Student profile components - MR-centric, GitLab-styled.
+
+  The student page is organised by Merge Request: each MR is a self-contained
+  card (description, role, workflow, commits, threaded discussions, pipeline,
+  diff). A separate "reviews given" section covers the reviewer side.
+
+  Macros here are imported (not included), so context variables are NOT visible
+  inside them - anything data-driven beyond env globals (t, icon, gitlab_url,
+  local_time, render_gl_description) must be passed explicitly. `username_map`
+  is threaded through so @mentions render as readable names.
+#}
+{% from "components/badges.html" import badge %}
+{% from "components/avatar.html" import avatar, avatar_labeled %}
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import btn_icon, btn_link %}
+{% from "components/alerts.html" import alert %}
+{% from "components/cards.html" import empty_state %}
+{% from "components/lists.html" import gl_list, gl_list_item %}
+
+{# -- Per-commit pipeline status, GitLab-style. Maps a CI status to a coloured
+      icon so a teacher can see at a glance whether each commit's pipeline
+      passed. `status` is the latest Pipeline.status for the commit SHA; pass
+      '' / none when no pipeline ran (renders nothing). -- #}
+{#- Every state gets an icon, INCLUDING the absence of one. This used to render
+    nothing at all when a commit had no pipeline, so the reader saw a blank where
+    every other row has a mark and could not tell "nothing ran" from "we do not
+    know" from a bug in the page. A hollow circle says the first, plainly. -#}
+{% macro commit_pipeline_icon(status) %}
+{%- if not status -%}
+  <span class="ci-dot ci-dot--none" data-tippy-content="{{ t('Pipeline') }}: {{ t('No pipeline ran for this commit') }}" aria-label="{{ t('Pipeline') }}: {{ t('No pipeline ran for this commit') }}">{{ icon('minus', size='xs') }}</span>
+{%- else -%}
+  {%- set _m = {
+    'success':   ('check-circle', 'success', 'Passed'),
+    'failed':    ('x-circle',     'danger',  'Failed'),
+    'running':   ('loader',       'info',    'Running'),
+    'pending':   ('clock',        'warning', 'Pending'),
+    'created':   ('clock',        'muted',   'Pending'),
+    'scheduled': ('clock',        'muted',   'Scheduled'),
+    'manual':    ('settings',     'muted',   'Manual'),
+    'canceled':  ('slash',        'muted',   'Canceled'),
+    'skipped':   ('slash',        'muted',   'Skipped'),
+  } -%}
+  {%- set _e = _m.get(status, ('help-circle', 'muted', status)) -%}
+  <span class="ci-dot ci-dot--{{ _e[1] }}" data-tippy-content="{{ t('Pipeline') }}: {{ t(_e[2]) }}" aria-label="{{ t('Pipeline') }}: {{ t(_e[2]) }}">{{ icon(_e[0], size='xs') }}</span>
+{%- endif -%}
+{% endmacro %}
+
+{# -- Translated MR / issue state pill (fixes raw "MERGED" -> "Zlúčené") -- #}
+{% macro state_pill(state, kind='mr') %}
+  {% set _s = (state or 'opened')|lower %}
+  {% set _mr_map = {
+    'opened': (t('Open'), 'open', 'git-pull-request'),
+    'merged': (t('Merged'), 'merged', 'git-merge'),
+    'closed': (t('Closed'), 'closed', 'x-circle'),
+    'locked': (t('Locked'), 'closed', 'lock')
+  } %}
+  {% set _issue_map = {
+    'opened': (t('Open'), 'open', 'alert-circle'),
+    'closed': (t('Closed'), 'merged', 'check-circle')
+  } %}
+  {% set _map = _issue_map if kind == 'issue' else _mr_map %}
+  {% set _label, _cls, _ic = _map.get(_s, (state|upper, 'closed', 'git-pull-request')) %}
+  {#- GitLab's issuable state badge: open success, merged info, closed danger. -#}
+  {{ badge(_label, variant={'open': 'success', 'merged': 'info'}.get(_cls, 'danger'), icon_name=_ic) }}
+{% endmacro %}
+
+{# -- Role badge: is the page student the Author or a Reviewer of this MR? -- #}
+{% macro mr_role_badge(role, is_own_profile=false) %}
+  {% if role == 'reviewer' %}
+  {{ badge(t('Reviewer'), variant='info', icon_name='eye', data_attrs={'tippy-content': t("This student reviewed someone else's merge request")}) }}
+  {% else %}
+  {{ badge(t('You authored') if is_own_profile else t('Author'), variant='purple', icon_name='user-check', data_attrs={'tippy-content': t('This merge request belongs to this student')}) }}
+  {% endif %}
+{% endmacro %}
+
+{# A participant's identity and explicitly labelled review activity. #}
+{% macro mr_participant(rev) %}
+  {% set _tip = (t('Assigned reviewer') ~ ' · ' if rev.is_assigned else '') ~ rev.note_count ~ ' ' ~ (t('comment') if rev.note_count == 1 else t('comments')) ~ ' · ' ~ rev.total_words ~ ' ' ~ t('words') ~ (' · ' ~ t('approved') if rev.is_approved else '') ~ (' · ' ~ t('meaningful') if rev.is_meaningful else '') %}
+  {% call avatar_labeled(rev.avatar_url, rev.name, href=rev.profile_url or '', data_attrs={'tippy-content': _tip}) %}
+    {%- if rev.is_approved %}{{ badge(t('Approved'), variant='success', icon_name='check-circle') }}{% endif -%}
+    {%- if rev.note_count %}{{ badge(rev.note_count ~ ' ' ~ (t('comment') if rev.note_count == 1 else t('comments')), variant='muted') }}{% elif rev.is_assigned and not rev.is_approved %}{{ badge(t('Awaiting review'), variant='muted') }}{% endif -%}
+  {% endcall %}
+{% endmacro %}
+
+{# -- Workflow ribbon: how far this MR travelled the expected lifecycle -- #}
+{% macro workflow_ribbon(entry) %}
+  {% set mr = entry.mr %}
+  {% set _has_branch = (mr.source_branch is not none) and (mr.source_branch != '') %}
+  {% set _has_review = entry.has_review_activity|default(false) %}
+  {% set _approved = (mr.approvals_count|default(0)) > 0 or (mr.approved_by_gitlab_ids|default([])|length) > 0 %}
+  {% set _merged = mr.state == 'merged' %}
+  {% set steps = [
+    ('alert-circle', t('Issue'), mr.has_issue_link, t('Linked to a tracking issue/ticket')),
+    ('git-branch', t('Branch'), _has_branch, t('Work done on a dedicated feature branch')),
+    ('git-pull-request', t('Opened'), true, t('Merge request opened for review')),
+    ('message-square', t('Reviewed'), _has_review, t('Received code review (comments or approval)')),
+    ('check-circle', t('Approved'), _approved, t('Approved by at least one reviewer')),
+    ('git-merge', t('Merged'), _merged, t('Merged into the target branch'))
+  ] %}
+  <ol class="wf-ribbon" data-tour="mr-workflow" aria-label="{{ t('Merge request workflow') }}">
+    {% for ic, label, done, hint in steps %}
+    <li class="wf-step{% if done %} is-done{% endif %}" tabindex="0" data-tippy-content="{{ label }}: {{ t('done') if done else t('not yet') }}. {{ hint }}">
+      <span class="wf-dot">{% if done %}{{ icon(ic, size='xs') }}{% else %}<span class="wf-dot-empty"></span>{% endif %}</span>
+      <span class="wf-label">{{ label }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+{% endmacro %}
+
+{# -- Collapsible inline code context (GitLab DiffNote snippet). Rendered as a
+      <details> CLOSED by default: the summary shows file:line so the reviewer
+      knows code is attached, and the (heavy) code table only mounts on expand.
+      Keeping it collapsed keeps long MR threads light and fast. -- #}
+{% macro code_context_block(cc, extra_class='', with_footer=false) %}
+  <details class="dn-code-context dn-code-collapse {{ extra_class }}" data-code-context data-tour="code-comments">
+    <summary class="dn-code-toolbar">
+      {{ icon('chevron-right', size='xs', class='dn-code-chevron') }}
+      <span class="dn-code-ref">
+        {{ icon('file-code', size='xs') }}
+        <span class="dn-code-path">{{ cc.path.split('/')|last }}</span>
+        {% if cc.display_line %}<span class="dn-code-line">:{{ cc.display_line }}</span>{% endif %}
+      </span>
+      <span class="dn-code-peek">{{ t('Show code') }}</span>
+    </summary>
+    {# The copy button is a SIBLING of the summary, not a child of it. A control
+       inside <summary> is unreachable by keyboard - Enter and Space are taken by
+       the disclosure itself, so the button can be focused and never activated,
+       which is what the accessibility check flags as a disallowed descendant.
+       It is placed back onto the toolbar row visually (see .dn-code-action in
+       student.css) without being inside it structurally. #}
+    <button type="button" class="btn btn-icon-only btn-tertiary btn-sm dn-code-action" data-copy-code-context aria-label="{{ t('Copy code context') }}" data-tippy-content="{{ t('Copy code context') }}">{{ icon('copy', size='sm') }}</button>
+    <div class="dn-code-scroll{% if extra_class %} thread-diff-scroll{% endif %}" tabindex="0" role="region" aria-label="{{ t('Inline code context') }}">
+      <table class="dn-code-table">
+        <tbody>
+          {% for row in cc.rows %}
+          <tr class="dn-code-row dn-code-row--{{ row.kind }}{% if row.is_target %} is-target{% endif %}" data-code-line>
+            <td class="dn-code-ln dn-code-ln--old" aria-label="{{ t('Old line') }}">{{ row.old_line if row.old_line is not none else '' }}</td>
+            <td class="dn-code-ln dn-code-ln--new" aria-label="{{ t('New line') }}">{{ row.new_line if row.new_line is not none else '' }}</td>
+            <td class="dn-code-mark" aria-hidden="true">{{ row.marker }}</td>
+            {# `content_html` is Pygments token markup, which Pygments has
+               already escaped - that is what makes it safe unescaped here.
+               It is absent when the file has no lexer, and then the plain
+               (auto-escaped) text renders exactly as it always did. #}
+            <td class="dn-code-text"><code>{% if row.content_html %}{{ row.content_html|safe }}{% else %}{{ row.content or ' ' }}{% endif %}</code></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if with_footer and cc.display_line %}
+    <div class="thread-diff-footer">
+      {% if cc.line_start and cc.line_end and cc.line_start != cc.line_end %}
+        {{ t('Comment on lines') }} {{ '+' if cc.side == 'new' else '-' }}{{ cc.line_start }}-{{ cc.line_end }}
+      {% else %}
+        {{ t('Comment on line') }} {{ '+' if cc.side == 'new' else '-' }}{{ cc.display_line }}
+      {% endif %}
+    </div>
+    {% endif %}
+  </details>
+{% endmacro %}
+
+{# -- Single discussion note (root or reply), GitLab style: avatar + body -- #}
+{% macro discussion_note(nv, project_path, username_map=none, student_url_map=none, is_reply=false, show_code_context=true, show_anchor=true) %}
+  {% set note = nv.note %}
+  {% set _is_diff = note.note_type == 'DiffNote' %}
+  {% set _wc = note.word_count or 0 %}
+  <div id="{{ nv.anchor }}" class="dn{% if is_reply %} dn--reply{% endif %}{% if nv.is_page_student %} dn--self{% endif %}">
+    {{ avatar(nv.avatar_url, nv.author_display | replace('@', '') | trim, size=24) }}
+    <div class="dn-main">
+      <div class="dn-head">
+        {% if is_reply %}
+        <span class="dn-reply-cue" data-tippy-content="{{ t('Reply') }}">{{ icon('corner-down-right', size='xs') }}</span>
+        {% endif %}
+        {% if nv.profile_url %}<a href="{{ nv.profile_url }}" class="dn-author dn-author--link{% if nv.is_teacher %} is-teacher{% elif nv.is_page_student %} is-self{% endif %}">{{ nv.author_display }}</a>{% else %}<span class="dn-author{% if nv.is_teacher %} is-teacher{% elif nv.is_page_student %} is-self{% endif %}">{{ nv.author_display }}</span>{% endif %}
+        {% if nv.is_teacher %}<span class="dn-tag dn-tag--teacher">{{ t('Teacher') }}</span>
+        {% elif nv.is_page_student %}<span class="dn-tag dn-tag--self">{{ t('This student') }}</span>{% endif %}
+        <time class="dn-time">{{ local_time(note.created_at, 'relative') if note.created_at else '-' }}</time>
+        {% if _is_diff and note.position_path %}
+          {% if nv.code_context and nv.code_context.diff_anchor %}
+          {{ btn_icon((note.position_path.split('/')|last) ~ (':' ~ note.position_new_line if note.position_new_line else ''), 'file-diff', variant='ghost', size='sm', data_attrs={'diff-jump': nv.code_context.diff_anchor}, title=t('Jump to this file in the diff')) }}
+          {% else %}
+          <span class="dn-file" data-tippy-content="{{ t('Inline comment on') }} {{ note.position_path }}">{{ icon('file-diff', size='xs') }} {{ note.position_path.split('/')|last }}{% if note.position_new_line %}:{{ note.position_new_line }}{% endif %}</span>
+          {% endif %}
+        {% endif %}
+        <span class="dn-wc dn-wc--{{ 'rich' if _wc >= 40 else ('med' if _wc >= 15 else 'low') }}" data-tippy-content="{{ _wc }} {{ t('words') }}">{{ _wc }}{{ t('w') }}</span>
+        {% if show_anchor %}<a class="dn-anchor" href="#{{ nv.anchor }}" data-tippy-content="{{ t('Copyable link to this comment') }}" aria-label="{{ t('Link to this comment') }}">{{ icon('link', size='xs') }}</a>{% endif %}
+      </div>
+      <div class="dn-body gl-description">{{ note.body | render_gl_description(project_path, username_map, student_url_map) if note.body else '-' }}</div>
+      {% if show_code_context and nv.code_context %}
+      {{ code_context_block(nv.code_context) }}
+      {% endif %}
+      {% if note.commit_refs %}
+      <div class="dn-commits">
+        {% for sha in note.commit_refs[:3] %}<a href="{{ gitlab_url }}/{{ project_path }}/-/commit/{{ sha }}" target="_blank" rel="noopener" class="dn-sha">{{ icon('git-commit', size='xs') }} {{ sha[:7] }}</a>{% endfor %}
+        {% if note.commit_refs|length > 3 %}<span class="dn-sha-more">+{{ note.commit_refs|length - 3 }}</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{# -- Thread-level diff context. GitLab shows the code block once at the top of a
+      diff thread, then all replies underneath it. Keeping it at thread level
+      makes it clear what every reply answers and avoids duplicate snippets. -- #}
+{% macro discussion_code_context(cc) %}
+  {{ code_context_block(cc, extra_class='thread-diff-context', with_footer=true) }}
+{% endmacro %}
+
+{# -- Discussion thread: root + indented replies (GitLab tree). Always expanded
+      (resolved and open share one layout - resolved just gets a green flag, no
+      click-to-open). No opacity dimming. -- #}
+{% macro discussion_thread(thread, project_path, username_map=none, student_url_map=none) %}
+  {% set root = thread.root %}
+  {% set _resolved = thread.is_resolvable and thread.is_resolved %}
+  <div id="{{ thread.anchor }}" class="thread{% if thread.is_resolvable %}{{ ' thread--resolved' if _resolved else ' thread--open' }}{% endif %}">
+    <div class="thread-head">
+      <div class="thread-head-main">
+        {% if thread.is_resolvable %}
+        <span class="thread-flag thread-flag--{{ 'resolved' if _resolved else 'open' }}">
+          {{ icon('check' if _resolved else 'alert-circle', size='xs') }} {{ t('Resolved') if _resolved else t('Unresolved') }}
+        </span>
+        {% endif %}
+        <span class="thread-starter">
+          <strong>{{ root.author_display }}</strong>
+          {% if root.note.author_username %}<span class="thread-author-username">@{{ root.note.author_username }}</span>{% endif %}
+          {{ t('started a thread') }}
+          {% if root.note.created_at %}<time class="dn-time">{{ local_time(root.note.created_at, 'relative') }}</time>{% endif %}
+        </span>
+        {% if thread.diff_anchor and thread.code_context %}
+        {{ btn_icon((thread.code_context.path.split('/')|last) ~ (':' ~ thread.code_context.display_line if thread.code_context.display_line else ''), 'file-diff', variant='ghost', size='sm', data_attrs={'diff-jump': thread.diff_anchor}, title=t('Jump to this discussion in the diff')) }}
+        {% endif %}
+        {% if thread.participants|length > 1 %}<span class="thread-participants">{{ thread.participants|length }} {{ t('participants') }}</span>{% endif %}
+      </div>
+      <a class="thread-anchor" href="#{{ thread.anchor }}" data-tippy-content="{{ t('Copyable link to this thread') }}" aria-label="{{ t('Link to this discussion') }}">{{ icon('link', size='xs') }}</a>
+    </div>
+    {% if thread.code_context %}
+    {{ discussion_code_context(thread.code_context) }}
+    {% endif %}
+    <div class="thread-notes">
+      {{ discussion_note(root, project_path, username_map, student_url_map, false, not thread.code_context, false) }}
+      {% if thread.replies %}
+      <details class="thread-replies" open>
+        <summary class="thread-replies-toggle">
+          {{ icon('chevron-right', size='xs', class='thread-replies-chevron') }}
+          <span class="thread-replies-open">{{ t('Collapse replies') }}</span>
+          <span class="thread-replies-closed">{{ t('Show replies') }}</span>
+          <span class="thread-replies-count">{{ thread.count - 1 }}</span>
+        </summary>
+        <div class="thread-replies-body">
+          {% for r in thread.replies %}{{ discussion_note(r, project_path, username_map, student_url_map, true, false) }}{% endfor %}
+        </div>
+      </details>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{# -- Activity timeline: curated GitLab system events (approved, requested
+      review, merged, added commits, ...). Authors + @mentions link in-app. -- #}
+{% macro mr_activity(events, project_path, username_map=none, student_url_map=none) %}
+  <ul class="mr-activity">
+    {% for ev in events %}
+    <li class="mr-activity-item mr-activity-item--{{ ev.kind }}">
+      <span class="mr-activity-icon mr-activity-icon--{{ ev.kind }}">{{ icon(ev.icon, size='xs') }}</span>
+      {{ avatar(ev.avatar_url, ev.author_display | replace('@', '') | trim, size=16) }}
+      <span class="mr-activity-text">
+        {% if ev.profile_url %}<a href="{{ ev.profile_url }}" class="mr-activity-author">{{ ev.author_display }}</a>{% else %}<span class="mr-activity-author">{{ ev.author_display }}</span>{% endif %}
+        <span class="mr-activity-summary">{{ ev.summary | render_gl_description(project_path, username_map, student_url_map) }}</span>
+      </span>
+      <time class="mr-activity-time">{{ local_time(ev.note.created_at, 'relative') if ev.note.created_at else '' }}</time>
+    </li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+
+{# Attribution uses the same exact MR commit list as the commits section. #}
+{% macro attribution_row(entry) %}
+  {% set _authors = entry.commit_authors if entry.commit_authors is defined else [] %}
+  {% if _authors %}
+    {% set _student_commits = _authors | selectattr('is_page_student') | list %}
+    {% set _other_commits = _authors | rejectattr('is_page_student') | list %}
+    {% if not _student_commits %}
+    <div class="mr-attrib mr-attrib--warn">
+      {{ badge(t('No student commits'), variant='warning', size='sm', data_attrs={'tippy-content': t('None of the commits listed by GitLab for this merge request are attributed to this student.')}) }}
+      {% for a in _other_commits %}{{ badge(a.name, variant='info' if a.is_teacher else 'secondary', size='sm') }}{% endfor %}
+    </div>
+    {% elif _other_commits %}
+    <div class="mr-attrib">
+      <span class="muted">{{ t('Also by:') }}</span>
+      {% for a in _other_commits %}{{ badge(a.name, variant='info' if a.is_teacher else 'secondary', size='sm') }}{% endfor %}
+    </div>
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+{# -- Compliance chips for an MR -- #}
+{% macro mr_chips(mr, mr_required_sections=[], project_path='', page_issue_iids=none) %}
+  <div class="mr-chips">
+    {% if mr.has_issue_link %}
+      {% if mr.linked_issue_iid %}
+        {% set _iss_in_page = page_issue_iids and (mr.linked_issue_iid in page_issue_iids) %}
+        {% set _iss_href = ('#issue-' ~ mr.linked_issue_iid) if _iss_in_page else (gitlab_url ~ '/' ~ project_path ~ '/-/issues/' ~ mr.linked_issue_iid) %}
+        {{ badge(t('Issue') ~ ' #' ~ mr.linked_issue_iid, variant='info', icon_name='alert-circle', href=_iss_href, target='' if _iss_in_page else '_blank', data_attrs={'tippy-content': t('Go to the linked issue')}) }}
+      {% else %}
+        {{ badge(t('Issue Link'), variant='blue', size='sm', data_attrs={'tippy-content': t('MR description references a related issue')}) }}
+      {% endif %}
+    {% endif %}
+    {% if mr.has_test_changes %}{{ badge(t('Tests'), variant='green', size='sm', data_attrs={'tippy-content': t('MR includes test file changes')}) }}{% endif %}
+    {% if mr.branch_naming_ok %}{{ badge(t('Branch OK'), variant='green', size='sm', data_attrs={'tippy-content': t('Branch name follows the configured naming convention')}) }}{% elif mr.branch_naming_ok == false %}{{ badge(t('Branch'), variant='red', size='sm', data_attrs={'tippy-content': t("Branch name doesn't follow the configured naming convention")}) }}{% endif %}
+    {% if mr.template_compliant %}{{ badge(t('Template'), variant='green', size='sm', data_attrs={'tippy-content': t('MR description follows the required template')}) }}{% elif mr.template_compliant == false %}{{ badge(t('No Template'), variant='warning', size='sm', data_attrs={'tippy-content': t('MR description does not follow the required template (missing required sections)') ~ ((' - ' ~ t('expected') ~ ': ' ~ mr_required_sections | join(', ')) if mr_required_sections else '')}) }}{% endif %}
+    {% if mr.approvals_required %}{{ badge(mr.approvals_count ~ '/' ~ mr.approvals_required ~ ' ' ~ t('approvals'), variant='gray', size='sm', data_attrs={'tippy-content': t('Number of approvals received vs required')}) }}{% endif %}
+    {% if mr.source_branch_deleted %}{{ badge(t('Branch Deleted'), variant='gray', size='sm', data_attrs={'tippy-content': t('Source branch was deleted after this MR was merged. Commits were recovered via the MR API.')}) }}{% endif %}
+  </div>
+{% endmacro %}
+
+{# -- Pipeline status row (GitLab style: status icon + verb chip) -- #}
+{% macro _ci_verb(status) %}{% set _s = (status or '')|lower %}{{ {'success': t('passed'), 'failed': t('failed'), 'running': t('running'), 'pending': t('pending'), 'created': t('pending'), 'canceled': t('canceled'), 'cancelled': t('canceled'), 'skipped': t('skipped'), 'manual': t('manual')}.get(_s, (_s|capitalize if _s else '-')) }}{% endmacro %}
+{% macro pipeline_row(pipeline) %}
+  {% if pipeline %}
+  {% set _ps = (pipeline.status or '')|lower %}
+  {% set _pv = 'green' if _ps == 'success' else 'red' if _ps == 'failed' else 'yellow' if _ps in ('running', 'pending', 'created') else 'gray' %}
+  {% set _pi = 'check-circle' if _ps == 'success' else 'x-circle' if _ps == 'failed' else 'clock' if _ps in ('running', 'pending', 'created') else 'slash' %}
+  {% set _coverage = pipeline.render_coverage if pipeline.render_coverage is defined else pipeline.coverage %}
+  <div class="mr-pipeline">
+    <div class="mr-pipeline-statuses">
+      <span class="mr-pipeline-stage mr-pipeline-stage--{{ _pv }}">
+        {{ icon(_pi, size='xs') }}
+        <span class="mr-pipeline-label">{{ t('Pipeline') }}</span>
+        {{ badge(_ci_verb(pipeline.status), variant=_pv, size='sm') }}
+      </span>
+      {% if pipeline.has_test_job %}
+        {% set _ts = (pipeline.test_job_status or '')|lower %}
+        {% set _tv = 'green' if _ts == 'success' else 'red' if _ts == 'failed' else 'yellow' if _ts in ('running', 'pending') else 'gray' %}
+        {% set _ti = 'check-circle' if _ts == 'success' else 'x-circle' if _ts == 'failed' else 'clock' if _ts in ('running', 'pending') else 'slash' %}
+        <span class="pipeline-test-badges mr-pipeline-stage mr-pipeline-stage--{{ _tv }}"{% if _coverage is not none %} data-tippy-content="{{ t('Tests:') }} {{ _ci_verb(pipeline.test_job_status) }} ({{ t('Coverage:') }} {{ '%.1f'|format(_coverage) }}%)"{% endif %}>
+          {{ icon(_ti, size='xs') }}
+          <span class="mr-pipeline-label">{{ t('Tests') }}</span>
+          {{ badge(_ci_verb(pipeline.test_job_status), variant=_tv, size='sm') }}
+          {% if _coverage is not none %}
+            {% set _cv = 'green' if _coverage >= 80 else 'yellow' if _coverage >= 50 else 'red' %}
+            {{ badge('%.1f'|format(_coverage) ~ '%', variant=_cv, size='sm') }}
+          {% endif %}
+        </span>
+      {% elif _coverage is not none %}
+        {% set _cv = 'green' if _coverage >= 80 else 'yellow' if _coverage >= 50 else 'red' %}
+        <span class="mr-pipeline-stage mr-pipeline-stage--{{ _cv }}" data-tippy-content="{{ t('Coverage:') }} {{ '%.1f'|format(_coverage) }}%">
+          {{ icon('shield', size='xs') }}
+          <span class="mr-pipeline-label">{{ t('Coverage') }}</span>
+          {{ badge('%.1f'|format(_coverage) ~ '%', variant=_cv, size='sm') }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{# -- One file's diff block: header (path, change badges, +/- stats) + body.
+      A <details> so each file collapses independently, GitLab-style. The id is
+      scoped to its MR/review card, matching the tree entry's data-diff-target. -- #}
+{% macro diff_file_block(diff) %}
+  <details class="diff-block" id="{{ diff.anchor or ('diff-file-' ~ diff.idx) }}" open>
+    <summary class="diff-header">
+      {{ icon('chevron-right', size='xs', class='diff-chevron') }}
+      <span class="diff-change-icon diff-change-icon--{{ diff.change }}">{{ icon('file-text', size='xs') }}</span>
+      <span class="diff-path">{{ diff.file_path }}</span>
+      {% if diff.change == 'renamed' and diff.old_path and diff.old_path != diff.file_path %}<span class="muted font-weight-normal diff-renamed-from">{{ t('renamed from') }} {{ diff.old_path }}</span>{% endif %}
+      {% if diff.change == 'new' %}{{ badge(t('new'), variant='green', size='sm') }}{% endif %}
+      {% if diff.change == 'deleted' %}{{ badge(t('deleted'), variant='red', size='sm') }}{% endif %}
+      <span class="diff-stat"><span class="diff-add">+{{ diff.additions }}</span> <span class="diff-del">-{{ diff.deletions }}</span></span>
+    </summary>
+    {# Rows, server-side, with the code highlighted. This was one `<pre>` of raw
+       text that page JS split, escaped and coloured by row - which gave the
+       added/removed backgrounds and left the code plain, so every highlight
+       scheme in Preferences changed nothing here. `.diff-pre` stays as the
+       fallback for a diff that arrived without rows. #}
+    {% if diff.lines %}
+    <div class="diff-pre" data-highlighted="true">
+      {%- for row in diff.lines %}
+      <div class="diff-line diff-line-{{ row.kind }}"><span class="diff-line-num"></span><span class="diff-line-marker">{{ row.marker }}</span><span class="diff-line-content">{% if row.html %}{{ row.html|safe }}{% else %}{{ row.text or ' ' }}{% endif %}</span></div>
+      {%- endfor %}
+    </div>
+    {% else %}
+    <pre class="diff-pre">{{ diff.diff or "" }}</pre>
+    {% endif %}
+  </details>
+{% endmacro %}
+
+{% macro diff_file_tree_item(f) %}
+  {% set label %}
+    <span class="d-flex items-center gap-2">
+    <span class="diff-file-tree-name">{{ f.file_path.rsplit('/', 1)[-1] }}</span>
+    <span class="diff-file-tree-stat"><span class="diff-add">+{{ f.additions }}</span> <span class="diff-del">-{{ f.deletions }}</span></span>
+    </span>
+  {% endset %}
+  {{ gl_list_item(label, icon_name='file-text', button=true, current=f.idx == 0, data_attrs={'diff-target': f.anchor or ('diff-file-' ~ f.idx), 'tippy-content': f.file_path}) }}
+{% endmacro %}
+
+{# -- Recursive file-tree node (GitLab changes view). Folders are collapsible
+      <details>; files are buttons that the page JS scrolls to (no anchor jump,
+      so the page layout never shifts). Folders render before files at each
+      level, both alphabetical. -- #}
+{% macro diff_tree_node(node) %}
+{% call gl_list(flush=true, compact=true) %}
+  {% for name, child in node.dirs|dictsort %}
+  <li><details class="diff-tree-folder" open>
+    <summary class="diff-tree-folder-label">{{ icon('chevron-right', size='xs', class='diff-tree-chevron') }}{{ icon('folder', size='xs', class='diff-tree-folder-icon') }}<span class="diff-tree-folder-name">{{ name }}</span></summary>
+    <div class="diff-tree-children">{{ diff_tree_node(child) }}</div>
+  </details></li>
+  {% endfor %}
+  {% for f in node.files %}
+  {{ diff_file_tree_item(f) }}
+  {% endfor %}
+{% endcall %}
+{% endmacro %}
+
+{# -- Diff body (shared by MR card). One file = inline block (GitLab single-file
+      view); many files = a sticky nested file tree + the blocks (GitLab changes
+      view). `diffs` = render-ready dicts from _build_diff_views; `tree` = the
+      nested structure from _build_diff_tree. -- #}
+{% macro diff_body(diffs, tree=none) %}
+  {% set _adds = diffs|sum(attribute='additions') %}
+  {% set _dels = diffs|sum(attribute='deletions') %}
+  <div class="diff-container">
+    {% if diffs|length > 1 %}
+    <div class="diff-summary">
+      <span class="diff-stat"><span class="diff-add">+{{ _adds }}</span> <span class="diff-del">-{{ _dels }}</span></span>
+    </div>
+    <div class="diff-layout">
+      <nav class="diff-file-tree" data-tour="diff-file-tree" aria-label="{{ t('Changed files') }}">
+        {% if tree %}{{ diff_tree_node(tree) }}{% else %}
+        {% call gl_list(flush=true, compact=true) %}{% for diff in diffs %}
+        {{ diff_file_tree_item(diff) }}
+        {% endfor %}{% endcall %}
+        {% endif %}
+      </nav>
+      <div class="diff-files">
+        {% for diff in diffs %}{{ diff_file_block(diff) }}{% endfor %}
+      </div>
+    </div>
+    {% else %}
+    {% for diff in diffs %}{{ diff_file_block(diff) }}{% endfor %}
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# ============================================================
+   MR CARD - the unit of organisation. One MR, everything below it.
+   ============================================================ #}
+{% macro mr_card(entry, is_own_profile=false, mr_required_sections=[], username_map=none, student_url_map=none, page_issue_iids=none, idx=0, commit_pipeline_status=none) %}
+  {% set mr = entry.mr %}
+  {% set pp = entry.project_path %}
+  {% set base = gitlab_url ~ '/' ~ pp ~ '/-/merge_requests/' ~ mr.gitlab_iid %}
+  {% set _scls = 'merged' if mr.state == 'merged' else ('closed' if mr.state == 'closed' else 'open') %}
+  <article id="mr-{{ mr.gitlab_iid }}" class="mr-card mr-card--{{ _scls }} motion-card" data-mr-card data-tour="merge-request-card">
+    <header class="mr-card-head">
+      <div class="mr-card-title-row">
+        <a class="mr-iid" href="{{ base }}" target="_blank" rel="noopener" data-tippy-content="{{ t('Open in GitLab') }}">!{{ mr.gitlab_iid }}</a>
+        <h3 class="mr-card-title">{{ mr.title or '-' }}</h3>
+      </div>
+      <div class="mr-card-meta">
+        {{ state_pill(mr.state) }}
+        {{ mr_role_badge('author', is_own_profile=is_own_profile) }}
+        {% if mr.source_branch %}
+        <span class="mr-branch" data-tippy-content="{{ mr.source_branch }} → {{ mr.target_branch or 'main' }}">{{ icon('git-branch', size='xs') }}<span class="mr-branch-src">{{ mr.source_branch }}</span><span class="mr-branch-arrow">{{ icon('arrow-right', size='xs') }}</span><span class="mr-branch-tgt">{{ mr.target_branch or 'main' }}</span></span>
+        {% endif %}
+        <span class="mr-card-proj">{{ icon('folder', size='xs') }} {{ pp.split('/')|last }}</span>
+        <time class="mr-card-time" data-tippy-content="{{ t('Last modification time from GitLab') }}">{{ local_time(mr.updated_at, 'relative') }}</time>
+      </div>
+    </header>
+
+    {{ workflow_ribbon(entry) }}
+    {{ attribution_row(entry) }}
+
+    <dl class="mr-people">
+      <div class="mr-people-group">
+        <dt class="mr-section-label">{{ icon('user-check', size='xs') }} {{ t('Assignee') }}</dt>
+        <dd class="mr-people-value">{% if entry.assignee %}{{ avatar_labeled(entry.assignee.avatar_url, entry.assignee.name, href=entry.assignee.profile_url or '', data_attrs={'tippy-content': t('Assigned to this person in GitLab')}) }}{% else %}<span class="muted">{{ t('None assigned') }}</span>{% endif %}</dd>
+      </div>
+      <div class="mr-people-group">
+        <dt class="mr-section-label">{{ icon('eye', size='xs') }} {{ t('Assigned reviewers') }}</dt>
+        <dd class="mr-people-value">{% for rev in entry.reviewers %}{{ mr_participant(rev) }}{% else %}<span class="muted">{{ t('None assigned') }}</span>{% endfor %}</dd>
+      </div>
+      {% if entry.participants %}
+      <div class="mr-people-group">
+        <dt class="mr-section-label">{{ icon('message-square', size='xs') }} {{ t('Discussion participants') }}</dt>
+        <dd class="mr-people-value">{% for person in entry.participants %}{{ mr_participant(person) }}{% endfor %}</dd>
+      </div>
+      {% endif %}
+    </dl>
+
+    {% if mr.description %}
+    <div class="mr-section">
+      <div class="mr-section-label">{{ icon('align-left', size='sm') }} {{ t('Description') }}</div>
+      <div class="mr-desc gl-description">{{ mr.description | render_gl_description(pp, username_map, student_url_map) }}</div>
+    </div>
+    {% endif %}
+
+    {{ mr_chips(mr, mr_required_sections, pp, page_issue_iids) }}
+
+    <details class="mr-section mr-collapse" open>
+      <summary class="mr-section-toggle">{{ icon('git-commit', size='sm') }} {{ t('Commits') if entry.commit_list_known else t('Saved branch commits') }} {{ badge(entry.branch_commits|length, variant='muted', class='mr-count') }}</summary>
+      {% if entry.commit_data_missing %}
+        {% call alert(variant='info', role='status') %}
+          {% if not entry.commit_list_known %}
+            {{ t('The exact merge request commit list has not been synced yet. Saved branch commits are shown below; authorship is not verified.') }}
+          {% else %}
+            {{ t('Some merge request commit details have not been synced yet.') }}
+            {{ entry.branch_commits|length }} / {{ entry.mr.commit_shas|unique|list|length }}
+          {% endif %}
+          {{ btn_link(t('View commits in GitLab'), gitlab_url ~ '/' ~ pp ~ '/-/merge_requests/' ~ mr.gitlab_iid ~ '/commits', variant='link', size='sm', target='_blank') }}
+        {% endcall %}
+      {% endif %}
+      {% if entry.branch_commits %}
+      <ul class="mr-commit-list">
+        {% for c in entry.branch_commits %}
+        <li class="mr-commit">
+          <span class="mr-commit-main">
+            {{ commit_pipeline_icon((commit_pipeline_status or {}).get(c.sha)) }}
+            <span class="mr-commit-text">
+              <a href="{{ gitlab_url }}/{{ pp }}/-/commit/{{ c.sha }}" target="_blank" rel="noopener" class="mr-commit-msg">{{ c.title or (c.message[:80] if c.message else '-') }}</a>
+              <span class="mr-commit-by">
+                {{ t('by') }}
+                {% if c.render_author_profile_url is defined and c.render_author_profile_url %}
+                <a href="{{ c.render_author_profile_url }}" class="mr-commit-author">{{ c.render_author_display }}</a>
+                {% else %}
+                <span class="mr-commit-author">{{ c.render_author_display if c.render_author_display is defined else (c.author_name or c.author_email or 'Unknown') }}</span>
+                {% endif %}
+              </span>
+            </span>
+            {# Fixed slots, not badges trailing the message: a row with both
+               markers pushed nothing, a row with one pushed the next along by
+               its own width, and the same badge landed at a different x on
+               every line. #}
+            <span class="mr-commit-marks">
+              <span class="mr-commit-mark">{% if c.is_teacher_commit is defined and c.is_teacher_commit %}{{ badge(t('Teacher'), variant='info', size='sm', data_attrs={'tippy-content': t('Teacher commit')}) }}{% endif %}</span>
+              <span class="mr-commit-mark">{% if c.is_merge_commit %}{{ badge(t('Merge'), variant='secondary', size='sm', data_attrs={'tippy-content': t('Merge commit')}) }}{% endif %}</span>
+            </span>
+          </span>
+          <span class="mr-commit-stats"><span class="diff-add">+{{ c.additions }}</span> <span class="diff-del">-{{ c.deletions }}</span></span>
+          <time class="mr-commit-time">{{ local_time(c.committed_at, 'relative') }}</time>
+        </li>
+        {% endfor %}
+      </ul>
+      {% elif entry.commit_list_known and not entry.commit_data_missing %}
+        {{ empty_state(t('No commits'), message=t('GitLab reports no commits for this merge request.'), illustration='empty-commit') }}
+      {% endif %}
+    </details>
+
+    <div class="mr-section">
+      <div class="mr-section-label">
+        {{ icon('message-square', size='sm') }} {{ t('Discussions') }}
+        {% if entry.open_thread_count %}{{ badge(entry.open_thread_count ~ ' ' ~ t('open'), variant='warning', class='mr-count') }}{% endif %}
+        {% if entry.resolved_thread_count %}{{ badge(entry.resolved_thread_count ~ ' ' ~ t('resolved'), variant='success', class='mr-count') }}{% endif %}
+      </div>
+      {% if entry.threads %}
+      <div class="thread-list" data-tour="mr-discussions">
+        {% for th in entry.threads %}{{ discussion_thread(th, pp, username_map, student_url_map) }}{% endfor %}
+      </div>
+      {% else %}
+      <p class="mr-empty muted">{{ t('No discussion on this merge request yet.') }}</p>
+      {% endif %}
+    </div>
+
+    {{ pipeline_row(entry.pipeline) }}
+
+    {% if entry.diffs %}
+    <details class="mr-section mr-diff-details">
+      <summary class="mr-section-toggle">{{ icon('file-diff', size='sm') }} {{ t('Changes') }} {{ badge(entry.diffs|length ~ ' ' ~ t('files'), variant='muted', class='mr-count') }}</summary>
+      {{ diff_body(entry.diffs, entry.diff_tree) }}
+    </details>
+    {% endif %}
+
+    {% if entry.events %}
+    <details class="mr-section mr-collapse">
+      <summary class="mr-section-toggle">{{ icon('activity', size='sm') }} {{ t('Activity') }} {{ badge(entry.events|length, variant='muted', class='mr-count') }}</summary>
+      {{ mr_activity(entry.events, pp, username_map, student_url_map) }}
+    </details>
+    {% endif %}
+  </article>
+{% endmacro %}
+
+{# ============================================================
+   REVIEWS GIVEN - peers' MRs this student reviewed (reviewer side).
+   ============================================================ #}
+{% macro reviews_given_card(entry, username_map=none, student_url_map=none) %}
+  {% set mr = entry.mr %}
+  {% set pp = entry.project_path %}
+  {% set base = gitlab_url ~ '/' ~ pp ~ '/-/merge_requests/' ~ mr.gitlab_iid %}
+  <article class="rg-card motion-card" data-tour="reviews-given-card">
+    <header class="rg-head">
+      <a class="mr-iid" href="{{ base }}" target="_blank" rel="noopener" data-tippy-content="{{ t('Open in GitLab') }}">!{{ mr.gitlab_iid }}</a>
+      <span class="rg-title">{{ mr.title or '-' }}</span>
+      {{ state_pill(mr.state) }}
+      {{ mr_role_badge('reviewer') }}
+    </header>
+    <div class="rg-sub">
+      <span class="muted">{{ t('Author') }}:</span>
+      {% if entry.author_profile_url %}<a href="{{ entry.author_profile_url }}" class="rg-author rg-author--link">{{ entry.author_display }}</a>{% else %}<span class="rg-author">{{ entry.author_display }}</span>{% endif %}
+      <span class="mr-card-proj">{{ icon('folder', size='xs') }} {{ pp.split('/')|last }}</span>
+      {% if entry.is_approved %}{{ badge(t('Approved'), variant='success', icon_name='check-circle') }}{% endif %}
+      {% if entry.review %}
+        {% if entry.review.is_meaningful %}{{ badge(t('Meaningful'), variant='info', icon_name='award') }}{% endif %}
+        <span class="muted text-xs">{{ entry.review.total_words }} {{ t('words') }}</span>
+      {% endif %}
+    </div>
+    {% if entry.threads %}
+    <div class="thread-list" data-tour="review-discussions">
+      {% for th in entry.threads %}{{ discussion_thread(th, pp, username_map, student_url_map) }}{% endfor %}
+    </div>
+    {% endif %}
+  </article>
+{% endmacro %}

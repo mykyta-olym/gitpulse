@@ -1,0 +1,62 @@
+/*
+ * Pajamas colors
+ * @see https://design.gitlab.com/product-foundations/color
+ */
+:root {
+  /* Indigo theme */
+  --t-indigo-900: #222261;
+
+  /* Neutrals */
+  --gray-400: #89888d;
+  --gray-600: #626168;
+  --gray-700: #535158;
+
+  /* Other Pajamas colors as needed */
+  --blue-400: #428fdc;
+  --blue-600: #1068bf;
+  --purple-400: #9475db;
+  --purple-900: #2f2a6b;
+  --red-300: #ec5941;
+
+  /* Docs custom colors */
+  --cta-button: #cb4e18;
+  --availability-border: #fca326;
+  --youtube-logo: #F00;
+  --error-icon: #c91c00;
+
+  /* Landing page colors */
+  --ref-arc-selected-card: #f6f3fe;
+  --ref-arc-default-card: #dcd1fc;
+  --color-tanuki-light: rgb(252, 163, 38);
+  --get-support-card-hover-shadow: rgba(36, 34, 66, 0.25);
+  --duo-admin-red-card: #bb7cb3;
+  --extend-card: #e1986d;
+  --contribute-red-card: #cd8d8d;
+}
+
+/**
+ * Layout
+ */
+:root {
+  --header-height-lg: 7rem;
+  --header-height-md: 6rem;
+  --header-height: 4rem;
+  --header-mobile-open-height: 18rem;
+  --footer-height: 21rem;
+  --header-offset: calc(var(--header-height-lg) + 1rem);
+
+  --max-width: 86rem;
+  --column-left-wide-width: 17rem;
+  --column-right-wide-width: 17rem;
+  --column-center-min: 22rem;
+  --column-center-max: 52rem;
+
+  --toc-y-offset: 0.75rem;
+  --toc-item-spacing: 0.625rem;
+
+  --sidebar-collapsed-width: 0;
+  --sidebar-indent: 0.75rem;
+
+  --search-lg-width: 24rem;
+  --search-sm-width: 16rem; /* to avoid cutting off the string within the search box */
+}

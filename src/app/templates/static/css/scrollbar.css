@@ -1,0 +1,113 @@
+/* ============================================
+   SCROLLBAR - GitLab Pajamas Design System
+   Reusable scrollbar styling component.
+   Apply .gl-scrollbar to any scrollable container,
+   or use the automatic rules below for common elements.
+   ============================================ */
+
+/* -- Global scrollbar: EVERY scrollable region gets the SAME scrollbar.
+   This used to be an opt-in list (.gl-scrollbar, .modal-body, .table-responsive,
+   ...), so any other scroll container - Run Checks, the health panels, the tour,
+   the search palette, ad-hoc overflow-y:auto blocks - fell back to the raw
+   browser scrollbar and visibly differed from the rest of the UI. Styling the
+   universal selector removes that whole class of inconsistency; the thin variant
+   below still wins for sidebar/dropdowns via higher specificity. -- */
+* {
+  scrollbar-color: var(--gl-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+}
+
+/* -- WebKit scrollbar (Chrome, Edge, Safari) -- */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--gl-scrollbar-thumb);
+  border-radius: var(--radius);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--gl-scrollbar-thumb-hover);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* -- Thin variant (sidebar, dropdowns) -- */
+.gl-scrollbar-thin {
+  scrollbar-color: var(--gl-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+}
+.gl-scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.gl-scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gl-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--gl-scrollbar-thumb);
+  border-radius: var(--radius);
+}
+.gl-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--gl-scrollbar-thumb-hover);
+}
+
+/* -- Auto-hide scrollbar on touch / mobile / tablet --
+   GitLab-style: overlay scrollbar fades out when idle.
+   Uses overflow: overlay where supported (Chromium);
+   falls back to thin auto scrollbar on Firefox/Safari.
+   ================================================== */
+@media (max-width: 1024px), (hover: none) {
+  /* Main page content area */
+  .gl-page-content,
+  .gl-home-main,
+  .gl-sidebar-body {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  /* Show scrollbar colors only while actively scrolling */
+  .gl-page-content.is-scrolling,
+  .gl-home-main.is-scrolling,
+  .gl-sidebar-body.is-scrolling {
+    scrollbar-color: var(--gl-scrollbar-thumb-hover) transparent;
+  }
+
+  /* WebKit overlay scrollbar - hidden by default */
+  .gl-page-content::-webkit-scrollbar,
+  .gl-home-main::-webkit-scrollbar,
+  .gl-sidebar-body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .gl-page-content::-webkit-scrollbar-track,
+  .gl-home-main::-webkit-scrollbar-track,
+  .gl-sidebar-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .gl-page-content::-webkit-scrollbar-thumb,
+  .gl-home-main::-webkit-scrollbar-thumb,
+  .gl-sidebar-body::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-slow);
+  }
+
+  /* Reveal thumb when scrolling */
+  .gl-page-content.is-scrolling::-webkit-scrollbar-thumb,
+  .gl-home-main.is-scrolling::-webkit-scrollbar-thumb,
+  .gl-sidebar-body.is-scrolling::-webkit-scrollbar-thumb {
+    background: var(--gl-scrollbar-thumb);
+  }
+
+  .gl-page-content.is-scrolling::-webkit-scrollbar-thumb:hover,
+  .gl-home-main.is-scrolling::-webkit-scrollbar-thumb:hover,
+  .gl-sidebar-body.is-scrolling::-webkit-scrollbar-thumb:hover {
+    background: var(--gl-scrollbar-thumb-hover);
+  }
+}

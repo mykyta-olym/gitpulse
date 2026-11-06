@@ -1,0 +1,276 @@
+[project]
+name = "gitpulse"
+version = "2026.11.4.post2"
+description = "Developer Activity Intelligence & Continuous Educational Analytics for GitLab"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Mykyta Olym", email = "mykyta.olym.work@gmail.com" }]
+
+dependencies = [
+    "fastapi>=0.136.1,<1.0",
+    # starlette floor raised to patch CVE-2026-54282/54283 (and 48817/48818).
+    "starlette>=1.3.1,<2.0",
+    "uvicorn[standard]>=0.30",
+    "gunicorn>=23,<27",
+    "uvicorn-worker>=0.4,<1",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.14.2",  # floor raised to patch GHSA-4xgf-cpjx-pc3j
+    "sqlalchemy[asyncio]>=2.0.32",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "redis>=5.0",
+    "rq>=1.16",
+    "httpx>=0.27",
+    "jinja2>=3.1.6",
+    "itsdangerous>=2.2",
+    "bcrypt>=4.1",
+    "structlog>=24.4",
+    "prometheus-client>=0.20",
+    # python-multipart floor raised to patch CVE-2026-53538/53539/53540.
+    "python-multipart>=0.0.31,<1.0",
+    "openai>=1.0.0",
+    "google-genai>=1.0.0",
+    "cryptography>=50.0.0",  # floor raised to patch GHSA-g6cj-pr64-35w5 (PKCS#7 decrypt oracle)
+    "mako>=1.3.12",
+    "pygments>=2.20.0",
+    "python-dotenv>=1.2.2",
+    # Security floor for ASN.1 decoder CPU-exhaustion fixes (google-genai auth chain).
+    "pyasn1>=0.6.5",
+]
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-api>=1.45.1",  # CVE-2026-114603: bounded tracestate parsing.
+    "opentelemetry-sdk>=1.25",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.25",
+    "opentelemetry-instrumentation-fastapi>=0.46b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.46b0",
+    "opentelemetry-instrumentation-httpx>=0.46b0",
+    "opentelemetry-instrumentation-redis>=0.46b0",
+    "protobuf>=5.29.6,<6.0",
+]
+dev = [
+    "pytest>=9.0.3,<9.2",  # pytest-benchmark 5.3 uses Node._nodeid, removed in pytest 9.2.
+    "pytest-asyncio>=1.3",
+    "pytest-cov>=5.0",
+    "pytest-httpx>=0.36.2",
+    "pytest-benchmark>=4.0",
+    # Real-browser checks (tests/e2e). Needs a one-off
+    # `python -m playwright install chromium`; the tests skip without it.
+    "playwright>=1.49",
+    "factory-boy>=3.3",
+    "faker>=28.0",
+    "hypothesis>=6.100",
+    "ruff==0.15.4",
+    "jsonschema>=4.21",
+    "mypy>=1.11,<1.12",
+    "pre-commit>=3.8",
+    "sqlalchemy[mypy]>=2.0.32",
+    "asyncpg-stubs>=0.29",
+    # No types-redis: redis-py ships its own types, and those stubs (for 4.x)
+    # hid them from the editor - aclose() showed as missing. mypy reads stubs/.
+    "types-reportlab",
+    # Build-time minifiers for static asset bundles (scripts/build_bundle.py).
+    # Pure-Python, conservative whitespace/comment strippers - no AST transforms,
+    # no ES5 transpilation, so safe with vendored libs that ship modern JS.
+    "rjsmin==1.2.5",
+    "rcssmin==1.2.2",
+]
+load = [
+    "locust>=2.29",
+    "flask>=3.1.3",
+    "werkzeug>=3.1.6",
+]
+mutation = [
+    "mutmut>=2.4",
+]
+security = [
+    "pip-audit>=2.7",
+    "cyclonedx-bom>=4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+# -- uv --
+# Pin dependency resolution to a fixed point in time so that
+# `uv pip compile pyproject.toml --extra otel -o requirements.lock`
+# is reproducible. Without this, the CI `lockfile-check` job re-resolves
+# to whatever is newest on PyPI at job time and fails `git diff --exit-code`
+# the moment any (transitive) dependency publishes a release, even though
+# nothing in this repo changed. Bump this timestamp deliberately when you
+# want to pull in newer dependency versions, then regenerate requirements.lock.
+[tool.uv]
+exclude-newer = "2026-10-31T00:00:00Z"
+
+# -- Ruff --
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+exclude = ["stubs", "alembic"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "S", "B", "A",
+    "C4", "DTZ", "T20", "SIM", "TCH", "RUF", "PT", "ASYNC",
+]
+# Globally tolerated rules:
+# - S104  : binding to 0.0.0.0 (intentional in container entrypoints)
+# - S704  : Markup() in Jinja (used with vetted html constants only)
+# - B008  : FastAPI Depends() in defaults
+# - TCH   : TYPE_CHECKING import re-organisation (noisy in mixed-runtime modules)
+# Removed (2026-04): S106 (hardcoded passwords) and S110 (try/except/pass)
+# now enforced. Add per-file overrides instead of re-globalising them.
+ignore = ["S104", "S704", "B008", "TCH"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106"]
+"stubs/**/*.pyi" = ["N802"]  # stub names must match upstream API (e.g. reportlab)
+"reset_db_remote.py" = ["T201", "S507", "S608", "E501"]
+"redeploy.py" = ["T201", "S507", "S603", "E501", "RUF059"]
+"_check_db.py" = ["T201"]
+"src/app/api/exception_handlers.py" = ["UP040"]  # Keep TypeAlias for mypy compatibility.
+"src/app/compliance/engine.py" = ["UP047"]  # mypy 1.x lacks stable support for PEP 695 generics.
+"src/app/db/repositories/base.py" = ["UP046"]  # mypy 1.x lacks stable support for PEP 695 generics.
+"src/app/api/health.py" = ["UP046"]  # mypy 1.x lacks stable support for PEP 695 generics.
+"src/app/services/llm/service.py" = ["E501"]  # LLM prompt templates contain long lines
+"src/app/services/email_notifications.py" = ["E501"]  # inline-styled HTML email templates contain long lines
+"src/app/services/assignment_templates.py" = ["E501"]  # Slovak descriptions embed long course-page URLs
+"alembic/**/*.py" = ["E501"]
+"scripts/**/*.py" = [
+    "T201",   # print statements are expected in CLI scripts
+    "E501",   # longer lines acceptable in scripts
+    "E402",   # imports after code for path setup
+    "DTZ003", # utcnow() in test scripts
+    "DTZ005", # datetime.now() in test scripts
+    "PT028",  # default args in test helpers
+    "RUF001", # non-ASCII text in Slovak translations
+    "RUF059", # unpacked unused vars for clarity
+    "ASYNC",  # async rules N/A in standalone scripts
+]
+# Load/mutation/scan tooling exercises non-security code paths against
+# synthetic data - Bandit-style S* rules would only generate noise here.
+"scripts/load_test_scale.py" = ["S105", "S311", "S324", "F841"]
+"scripts/check_static_artifacts.py" = ["S603", "S607"]
+"scripts/run_unit_tests.py" = ["S603"]
+"scripts/mutation_test.py" = ["S603"]
+"scripts/dead_code_report.py" = ["S603", "S607"]
+"scripts/security_scan.py" = ["S603"]
+"scripts/assistant_e2e.py" = ["S603", "S607"]  # drives docker and git against a local GitLab
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# -- mypy --
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+mypy_path = "stubs"
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disable_error_code = ["arg-type", "call-arg", "list-item", "import-untyped", "no-untyped-def", "no-untyped-call", "method-assign", "misc", "assignment"]
+
+[[tool.mypy.overrides]]
+module = ["redeploy"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disable_error_code = ["import-untyped", "no-untyped-def", "no-untyped-call"]
+
+[[tool.mypy.overrides]]
+module = ["scripts.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_return_any = false
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = ["app.i18n"]
+warn_unused_ignores = false  # pygments stubs presence varies across envs
+
+[[tool.mypy.overrides]]
+# Third-party libraries that ship without type stubs.  We do NOT include
+# our own ``app.*`` here \u2014 having it would mean mypy silently swallows
+# any unresolved import inside the application package, defeating
+# strict mode.  If a real ``ImportError`` exists, surface it instead.
+module = [
+    "openai",
+    "openai.*",
+    "google",
+    "google.*",
+    "requests",
+    "requests.*",
+]
+ignore_missing_imports = true
+
+# -- pyright / pylance --
+[tool.pyright]
+pythonVersion = "3.12"
+pythonPlatform = "All"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false
+reportMissingModuleSource = false
+
+# -- pytest --
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: Unit tests (no external deps)",
+    "integration: Integration tests (requires DB)",
+    "e2e: End-to-end tests (requires full stack)",
+    "contract: Contract tests (webhook payload validation)",
+    "performance: Performance/benchmark tests (slow)",
+    "mutation: Mutation testing targets",
+]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "-m", "not e2e and not integration",
+]
+filterwarnings = [
+    "error:coroutine '.*' was never awaited:RuntimeWarning",
+    # Note: ``ignore::RuntimeWarning`` was removed (2026-04) - it was
+    # masking real bugs (unawaited coroutines, unclosed sessions).
+    # Add narrowly-scoped suppressions here if a specific upstream
+    # warning is unfixable.
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
+
+[tool.coverage.run]
+source = ["src/app"]
+omit = ["*/alembic/*", "*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+]
+
+# -- Mutation Testing (mutmut) --
+[tool.mutmut]
+also_copy = ["src/app"]
+paths_to_mutate = [
+    "src/app/utils/gitlab_patterns.py",
+    "src/app/utils/text_analysis.py",
+    "src/app/utils/time_utils.py",
+    "src/app/compliance/engine_checks.py",
+]
+tests_dir = ["tests/unit/"]
+runner = "python -m pytest -x -q --tb=short tests/unit/test_mutation_targets.py tests/unit/test_compliance_engine.py -m \"not performance\""
+dict_synonyms = "Struct, NamedStruct"

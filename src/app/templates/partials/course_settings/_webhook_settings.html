@@ -1,0 +1,172 @@
+{# -- Webhook Configurations and Modals -- #}
+{% from "components/badges.html" import badge %}
+{% from "components/alerts.html" import alert %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/forms.html" import text_input, select_field, textarea, checkbox with context %}
+{% from "components/tables.html" import data_table, sortable_header %}
+{% from "components/modals.html" import modal %}
+{% from "components/buttons.html" import btn, btn_icon, btn_icon_only %}
+
+{% set _is_archived = course and not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _is_archived else '' %}
+{% set wh_title %}{{ t('Webhook Configurations') }}{% endset %}
+{% set wh_actions %}
+  {# `readonly-ok`: re-reads the list, changes nothing - stays usable on an
+     archived (read-only) course. #}
+  {{ btn_icon(t('Reload'), 'refresh', variant='secondary', size='sm', class='btn-responsive', data_attrs={'action': 'reloadWebhookConfigs', 'readonly-ok': '', 'tippy-content': t('Reload from server')}) }}
+  {{ btn_icon(t('Add Configuration'), 'plus', size='sm', class='btn-responsive', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'openCreateWebhookConfigModal', 'archived-locked': '1'} if _is_archived else {'action': 'openCreateWebhookConfigModal', 'tippy-content': t('Create a new webhook secret for a group, sub-group, project list, or whole course')}) }}
+{% endset %}
+{% call card(title=wh_title, icon_name='link-2', header_actions=wh_actions, class='webhook-config-card', id='webhooks') %}
+  <p class="muted">{{ t('Each configuration owns a single secret bound to a scope. Rotate freely - the previous secret keeps accepting deliveries for 24 hours so GitLab has time to pick up the new value.') }}</p>
+
+  <div id="webhookConfigsContainer"
+       data-tour="webhook"
+       data-course-id="{{ course.id }}">
+    {% set _wh_none = not webhook_configs %}
+    {% call data_table(id='webhookConfigsTable', sortable=true, class='table-scrollable table-scrollable-lg table-sticky-actions' ~ (' d-none' if _wh_none else '')) %}
+      <colgroup>
+        <col class="col-whc-name">
+        <col class="col-whc-scope">
+        <col class="col-whc-status">
+        <col class="col-whc-delivery">
+        <col class="col-whc-created">
+        <col class="col-whc-actions">
+      </colgroup>
+      <thead>
+        <tr>
+          {{ sortable_header(t('Name'), 'name') }}
+          {{ sortable_header(t('Scope'), 'scope') }}
+          {{ sortable_header(t('Status'), 'status') }}
+          {{ sortable_header(t('Last delivery'), 'last_used', sort_type='date') }}
+          {{ sortable_header(t('Created'), 'created', sort_type='date', default_sort='desc') }}
+          <th class="text-right actions-th">{{ t('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody id="webhookConfigsTbody">
+        {% include "partials/course_settings/_webhook_rows.html" %}
+      </tbody>
+    {% endcall %}
+    <div id="webhookConfigsEmpty"{% if not _wh_none %} class="d-none"{% endif %}>
+      {{ empty_state(title=t('No webhook configurations yet'),
+                     message=t('Click "Add configuration" to issue your first secret. Pick the GitLab scope (group, sub-group, project list, or whole course) and the system will generate the secret server-side.'),
+                     illustration='empty-projects') }}
+    </div>
+  </div>
+{% endcall %}
+
+{# -- Create / Edit modal - scope-aware with conditional fields -- #}
+{% call modal('webhookConfigEditModal', title=t('Webhook Configuration'), size='md') %}
+  <div id="webhookConfigForm" autocomplete="off">
+    <input type="hidden" name="config_id" id="wcfConfigId" value="">
+    <input type="hidden" name="course_id" id="wcfCourseId" value="{{ course.id }}">
+
+    {{ text_input('wcf_name', label=t('Name'), id='wcf_name',
+                 placeholder=t('e.g., Main lecture group, Sub-group spring 2026, ...'),
+                 help_text=t('Human-readable label shown in this list. Required.')) }}
+
+    {{ select_field(
+         'wcf_scope_type',
+         label=t('Scope'),
+         id='wcf_scope_type',
+         options=[
+           ('group',    t('GitLab Group (covers all projects under it, including sub-groups)')),
+           ('subgroup', t('GitLab Sub-group (covers only that sub-tree)')),
+           ('projects', t('Specific project list (one or more numeric IDs)')),
+           ('course',   t('Entire course (any project that resolves to this course)')),
+         ],
+         value='group',
+         required=true,
+         help_text=t('Choose the narrowest scope that fits - narrower scopes give better blast-radius isolation if a secret leaks.')
+    ) }}
+
+    <div class="form-group" id="wcf_group_fields">
+      {{ text_input('wcf_group_path', label=t('GitLab group path'), id='wcf_group_path',
+                   placeholder='teaching/' ~ (course.code|lower) ~ '-' ~ (course.academic_year or ''),
+                   help_text=t('Full namespace path, e.g. teaching/devops-2026 or teaching/devops-2026/winter. Case-insensitive.')) }}
+      {{ text_input('wcf_group_id', label=t('GitLab group numeric ID (optional)'), id='wcf_group_id',
+                   type='number', placeholder='1234',
+                   help_text=t('Optional - used as a fast-path match when GitLab provides it in the payload.')) }}
+    </div>
+
+    <div class="form-group d-none" id="wcf_projects_fields">
+      {{ textarea('wcf_project_ids', label=t('GitLab project IDs'), id='wcf_project_ids', rows=3,
+                  placeholder='42, 1337, 9001',
+                  help_text=t('Comma- or newline-separated list of numeric project IDs. Order does not matter.')) }}
+    </div>
+
+    {{ textarea('wcf_description', label=t('Description (optional)'), id='wcf_description', rows=2,
+               placeholder=t('Internal note - who manages it, where it is configured, etc.')) }}
+
+    <div class="form-group" id="wcf_active_field">
+      {{ checkbox('wcf_is_active', label=t('Active - accept deliveries authenticated with this secret'), id='wcf_is_active', checked=true) }}
+    </div>
+
+    <div id="wcf_create_hint">
+      {% call alert(variant='info') %}
+        {{ t('A fresh secret will be generated server-side and shown to you exactly once after saving. Copy it immediately.') }}
+      {% endcall %}
+    </div>
+  </div>
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'webhookConfigEditModal', 'tippy-content': t('Close without saving - no secret is generated')}) }}
+    {{ btn(t('Save'), variant='primary', id='wcfSubmitBtn', data_attrs={'action': 'submitWebhookConfigForm', 'tippy-content': t('Generate secret and persist this configuration')}) }}
+  </div>
+{% endcall %}
+
+{# -- One-time secret reveal modal - shared between create & rotate -- #}
+{% call modal('webhookSecretRevealModal', title=t('Webhook secret generated'), size='md', class='secret-reveal-modal') %}
+  {% call alert(variant='warning', title=t('Copy this secret now.')) %}
+    {{ t('It will not be shown again. The previous secret (if any) keeps working for 24 hours so you have time to update GitLab without dropping deliveries.') }}
+  {% endcall %}
+
+  <div class="form-group secret-reveal-group">
+    <label for="webhookRevealSecret" class="form-label">{{ t('Webhook Secret') }}</label>
+    <div class="secret-reveal-row">
+      <input type="text" id="webhookRevealSecret" class="form-input secret-reveal-input" readonly value="" autocomplete="off" spellcheck="false">
+      {{ btn_icon_only('copy', variant='secondary', aria_label=t('Copy Token'), data_attrs={'action': 'copyRevealedSecret', 'tippy-content': t('Copy Token')}) }}
+    </div>
+  </div>
+
+  <ul class="prop-list secret-reveal-meta">
+    <li>
+      <span class="muted">{{ t('Configuration') }}</span>
+      <span class="prop-default" id="webhookRevealName">-</span>
+    </li>
+    <li>
+      <span class="muted">{{ t('Scope') }}</span>
+      <span class="prop-default" id="webhookRevealScope">-</span>
+    </li>
+    <li class="d-none" id="webhookRevealGraceRow">
+      <span class="muted">{{ t('Rotation grace ends') }}</span>
+      {{ badge('-', variant='warning', id='webhookRevealGrace') }}
+    </li>
+  </ul>
+
+  {% call card(title=t('GitLab setup steps'), icon_name='book-open', class='secret-reveal-steps', collapsible=true) %}
+    <ol class="setup-steps">
+      <li>{{ t('Open your GitLab Group / Sub-group / Project -> Settings -> Webhooks.') }}</li>
+      <li>{{ t('Paste the Webhook Delivery URL (above the table) into the URL field.') }}</li>
+      <li>{{ t('Paste the secret token (shown only once).') }}</li>
+      <li>{{ t('Enable: Push, Issues, Merge requests, Note, Pipelines. Leave SSL verification ON.') }}</li>
+      <li>{{ t('Click Add webhook, then use Test -> Push events to verify.') }}</li>
+    </ol>
+  {% endcall %}
+
+  <div class="modal-footer">
+    {{ btn(t('I have copied it'), variant='primary', data_attrs={'modal-close': 'webhookSecretRevealModal'}) }}
+  </div>
+{% endcall %}
+
+{# -- Confirm revoke modal -- #}
+{% call modal('webhookConfigRevokeModal', title=t('Revoke webhook secret?'), size='sm', class='confirm-modal') %}
+  <p>{{ t('All incoming deliveries authenticated with this secret will be rejected immediately. The configuration row is kept for audit history; tick the option below to delete it permanently.') }}</p>
+  <div class="form-group">
+    {{ checkbox('wcf_revoke_hard', label=t('Also delete the row (irreversible)'), id='wcf_revoke_hard', checked=false) }}
+  </div>
+  <input type="hidden" id="wcfRevokeConfigId" value="">
+  <input type="hidden" id="wcfRevokeConfigName" value="">
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'webhookConfigRevokeModal'}) }}
+    {{ btn(t('Revoke'), variant='danger', id='wcfConfirmRevokeBtn', data_attrs={'action': 'confirmRevokeWebhookConfig'}) }}
+  </div>
+{% endcall %}

@@ -1,0 +1,143 @@
+## Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+## Virtual environments
+.venv/
+.venv-*/
+venv/
+ENV/
+
+## IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+## Environment
+.env
+.env.*
+
+## Secrets / cookies
+cookies.txt
+*cookie*.txt
+
+## Test / Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+report-*.xml
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.benchmarks/
+benchmark-results.json
+mutants/
+.mutmut-cache/
+html/
+mutmut-stats.json
+
+## Docker
+docker-compose.override.yml
+gitpulse-image.tar
+gitpulse-worker-image.tar
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Debug / temp scripts (one-off helpers)
+check_*.py
+!scripts/check_static_artifacts.py
+verify_*.py
+debug_*.py
+test_schema.py
+# Underscore-prefixed scripts only at repo root or in scripts/ — not in src/
+/_*.py
+/scripts/_*.py
+
+## Personal drafts
+docs/email_*.md
+
+## Backups
+backups/
+*.dump
+
+## Logs
+*.log
+logs/runtime/
+.tmp-pid
+*.pid
+## MkDocs generated output
+docs-site/site/
+
+## Reports output
+reports/
+
+## Pipeline artifacts
+.pip-cache/
+.pip-audit-cache/
+.pip-audit-cache-run/
+.pip-audit-cache*/
+.cache/
+.cache-*/
+.trivy-cache/
+.venv-sec/
+requirements-lock.txt
+pip-audit-*.json
+sbom-*.json
+sbom-*.xml
+build-provenance.json
+container-scan-*-summary.txt
+trivy-*-report.json
+trivy-*-report.sarif
+trivy-*-sbom.json
+*.sarif
+vulnerability-summary.txt
+security-report.md
+quality-gate-report.md
+dead-code-report.txt
+junit-*.xml
+load-test-report.html
+load-test-results_*.csv
+tmpclaude-*-cwd
+_test_compliance.py
+r02_query.sql
+reset_db.sql
+
+# Local scratch / throwaway scripts
+scratch/
+/template-cache/
+
+# Runtime support-ticket attachments (created on first upload; never commit user files)
+src/app/templates/static/uploads/
+
+# Claude Code local settings: per-machine tool allowlists (the `.local` suffix
+# is the convention for "not shared"), and this one had a dev secret inlined
+# in a permission string.
+.claude/settings.local.json
+.claude/settings.local.json.bak
+
+# `impeccable` (the UI anti-pattern detector) installs the same ~3.5 MB skill
+# tree three times, once per agent runtime. It is a developer tool, not part of
+# the app: install it with `npx impeccable install`. Its PROJECT decisions are
+# committed - `.impeccable/config.json` and PRODUCT.md - so the audit is
+# reproducible without vendoring the tool.
+.claude/skills/impeccable/
+.agents/skills/impeccable/
+.codex/hooks.json
+
+# `build/` above is unanchored, so it also swallowed docs-site/cmd/build/ and
+# cmd/internal/build/ - GitLab's page-metadata generator. The deploy builds from
+# the git checkout, so the sidebar fix built locally and failed on prod with
+# `go run ./cmd/pagemeta` exit 1.
+!docs-site/cmd/build/
+!docs-site/cmd/internal/build/

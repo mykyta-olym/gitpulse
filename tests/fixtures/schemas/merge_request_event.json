@@ -1,0 +1,331 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gitlab-merge-request-event",
+  "title": "GitLab Merge Request Event Webhook",
+  "description": "Schema for GitLab merge request event webhooks",
+  "type": "object",
+  "required": ["object_kind", "event_type", "user", "project", "object_attributes"],
+  "properties": {
+    "object_kind": {
+      "type": "string",
+      "const": "merge_request"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "merge_request"
+    },
+    "user": {
+      "$ref": "#/definitions/user"
+    },
+    "project": {
+      "$ref": "#/definitions/project"
+    },
+    "object_attributes": {
+      "$ref": "#/definitions/merge_request_attributes"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/label"
+      }
+    },
+    "changes": {
+      "type": "object"
+    },
+    "repository": {
+      "$ref": "#/definitions/repository"
+    },
+    "assignees": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/user"
+      }
+    },
+    "reviewers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/user"
+      }
+    }
+  },
+  "definitions": {
+    "user": {
+      "type": "object",
+      "required": ["id", "username", "name"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "path_with_namespace"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "web_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "git_ssh_url": {
+          "type": "string"
+        },
+        "git_http_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "visibility_level": {
+          "type": "integer"
+        },
+        "path_with_namespace": {
+          "type": "string"
+        },
+        "default_branch": {
+          "type": "string"
+        },
+        "ci_config_path": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "ssh_url": {
+          "type": "string"
+        },
+        "http_url": {
+          "type": "string"
+        }
+      }
+    },
+    "merge_request_attributes": {
+      "type": "object",
+      "required": ["id", "iid", "title", "state", "source_branch", "target_branch", "source_project_id", "target_project_id", "author_id", "created_at", "updated_at"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "iid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "state": {
+          "type": "string",
+          "enum": ["opened", "closed", "locked", "merged"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["open", "close", "reopen", "update", "approved", "unapproved", "approval", "unapproval", "merge"]
+        },
+        "source_branch": {
+          "type": "string"
+        },
+        "target_branch": {
+          "type": "string"
+        },
+        "source_project_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_project_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "author_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "assignee_id": {
+          "type": ["integer", "null"]
+        },
+        "assignee_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "reviewer_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "last_edited_at": {
+          "type": ["string", "null"]
+        },
+        "last_edited_by_id": {
+          "type": ["integer", "null"]
+        },
+        "milestone_id": {
+          "type": ["integer", "null"]
+        },
+        "merge_status": {
+          "type": "string",
+          "enum": ["unchecked", "checking", "can_be_merged", "cannot_be_merged", "cannot_be_merged_recheck"]
+        },
+        "merge_error": {
+          "type": ["string", "null"]
+        },
+        "merge_user_id": {
+          "type": ["integer", "null"]
+        },
+        "merge_commit_sha": {
+          "type": ["string", "null"]
+        },
+        "head_pipeline_id": {
+          "type": ["integer", "null"]
+        },
+        "draft": {
+          "type": "boolean"
+        },
+        "work_in_progress": {
+          "type": "boolean"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/commit"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/label"
+          }
+        }
+      }
+    },
+    "commit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "message": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "author": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        }
+      }
+    },
+    "label": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[a-fA-F0-9]{6}$"
+        },
+        "project_id": {
+          "type": ["integer", "null"]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "template": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "type": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": ["integer", "null"]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

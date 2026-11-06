@@ -1,0 +1,35 @@
+{{/*
+  Note:
+  Alert markup is replicated in contribution-disclaimer.html
+  and deprecations.html.
+  Changes here may need to be replicated in the other templates.
+*/}}
+{{- $allowedTypes := slice "note" "flag" "warning" "disclaimer" -}}
+{{- $type := .Get "type" -}}
+
+{{- partial "functions/validate-shortcode.html" (dict "shortcodeName" "alert" "allowedValues" $allowedTypes "paramName" "type" "paramValue" $type "sourceFile" .Position.Filename "lineNumber" .Position.LineNumber) -}}
+
+<div class="alert alert-type-{{ (.Get "type") }} gl-rounded-lg">
+  <div class="alert-icon"></div>
+  <div class="gl-min-w-0">
+  {{- if eq (.Get "type") "disclaimer" -}}
+    {{ T "alerts.disclaimerTxt" }}
+  {{- else -}}
+    {{/*
+      When alert shortcodes are used in indented contexts (like nested lists),
+      Hugo's markdown processor sees the indented content first and converts it
+      to a code block (wrapping it in <pre><code>) before processing the shortcode.
+
+      To prevent this, we:
+      1. Remove all leading whitespace/indentation that would trigger code block processing
+      2. Then render the content after removing the problematic indentation
+
+      This ensures the content is processed as regular text rather than a code block,
+      while maintaining the proper rendering of any actual markdown within the alert.
+    */}}
+    <!-- Supports multiline text. Credit: https://gohugo.io/methods/page/renderstring/ -->
+    {{- $opts := dict "display" "block" -}}
+    {{- .InnerDeindent | .Page.RenderString $opts -}}
+  {{- end -}}
+  </div>
+</div>

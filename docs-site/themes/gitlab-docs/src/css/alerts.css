@@ -1,0 +1,106 @@
+/* Alert boxes */
+.alert {
+  color: var(--gl-text-color-default);
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1rem 1rem;
+  position: relative;
+}
+.alert p:last-child {
+  margin-bottom: 0 !important;
+}
+.alert:has(.alert-icon) {
+  display: flex;
+  align-items: flex-start;
+}
+.alert-icon {
+  flex-shrink: 0;
+  height: 1rem;
+  width: 1rem;
+  margin-top: 0.25rem;
+}
+.alert-type-note {
+  background-color: var(--gl-alert-neutral-background-color);
+  code {
+    background-color: var(--gl-action-neutral-background-color-focus) !important;
+  }
+}
+.alert-type-note .alert-icon {
+  background-color: var(--gl-feedback-neutral-icon-color);
+  mask-image: url("../gitlab_ui/svgs/information-o.svg");
+  mask-repeat: no-repeat;
+}
+.gl-dark .alert-type-note {
+  border-top: 2px solid;
+  border-image-source: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--gl-alert-neutral-border-top-color) 50%,
+    transparent 100%
+  );
+  border-image-slice: 1;
+  border-bottom: 0;
+}
+.alert-type-warning {
+  background-color: var(--gl-alert-danger-background-color);
+  code {
+    background-color: var(--gl-action-danger-background-color-focus) !important;
+  }
+}
+.alert-type-warning .alert-icon {
+  background-color: var(--gl-icon-color-danger);
+  mask-image: url("../gitlab_ui/svgs/warning.svg");
+  mask-repeat: no-repeat;
+}
+.gl-dark .alert-type-warning {
+  border-top: 2px solid;
+  border-image-source: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--gl-alert-danger-border-top-color) 50%,
+    transparent 100%
+  );
+  border-image-slice: 1;
+  border-bottom: 0;
+}
+.alert-type-flag {
+  background-color: var(--gl-alert-success-background-color);
+  code {
+    background-color: var(--gl-badge-success-background-color-focus) !important;
+  }
+}
+.alert-type-flag .alert-icon {
+  background-color: var(--gl-status-success-icon-color);
+  mask-image: url("../gitlab_ui/svgs/flag.svg");
+  mask-repeat: no-repeat;
+}
+.gl-dark .alert-type-flag {
+  border-top: 2px solid;
+  border-image-source: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--gl-alert-success-border-top-color) 50%,
+    transparent 100%
+  );
+  border-image-slice: 1;
+  border-bottom: 0;
+}
+.alert-type-disclaimer {
+  background-color: var(--gl-alert-info-background-color);
+}
+.alert-type-disclaimer .alert-icon {
+  background-color: var(--gl-feedback-info-icon-color);
+  mask-image: url("../gitlab_ui/svgs/bullhorn.svg");
+  mask-repeat: no-repeat;
+}
+.gl-dark .alert-type-disclaimer {
+  border-top: 2px solid;
+  border-image-source: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--gl-alert-info-border-top-color) 50%,
+    transparent 100%
+  );
+  border-image-slice: 1;
+  border-bottom: 0;
+}

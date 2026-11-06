@@ -1,0 +1,18 @@
+{{/*
+  Check if this page is part of the global navigation.
+
+  @return string
+    "true" if the page is in the global nav, "false" if not
+*/}}
+
+{{ $pageData := partial "functions/page-metadata" (dict "Context" . "field" "trail_json") | default "[]" }}
+{{ $hasLeftNav := true }}
+{{ if eq $pageData "[]" }}
+  {{ $hasLeftNav = false }}
+{{ else }}
+  {{ $trailData := unmarshal $pageData }}
+  {{ if eq (len $trailData) 0 }}
+    {{ $hasLeftNav = false }}
+  {{ end }}
+{{ end }}
+{{ return $hasLeftNav }}

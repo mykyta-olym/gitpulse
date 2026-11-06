@@ -1,0 +1,104 @@
+{{/*
+  Adapted from Hugo's built-in image render hook
+  See: https://github.com/gohugoio/hugo/blob/master/tpl/tplimpl/embedded/templates/_markup/render-image.html
+
+  This template renders images in markdown content, with custom handling for:
+  1. Images stored outside of a page's bundle.
+  2. Wrapping images in a link that opens in a new tab.
+  3. Adding height and width attributes to prevent layout shift.
+  4. Special handling for translated content to reference images from original English docs.
+*/}}
+
+{{- $u := urls.Parse .Destination -}}
+{{- $src := $u.String -}}
+{{- $dimensions := dict -}}
+
+{{/* Throw an error if someone tries to use an external image */}}
+{{- if $u.IsAbs -}}
+  {{- errorf "External images are not allowed. Found external image '%s' in %s." .Destination .Page.File.Filename -}}
+{{- end -}}
+
+{{- if not $u.IsAbs -}}
+  {{- $originalPath := strings.TrimPrefix "./" $u.Path -}}
+  {{- $isIndexPage := eq .PageInner.File.LogicalName "_index.md" -}}
+
+  {{/* Handle paths for prettyURLs */}}
+  {{- $isPrettified := not $isIndexPage -}}
+  {{- $needsParentDir := or (hasPrefix $originalPath "img/") (hasPrefix $originalPath "../") -}}
+
+  {{- if and $isPrettified $needsParentDir -}}
+    {{- $src = printf "../%s" $originalPath -}}
+  {{- else -}}
+    {{- $src = $originalPath -}}
+  {{- end -}}
+
+  {{/* Try to find the image as a resource */}}
+  {{- $resource := .PageInner.Resources.Get $originalPath -}}
+
+  {{/* If not found in page resources, try parent resources */}}
+  {{- if and (not $resource) (ne .Page.Parent nil) -}}
+    {{- $parentPath := $originalPath -}}
+    {{- if hasPrefix $originalPath "../" -}}
+      {{- $parentPath = strings.TrimPrefix "../" $originalPath -}}
+    {{- end -}}
+
+    {{- $resource = .Page.Parent.Resources.Get $parentPath -}}
+  {{- end -}}
+
+  {{/* If resource found, extract dimensions for non-SVG images */}}
+  {{- with $resource -}}
+    {{- $src = $resource.RelPermalink -}}
+
+    {{- if eq .ResourceType "image" -}}
+      {{- $isSvg := false -}}
+      {{- with .MediaType -}}
+        {{- $isSvg = eq (lower .SubType) "svg" -}}
+      {{- end -}}
+
+      {{- if not $isSvg -}}
+        {{- with .Width -}}
+          {{- $dimensions = merge $dimensions (dict "width" (string .)) -}}
+        {{- end -}}
+        {{- with .Height -}}
+          {{- $dimensions = merge $dimensions (dict "height" (string .)) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{/* Process the path for translated content using our partial function */}}
+  {{- $src = partial "functions/process-image-paths.html" (dict "src" $src "page" .Page) -}}
+{{- end -}}
+
+{{/* Merge all attributes */}}
+{{- $attributes := merge .Attributes (dict "alt" .Text "src" $src "title" (.Title | transform.HTMLEscape)) -}}
+{{- $attributes = merge $attributes $dimensions -}}
+
+{{/* Fail the build for missing images */}}
+{{/* Strip environment-specific prefixes before checking if file exists */}}
+{{- $pathToCheck := printf "/%s" (partial "functions/clean-path" (dict "path" $src)) -}}
+{{/* If the file doesn't exist, fail with an error */}}
+{{- if not (fileExists $pathToCheck) -}}
+  {{- $refPath := partial "functions/page-source-path.html" (dict "page" .Page) -}}
+  {{/* Message for a missing image from English docs */}}
+  {{- $errorMsg := "Restore the image to its original location, or remove the reference from this page." -}}
+  {{- if ne .Page.Lang site.Params.defaultLang -}}
+    {{/* Message for a missing image from non-English docs */}}
+    {{- $errorMsg = "Restore the image to its original location.\n  Images used in translated pages will be removed by the Technical Writing team after translations are updated." -}}
+  {{- end -}}
+  {{- warnf "Image not found: %s\n  Referenced in: %s\n  %s" $src $refPath $errorMsg -}}
+{{- end -}}
+
+{{/* Wrap a link around images.
+  The `js-lightbox` class lets the frontend open the image in an in-page
+  lightbox (see themes/gitlab-docs/src/features/lightbox.js). When JavaScript
+  is unavailable, the link falls back to opening the image in a new tab. */}}
+<a href="{{- $src -}}" class="js-lightbox" target="_blank" rel="noopener noreferrer">
+  <img
+  {{- range $k, $v := $attributes -}}
+    {{- if $v -}}
+      {{- printf " %s=%q" $k $v | safeHTMLAttr -}}
+    {{- end -}}
+  {{- end -}}>
+</a>
+{{- /**/ -}}

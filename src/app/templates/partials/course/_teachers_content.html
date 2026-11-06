@@ -1,0 +1,192 @@
+{# The course's teachers: the card, controls band, table and pagination of every
+   other list in the app (the Users page is the model).
+
+   It was a page of its own - an Alpine app that drew the rows from an inlined
+   list, so the first frame was a header over an empty table that the rows
+   dropped into a moment later; the count, the sort arrow, the active tab and
+   the "Remove all" button each changed after paint as well. It had its own
+   sorting, filtering and counting next to the shared ones, no search and no
+   pagination, and changes were drafted and sent with a Save bar no other list
+   has. Now the server renders the rows; the shared paginator, filter and
+   sorter work them; and a change applies when it is made, as on GitLab's
+   members page: pick a role and it is the role, remove and it is removed. #}
+{% from "components/buttons.html" import btn, btn_icon, btn_icon_only %}
+{% from "components/badges.html" import badge, role_badge %}
+{% from "components/layout.html" import page_config, filter_tabs with context %}
+{% from "components/forms.html" import csrf_field, form_group, search_input, select_field with context %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/dropdown.html" import dropdown_check, dropdown_label, dropdown_chevron %}
+{% from "components/avatar.html" import avatar %}
+{% from "components/typeahead.html" import person_typeahead with context %}
+{% from "components/tables.html" import table_controls, data_table, sortable_header, pagination_controls %}
+{% from "components/modals.html" import modal %}
+
+{% if can_edit %}
+{% set _is_archived = course and not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') %}
+{% set _lock = {'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id} %}
+{% set _role_labels = {'owner': t('Course Owner'), 'teacher': t('Teacher')} %}
+{# Administrators have every course; only an admin or a course owner sees them
+   listed here. The full list still travels in the page config, so a change
+   made by anyone else keeps the admins' memberships as they are. #}
+{% set _listed = (current_teachers or []) if can_see_admins else (current_teachers or [])|rejectattr('global_role', 'equalto', 'admin')|list %}
+{% set _removable = (current_teachers or [])|rejectattr('role', 'equalto', 'owner')|rejectattr('global_role', 'equalto', 'admin')|list %}
+{# The view and the search come from the address, as on the Users page, so a
+   reload of ?role=owner paints Course Owner instead of switching after paint. #}
+{% set _role_param = (request.query_params.get('role') or '') | lower %}
+{% set _initial_role = _role_param if _role_param in ['owner', 'teacher', 'admin'] else 'all' %}
+{% set _initial_q = (request.query_params.get('q') or '') | trim %}
+{% set _q = _initial_q | lower %}
+{% set _shown = namespace(n=0) %}
+
+{% set teachers_actions %}
+  {{ btn_icon(t('Add teacher'), 'user-plus', size='sm', id='btnAddTeacher', class='btn-responsive',
+              disabled=_is_archived, disabled_reason=(_archived_reason if _is_archived else ''),
+              data_attrs={'modal-open': 'addTeacherModal', 'tour': 'add-teacher'}) }}
+  {% set _no_clear = _is_archived or not _removable %}
+  {{ btn_icon(t('Remove all restrictions'), 'x-circle', variant='danger', size='sm', id='btnClearTeachers', class='btn-responsive',
+              disabled=_no_clear,
+              disabled_reason=((_archived_reason if _is_archived else t('Only owners and admins remain. Remove teachers individually.')) if _no_clear else ''),
+              data_attrs=dict(_lock, **{'tippy-content': t('Remove every teacher except the owners and admins')})) }}
+{% endset %}
+
+{% set teachers_search %}
+{{ search_input(id='teacherSearch', placeholder=t('Search teachers...'), value=_initial_q) }}
+{% endset %}
+{% set teachers_views %}
+{{ filter_tabs([
+     {'value': 'all', 'label': t('All'), 'icon': 'users'},
+     {'value': 'owner', 'label': t('Course Owner'), 'icon': 'key'},
+     {'value': 'teacher', 'label': t('Teacher'), 'icon': 'user-check'},
+     {'value': 'admin', 'label': t('Admin'), 'icon': 'shield'}
+   ], active=_initial_role, aria_label=t('Filter teachers'), class='teachers-role-filter') }}
+{% endset %}
+
+{% call card(title=t('Course Teachers'), icon_name='user-check', header_actions=teachers_actions,
+             info_tip=t('Instructors and assistants with access to this course. Course owners can manage settings and assign student groups.')) %}
+{% if _listed %}
+  {{ table_controls(search=teachers_search, filters=teachers_views) }}
+  {% call data_table(headers=[], sortable=true, paginated=true, id='courseTeachersTable', class='teachers-table table-scrollable table-sticky-actions') %}
+    <colgroup>
+      <col class="col-teacher">
+      <col class="col-teacher-account">
+      <col class="col-teacher-role">
+      <col class="col-teacher-actions">
+    </colgroup>
+    <thead>
+      <tr>
+        {{ sortable_header(t('Teacher'), 'name', class='col-teacher', default_sort='asc') }}
+        {{ sortable_header(t('Account'), 'account', class='col-teacher-account') }}
+        {{ sortable_header(t('Course role'), 'role', class='col-teacher-role') }}
+        <th class="col-teacher-actions text-right">{{ t('Actions') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for inst in _listed %}
+      {% set _name = inst.name or inst.username %}
+      {% set _search = (_name ~ ' ' ~ inst.username) | lower %}
+      {% set _in_view = _initial_role == 'all' or (_initial_role == 'owner' and inst.role == 'owner') or (_initial_role in ['teacher', 'admin'] and inst.global_role == _initial_role) %}
+      {% set _hidden = (not _in_view) or (_q and _q not in _search) %}
+      {% if not _hidden %}{% set _shown.n = _shown.n + 1 %}{% endif %}
+      <tr class="teacher-row{% if _hidden %} d-none{% endif %}" data-tour="teacher-row" data-search="{{ _search }}"
+          data-role="{{ inst.role }}" data-account="{{ inst.global_role }}" data-username="{{ inst.username }}">
+        <td class="col-teacher" data-sort-value="{{ _name | lower }}">
+          <div class="table-identity">
+            {{ avatar(inst.avatar_url, _name, size=32) }}
+            <div class="member-info">
+              <span class="member-name">{{ _name }}</span>
+              <span class="member-username">@{{ inst.username }}</span>
+            </div>
+          </div>
+        </td>
+        {#- The role badge first, then "you": written the other way round, "you"
+            pushed the reader's own Admin badge out of line with the column. -#}
+        <td class="col-teacher-account" data-sort-value="{{ inst.global_role }}">
+          {% if inst.global_role in ['teacher', 'admin'] %}{{ role_badge(inst.global_role) }}{% endif %}
+          {% if inst.username == current_username %}{{ badge(t('you'), variant='muted', size='sm') }}{% endif %}
+        </td>
+        <td class="col-teacher-role" data-sort-value="{{ inst.role }}">
+          <div class="gl-dropdown" data-dropdown-portal>
+            <button type="button" class="gl-dropdown-toggle" aria-haspopup="listbox" aria-label="{{ t('Course role') }}"
+                    {%- if _is_archived %} disabled data-disabled-reason="{{ _archived_reason }}"{% endif %}>
+              <span>{{ _role_labels.get(inst.role, inst.role) }}</span>
+              {{ dropdown_chevron() }}
+            </button>
+            <ul class="gl-dropdown-menu" role="listbox">
+              {% for r in assignable_roles %}
+              <li role="option" aria-selected="{{ 'true' if r == inst.role else 'false' }}">
+                <button type="button" class="gl-dropdown-item{% if r == inst.role %} active{% endif %}" data-dropdown-close
+                        data-teacher-role="{{ r }}" data-username="{{ inst.username }}">
+                  {{ dropdown_check() }}
+                  {{ dropdown_label(_role_labels.get(r, r)) }}
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </td>
+        <td class="col-teacher-actions text-right">
+          {% if inst.global_role == 'admin' or _is_archived %}
+          {{ btn_icon_only('trash', variant='danger', size='sm', disabled=true, aria_label=t('Remove from course'),
+                           disabled_reason=(_archived_reason if _is_archived else t('Administrators always have access to every course and cannot be removed here.'))) }}
+          {% else %}
+          {{ btn_icon_only('trash', variant='danger', size='sm', aria_label=t('Remove from course'),
+                           data_attrs=dict(_lock, **{'tippy-content': t('Remove from course'), 'teacher-remove': inst.username})) }}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  {% endcall %}
+  {{ pagination_controls(total=_shown.n, page_size=default_page_size | default('50')) }}
+{% else %}
+  {{ empty_state(title=t('No restrictions'),
+                 message=t('All teachers can view this course. Add teachers above to restrict access.'),
+                 illustration='empty-user') }}
+{% endif %}
+{% endcall %}
+
+{# What a change is sent with: the course's full list, as the form always sent
+   it (course-teachers.js fills `teachers_json`), checked against the version
+   this page was rendered from. #}
+<form id="teacherForm" method="POST" action="/dashboard/courses/{{ course.id }}/teachers" class="d-none">
+  {{ csrf_field() }}
+  <input type="hidden" name="expected_updated_at" value="{{ course.updated_at.isoformat() if course.updated_at else '' }}">
+  <input type="hidden" name="teachers_json" value="">
+</form>
+
+{% if not _is_archived %}
+{% call modal('addTeacherModal', t('Add teacher')) %}
+<div x-data="teacherInvite()">
+  {% call form_group(label=t('User'), id='teacher-search') %}
+    {{ person_typeahead(
+         input_id='teacher-search',
+         placeholder=t('Search for a user to add...'),
+         model='search', open_when='showDropdown', items='filteredUsers',
+         on_pick='pick(user)',
+         empty_text=t('No matching users'),
+         more_text=t('more, keep typing to narrow'),
+         role_expr='user.role') }}
+  {% endcall %}
+  {{ select_field('role', label=t('Course role'), id='addTeacherRole', value='teacher', placeholder='',
+                  options=[('teacher', t('Teacher')), ('owner', t('Course Owner'))]) }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'addTeacherModal'}) }}
+    {{ btn_icon(t('Add teacher'), 'user-plus', id='btnAddTeacherSubmit', disabled=true, x_bind_disabled='!picked', x_click='submit()',
+                data_attrs=dict(_lock, **{'disabled-reason': t('Pick a user to add first.')})) }}
+  </div>
+</div>
+{% endcall %}
+{% endif %}
+{% else %}
+{{ empty_state(title=t('Access Denied'), message=t('You do not have permission to manage teachers for this course.'), illustration='empty-access', action_text=t('Back to Course'), action_href='/dashboard/courses/' ~ course.id, action_class='btn-secondary') }}
+{% endif %}
+
+{{ page_config({
+  'courseId': course.id | string,
+  'canSeeAdmins': can_see_admins|default(false),
+  'currentTeachers': current_teachers,
+  'availableUsers': available_users,
+  'assignableRoles': assignable_roles|default(['teacher', 'owner']),
+  'roleLabels': {'owner': t('Course Owner'), 'teacher': t('Teacher')}
+}, csp_nonce) }}

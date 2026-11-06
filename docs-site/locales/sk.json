@@ -1,0 +1,85 @@
+{
+  "clipboard": {
+    "copyTxt": "Kopírovať",
+    "srCopyToClipboard": "Kopírovať do schránky",
+    "copied": "Skopírované!"
+  },
+  "navBar": {
+    "toggleSidebar": "Prepnúť bočný panel",
+    "mainNavigation": "Hlavná navigácia",
+    "collapseSidebar": "Zbaliť bočný panel",
+    "selectATopic": "Vyberte tému"
+  },
+  "searchForm": {
+    "search": "Hľadať",
+    "searchGitLabDocs": "Hľadať v dokumentácii",
+    "seeAllResults": "Zobraziť všetky výsledky",
+    "noResultsFound": "Nenašli sa žiadne výsledky.",
+    "tooltipTxt": "Vyhľadávanie spustíte klávesmi {0} alebo {1}"
+  },
+  "pagefindSearchResults": {
+    "searchDocs": "Prehľadať dokumentáciu GitPulse",
+    "errorFetchingMsg": "Index vyhľadávania sa nepodarilo načítať."
+  },
+  "searchSuggestedItems": {
+    "recentlyViewed": "Nedávno zobrazené",
+    "popular": "Populárne",
+    "cicdYAMLSyntaxReference": "Príručka pre učiteľov"
+  },
+  "plantuml": {
+    "errorRenderMsg": "Tento diagram sa nepodarilo vykresliť."
+  },
+  "lightbox": {
+    "label": "Náhľad obrázka",
+    "close": "Zavrieť náhľad obrázka"
+  },
+  "mermaidZoom": {
+    "regionLabel": "Diagram s priblížením. Použite panel nástrojov, alebo zamerajte diagram a klávesmi plus, mínus a nula meňte priblíženie a šípkami posúvajte.",
+    "overlayLabel": "Diagram na celú obrazovku",
+    "zoomIn": "Priblížiť",
+    "zoomOut": "Oddialiť",
+    "reset": "Pôvodná veľkosť",
+    "fullscreen": "Zobraziť na celú obrazovku",
+    "close": "Zavrieť celú obrazovku"
+  },
+  "languageSelector": {
+    "language": "Jazyk"
+  },
+  "themeToggle": {
+    "theme": "Motív",
+    "light": "Svetlý režim",
+    "dark": "Tmavý režim",
+    "auto": "Automaticky",
+    "tooltip": "Vyberte motív a rozloženie"
+  },
+  "layoutToggle": {
+    "layout": "Rozloženie",
+    "fixed": "Pevná šírka",
+    "fluid": "Plynulá šírka"
+  },
+  "feedback": {
+    "editPage": "Upraviť túto stránku",
+    "viewSourceHelp": "Upraviť iba tento súbor.",
+    "openWebIDE": "Otvoriť vo Web IDE",
+    "openWebIDEhelp": "Upraviť viac súborov.",
+    "viewSource": "Zobraziť zdroj stránky",
+    "suggestUpdates": "Vytvoriť issue",
+    "suggestUpdatesHelp": "Navrhnúť zlepšenie."
+  },
+  "copyForLLMOptions": {
+    "copyForLLM": "Kopírovať pre LLM",
+    "copyMarkdownButton": "Kopírovať ako Markdown",
+    "viewMarkdownButton": "Zobraziť ako Markdown",
+    "openInClaude": "Otvoriť v Claude",
+    "openInChatGPT": "Otvoriť v ChatGPT"
+  },
+  "backToTopButton": {
+    "label": "Späť nahor"
+  },
+  "tables": {
+    "expandTable": "Rozbaliť tabuľku"
+  },
+  "toc": {
+    "tableOfContents": "Obsah stránky"
+  }
+}

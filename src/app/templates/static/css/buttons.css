@@ -1,0 +1,540 @@
+/* ============================================
+   BUTTONS - GitLab Pajamas Design System
+   https://design.gitlab.com/components/button
+
+   Colours come from tokens.css, which mirrors @gitlab/ui 136.1.0
+   (--gl-button-*). Categories: primary (filled), secondary (default),
+   tertiary (ghost), confirm, danger.
+   ============================================ */
+
+/* Base button - GitLab Pajamas: 32px height, 4px radius, 14px font, 400 weight */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gl-spacing-2);
+  /* 32px: @gitlab/ui $gl-button-medium-size, the min-height of every medium
+     GlButton, text or icon-only. It was 34 after a measurement on the docs
+     site's own theme, which left a text button 2px taller than the icon
+     button beside it in every toolbar. */
+  height: 32px;
+  padding: 0 var(--gl-spacing-4);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  font-family: inherit;
+  line-height: 1rem;   /* GitLab: 16px, measured on gitlab.example.com */
+  border-radius: var(--gl-action-border-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  /* GitLab animates colour and shadow only - measured on a real GlButton:
+     color, background-color, border-color, box-shadow, text-decoration-color,
+     all 0.2s out-cubic, and NO transform. The scale-on-press we used to add is
+     the clearest "not GitLab" tell in motion, the way a 2px radius was in
+     shape. */
+  /* `opacity` and `transform` are in the list but nothing here changes them:
+     they exist so a button variant that DOES move (the row exclusion toggle
+     scales on hover) eases at the button speed instead of having to restate
+     the whole shorthand - which is how it ended up at 100ms with its
+     background snapping, while every other button ran at 200ms. Listing a
+     property never creates motion; only a rule that changes it does. */
+  transition: background var(--transition-normal),
+    border-color var(--transition-normal),
+    color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    opacity var(--transition-normal),
+    transform var(--transition-normal),
+    text-decoration-color var(--transition-normal);
+  white-space: nowrap;
+  user-select: none;
+  vertical-align: middle;
+  position: relative;
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    text-decoration: none;
+  }
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.btn:active:not(:disabled) {
+  box-shadow: none;
+}
+
+/* Interaction feedback for every button - success pop, error shake - is
+   GP.flashButton(), which delegates to GP.motion.pop / GP.motion.shake. It is
+   the same pop a badge gets and the same shake a rejected input gets, instead
+   of two more keyframes that only buttons used. */
+/* An archived course is read-only, and the server says so on the content well
+   (`is-course-archived`, components/layout.html) precisely so the guarded
+   buttons are dimmed on the FIRST frame. No rule ever matched that class,
+   though - the only thing that dimmed them was the JS guard setting `disabled`
+   after paint, so every write action on an archived course flashed up in its
+   normal colour, looking available, and then greyed a beat later.
+
+   The control stays operable on purpose (a click answers with the reason), so
+   this is appearance only - `disabled` itself is still the guard's to set. */
+.btn:disabled,
+.btn.disabled,
+.btn.is-disabled,
+.is-course-archived .btn[data-process-lock-when],
+.is-course-archived .btn.btn-save-guard {
+  color: var(--gl-btn-disabled-text) !important;
+  background: var(--gl-btn-disabled-bg) !important;
+  border-color: var(--gl-btn-disabled-border) !important;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* GlButton: a disabled TERTIARY button keeps no fill, only its text dims
+   (`&[disabled][class*="-tertiary"] { bg-transparent }`). The rule above
+   painted a grey box under every disabled icon button. */
+.btn-tertiary:disabled,
+.btn-tertiary.disabled {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+/* -- Outcome states --
+   The third state every action owes the user, next to idle and loading: the
+   control reports its own answer in place. Both answers, not just the happy one
+   - a button that failed used to return to its resting label and say nothing.
+   Colour only, the way GitLab signals status - the button keeps its size so
+   nothing around it reflows. Placed after .btn:disabled so !important outcome
+   colours override disabled grey. */
+.btn.btn-done,
+.btn.btn-done:hover,
+.btn.btn-done:disabled,
+.btn:disabled.btn-done,
+.btn[disabled].btn-done,
+.btn.disabled.btn-done,
+.btn.is-disabled.btn-done,
+.is-course-archived .btn.btn-done {
+  background: var(--gl-badge-success-bg) !important;
+  border-color: var(--gl-badge-success-bg) !important;
+  color: var(--gl-badge-success-text) !important;
+  cursor: default !important;
+}
+.btn.btn-error,
+.btn.btn-error:hover,
+.btn.btn-error:disabled,
+.btn:disabled.btn-error,
+.btn[disabled].btn-error,
+.btn.disabled.btn-error,
+.btn.is-disabled.btn-error,
+.is-course-archived .btn.btn-error {
+  background: var(--gl-badge-danger-bg) !important;
+  border-color: var(--gl-badge-danger-bg) !important;
+  color: var(--gl-badge-danger-text) !important;
+  /* Not `cursor: default`: unlike a success, a failure is something the user
+     will want to try again, and the button stays theirs to press. */
+}
+.btn-outcome-icon {
+  flex-shrink: 0;
+}
+.btn-outcome-label {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* On a phone the word does not fit: the control kept its width and the label
+   was clipped to "Don...", which reads as a broken button rather than a
+   finished action. The mark alone carries the meaning, and the word stays in
+   the accessible name for anyone not looking at it. */
+@media (max-width: 768px) {
+  /* The label carries `.sr-only-sm` (utilities.css); this breakpoint is its. */
+  .btn.btn-done,
+  .btn.btn-error {
+    gap: 0;
+  }
+}
+
+/* GitLab's disabled button keeps its pointer events (@gitlab/ui 136.3.0,
+   button.scss: `cursor: not-allowed !important` and no `pointer-events`), and
+   that is load-bearing rather than an oversight: an element that swallows no
+   pointer events shows no `not-allowed` cursor and can never fire the
+   mouseenter Tippy needs, so a disabled control could not say WHY it is
+   disabled. `GP.setDisabledReason` existed but was mute on every real button.
+
+   An <a> is the one case that still needs it - `btn_link` marks a disabled
+   link with `.is-disabled` because an anchor has no native `disabled`
+   attribute, so nothing else stops the navigation. */
+a.btn.is-disabled,
+a.btn.disabled {
+  pointer-events: none;
+}
+
+/* -- Primary / Confirm - GitLab's confirm button is NEUTRAL: neutral-800 with
+      white text on light, neutral-50 with near-black text on dark. -- */
+.btn-primary,
+.btn-confirm {
+  background: var(--gl-btn-confirm-bg);
+  color: var(--gl-btn-confirm-text);
+  border-color: var(--gl-btn-confirm-border);
+}
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled),
+  .btn-confirm:hover:not(:disabled) {
+    background: var(--gl-btn-confirm-bg-hover);
+    border-color: var(--gl-btn-confirm-border-hover);
+    color: var(--gl-btn-confirm-text);
+  }
+}
+.btn-primary:active:not(:disabled),
+.btn-confirm:active:not(:disabled) {
+  background: var(--gl-btn-confirm-bg-active);
+  border-color: var(--gl-btn-confirm-border-active);
+}
+.btn-secondary,
+.btn-default,
+.btn-outline {
+  background: var(--gl-btn-default-bg);
+  color: var(--gl-btn-default-text);
+  border-color: var(--gl-btn-default-border);
+}
+/* The default button's hover, shared by every variant that uses it. */
+@media (hover: hover) {
+  .btn-secondary:hover:not(:disabled),
+  .btn-default:hover:not(:disabled),
+  .btn-outline:hover:not(:disabled) {
+    background: var(--gl-btn-default-bg-hover);
+    border-color: var(--gl-btn-default-border-hover);
+    color: var(--gl-btn-default-text);
+  }
+}
+.btn-secondary:active:not(:disabled),
+.btn-default:active:not(:disabled) {
+  background: var(--gl-btn-default-bg-active);
+  border-color: var(--gl-btn-default-border-active);
+}
+
+/* -- Success / Warning - per colour mode from tokens.css (dark: bright fill,
+   dark text; light: -500 fill, white text) -- */
+.btn-success {
+  background: var(--gl-btn-success-bg);
+  color: var(--gl-btn-success-text);
+  border-color: transparent;
+}
+@media (hover: hover) {
+  .btn-success:hover:not(:disabled) {
+    background: var(--gl-btn-success-bg-hover);
+    border-color: transparent;
+  }
+}
+.btn-success:active:not(:disabled) {
+  background: var(--gl-btn-success-bg-active);
+  border-color: transparent;
+}
+
+.btn-warning {
+  background: var(--gl-btn-warning-bg);
+  color: var(--gl-btn-warning-text);
+  border-color: transparent;
+}
+@media (hover: hover) {
+  .btn-warning:hover:not(:disabled) {
+    background: var(--gl-btn-warning-bg-hover);
+    border-color: transparent;
+  }
+}
+.btn-warning:active:not(:disabled) {
+  background: var(--gl-btn-warning-bg-active);
+  border-color: transparent;
+}
+
+/* -- Danger - GitLab: red fill; light theme adds a darker red border, dark
+      theme leaves it transparent (both come from the tokens) -- */
+.btn-danger {
+  background: var(--gl-btn-danger-bg);
+  color: var(--gl-btn-danger-text);
+  border-color: var(--gl-btn-danger-border);
+}
+@media (hover: hover) {
+  .btn-danger:hover:not(:disabled) {
+    background: var(--gl-btn-danger-bg-hover);
+    border-color: var(--gl-btn-danger-border-hover);
+  }
+}
+.btn-danger:active:not(:disabled) {
+  background: var(--gl-btn-danger-bg-active);
+  border-color: var(--gl-btn-danger-border-active);
+}
+/* Outlined variants: light theme draws the outline, dark theme replaces it with
+   a translucent wash and no border - both encoded in the *-border tokens. */
+.btn-outline-danger {
+  background: var(--gl-btn-danger-secondary-bg);
+  color: var(--gl-btn-danger-secondary-text);
+  border-color: var(--gl-btn-danger-secondary-border);
+}
+@media (hover: hover) {
+  .btn-outline-danger:hover:not(:disabled) {
+    background: var(--gl-btn-danger-secondary-bg-hover);
+    color: var(--gl-btn-danger-secondary-text);
+  }
+}
+.btn-outline-danger:active:not(:disabled) {
+  background: var(--gl-btn-danger-secondary-bg-active);
+}
+
+.btn-outline-primary {
+  background: var(--gl-btn-confirm-secondary-bg);
+  color: var(--gl-btn-confirm-secondary-text);
+  border-color: var(--gl-btn-confirm-secondary-border);
+}
+@media (hover: hover) {
+  .btn-outline-primary:hover:not(:disabled) {
+    background: var(--gl-btn-confirm-secondary-bg-hover);
+    color: var(--gl-btn-confirm-secondary-text);
+  }
+}
+.btn-outline-primary:active:not(:disabled) {
+  background: var(--gl-btn-confirm-secondary-bg-active);
+}
+
+/* -- Ghost / Tertiary - GitLab: transparent bg, action-neutral hover -- */
+.btn-ghost,
+.btn-tertiary {
+  background: var(--gl-action-neutral-bg-default);
+  color: var(--gl-text-color-subtle);
+  border-color: transparent;
+}
+@media (hover: hover) {
+  .btn-ghost:hover:not(:disabled),
+  .btn-tertiary:hover:not(:disabled) {
+    background: var(--gl-action-neutral-bg-hover);
+    color: var(--gl-text-color-strong);
+  }
+}
+.btn-ghost:active:not(:disabled),
+.btn-tertiary:active:not(:disabled) {
+  background: var(--gl-action-neutral-bg-active);
+}
+
+/* -- Tertiary confirm - GitLab paints this NEUTRAL, not blue
+      (--gl-action-confirm-foreground-color-default) -- */
+.btn-tertiary-confirm {
+  background: var(--gl-action-confirm-bg-default);
+  color: var(--gl-action-confirm-text);
+  border-color: transparent;
+}
+@media (hover: hover) {
+  .btn-tertiary-confirm:hover:not(:disabled) {
+    background: var(--gl-action-confirm-bg-hover);
+    color: var(--gl-text-color-strong);
+  }
+}
+.btn-tertiary-confirm:active:not(:disabled) {
+  background: var(--gl-action-confirm-bg-active);
+}
+.btn-tertiary-danger,
+.btn-icon-only.btn-danger {
+  background: var(--gl-action-danger-bg-default);
+  color: var(--gl-action-danger-text);
+  border-color: transparent;
+}
+@media (hover: hover) {
+  .btn-tertiary-danger:hover:not(:disabled) {
+    background: var(--gl-action-danger-bg-hover);
+  }
+}
+.btn-tertiary-danger:active:not(:disabled) {
+  background: var(--gl-action-danger-bg-active);
+}
+
+/* -- Link - GitLab link variant -- */
+.btn-link {
+  background: transparent;
+  color: var(--gl-text-color-link);
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  height: auto;
+  /* Text, so it wraps: "Use the official TUKE dates (2026-02-16 - 2026-05-24)"
+     ran 36px past a phone's edge on one line. */
+  white-space: normal;
+  text-align: left;
+}
+@media (hover: hover) {
+  .btn-link:hover:not(:disabled) {
+    color: var(--gl-text-color-link);
+    text-decoration: underline;
+  }
+}
+
+/* -- Button sizes - GitLab Pajamas exact -- */
+.btn-sm {
+  height: 24px;
+  padding: 0 var(--gl-spacing-3);
+  font-size: var(--font-size-base);
+}
+
+/* Keep full action labels on desktop and accessible icon controls on phones. */
+@media (max-width: 768px) {
+  /* Two classes: the tablet sheet's later `.btn` padding must not win. */
+  .btn.btn-responsive {
+    position: relative;
+    padding: 0;
+    gap: 0;
+    width: 24px;
+    justify-content: center;
+  }
+  .btn-responsive .btn-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (max-width: 768px) {
+  .btn.btn-responsive {
+    width: 32px;
+  }
+}
+
+.btn-lg {
+  height: 40px;
+  padding: 0 var(--gl-spacing-5);
+  font-size: var(--font-size-base);
+}
+
+/* GitLab has no size below small: .btn-xs is .btn-sm (24px, 0 8px, 14px). It
+   was a 20px / 11px / 12px-glyph size of its own, one step smaller than any
+   GlButton, on the exclusion toggles and a few row actions. */
+.btn-xs {
+  height: 24px;
+  padding: 0 var(--gl-spacing-3);
+  font-size: var(--font-size-base);
+}
+
+/* .btn-block lives in utilities.css, which loads after this file. */
+
+/* -- Icon buttons - GitLab style -- */
+.btn-icon {
+  gap: var(--gl-spacing-2);
+}
+.btn-icon .icon {
+  flex-shrink: 0;
+}
+.btn-text:empty {
+  display: none;
+}
+
+.btn-icon-only {
+  padding: 0;
+  width: 32px;
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+.btn-icon-only.btn-sm {
+  width: 24px;
+}
+.btn-icon-only.btn-xs {
+  width: 24px;
+}
+.btn-icon-only.btn-lg {
+  width: 40px;
+}
+/* Keep a small icon's surface and focus ring compact, with an invisible tap area. */
+@media (hover: none) and (pointer: coarse) {
+  .btn-icon-only.btn-sm.btn-touch-target {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+  }
+  .btn-icon-only.btn-sm.btn-touch-target::before {
+    content: "";
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+@media (hover: hover) {
+  .btn-icon-only.btn-danger:hover:not(:disabled) {
+    background: var(--gl-action-danger-bg-hover);
+    border-color: transparent;
+  }
+}
+.btn-icon-only.btn-danger:active:not(:disabled) {
+  background: var(--gl-action-danger-bg-active);
+}
+
+/* -- Button loading state --------------------------------------------------
+   GlButton's contract, verbatim (@gitlab/ui 136.2.0,
+   src/components/base/button/button.vue:418-421): a loading icon is rendered as
+   the leading `.gl-button-icon`, the button's own icon is dropped only when the
+   button is icon-only, and `.gl-button-text` - the LABEL - is untouched.
+
+   So: the label stays, and the spinner takes the leading icon's place. An
+   icon+label button therefore does not change width at all while it works
+   (16px icon -> 16px spinner), and an icon-only button stays square.
+
+   This replaced `color: transparent !important` + `> * { visibility: hidden }` +
+   `opacity: 0.7`, which turned every working button into an empty washed-out
+   box - the "buttons deform badly from their resting state" report. The
+   `.btn-loading-text` variant that swapped the label for "Checking..." (and
+   resized the control with it) is gone too: one state, one look.
+
+   Spinner geometry is GlLoadingIcon's (loading_icon.scss + variables.scss):
+   16px (`$gl-spacing-scale-5`) with a 2px border (`$gl-border-size-2`), the
+   track on all four sides, the moving segment on `border-top-color`, turning at
+   `spin 0.6s infinite linear` (tailwind.defaults.js `animation.spin`). */
+.btn.loading {
+  pointer-events: none;
+}
+/* The spinner stands in for the leading icon, so the icon must not also be
+   there. Hidden rather than removed: the same DOM serves the server-rendered
+   loading state and the one setButtonLoading() paints. */
+.btn.loading > .icon {
+  display: none;
+}
+/* THE app-wide loading mark (the brand tanuki in its turning ring - see
+   logo.css / GP.renderSpinnerHtml), sized to EXACTLY the icon box it replaces so
+   the button keeps its resting width. That box is 16px at every button size:
+   `.btn .icon { width: 16px; height: 16px }` in layout.css overrides the 12px
+   `.icon-xs` a small button asks for, and 20px inside a large one. Sizing the
+   spinner from the icon's own numbers is the only way the swap is free - a 12px
+   spinner standing in for a 16px icon took 4px off the control (measured). */
+.btn > .gp-spinner {
+  --gp-spinner-size: 16px;
+  --gp-spinner-ring: 1.5px;
+}
+.btn-lg > .gp-spinner {
+  --gp-spinner-size: 20px;
+  --gp-spinner-ring: 2px;
+}
+
+/* The `.btn-in-progress` override that stood here is gone with its last caller.
+   It kept a disabled button from looking washed out, with four !importants -
+   a workaround for a problem THE loading state does not have: setButtonLoading
+   leaves the button at its resting size and styling and puts the spinner where
+   the leading icon was, rather than disabling it into a greyed-out box. */
+
+/* -- Button group - GitLab -- */
+.btn-group {
+  display: inline-flex;
+  gap: var(--gl-spacing-3);
+  align-items: center;
+}
+/* -- On a filled surface - a coloured status strip --
+   A tertiary button there takes the strip's own text colour, at rest and on
+   hover: what GitLab's broadcast message and toast do to their CloseButton
+   (`color: inherit`), since the neutral text colours are for neutral ground. */
+.btn-tertiary.btn-on-filled,
+.btn-tertiary.btn-on-filled:hover:not(:disabled) {
+  color: inherit;
+}

@@ -1,0 +1,225 @@
+/* ============================================
+   ALERTS - GitLab Pajamas Design System
+   ============================================ */
+/* The ONE action row inside an alert. The three that existed before wore
+   `.alert-actions` (a class no rule ever defined, so the buttons touched) and
+   twice `.mt-2` (top margin, still no gap - the spacing came from an `ml-2` on
+   the second button). Owning the gap here is what lets the button macros stay
+   margin-free. */
+.gp-alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin-top: var(--gl-spacing-3);
+}
+
+
+/* GlAlert, matched to @gitlab/ui alert.scss.
+   This was painted with --gl-feedback-strong-*, which GitLab documents as
+   "a background associated with strong feedback like a tooltip or toast
+   message" - the toast's clothes on an alert. GitLab's alert is a flat
+   tinted panel: no shadow, no visible rule (every --gl-alert-*-border-*
+   token ships transparent), and the icon sits ABSOLUTELY at the 48px inline
+   inset rather than as a flex child. */
+.gitlab-alert {
+  position: relative;
+  width: 100%;
+  padding: var(--gl-spacing-5) var(--gl-spacing-9);
+  color: var(--gl-text-color-default);
+  background: var(--gl-alert-neutral-bg);
+  border: 0;
+  border-bottom: 1px solid var(--gl-alert-neutral-border);
+  border-radius: var(--gl-alert-border-radius);
+  font-size: var(--font-size-base);
+}
+
+/* Not dismissible: GitLab reclaims the right inset (spacing-5) since no
+   close button sits there. Ours keys off the button actually being absent. */
+.gitlab-alert:not(:has(.gitlab-alert-close)) {
+  padding-right: var(--gl-spacing-5);
+}
+
+/* The space under an alert, which GitLab's pages give every GlAlert with
+   `gl-mb-5`. Ours carried it in the old `.alert` and every page is laid out
+   on it; the last thing in a box needs none. */
+.gitlab-alert {
+  margin-bottom: var(--gl-spacing-5);
+}
+.gitlab-alert:last-child {
+  margin-bottom: 0;
+}
+
+/* GlAlert's `showIcon: false` (`gl-alert-no-icon`): no icon, so no inset for it. */
+.gitlab-alert-no-icon {
+  padding-left: var(--gl-spacing-5);
+}
+
+.gitlab-alert-content {
+  min-width: 0;
+}
+
+/* -gl-mt-1 / gl-mb-2 on GitLab's .gl-alert-title: a 2px negative top so the
+   cap-height lines up with the icon, and a 4px gap to the body. */
+.gitlab-alert-title {
+  margin: calc(var(--gl-spacing-1) * -1) 0 var(--gl-spacing-2);
+  color: var(--gl-alert-neutral-title);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--gl-line-height-20);
+  overflow-wrap: anywhere;
+}
+
+.gitlab-alert-message {
+  margin: 0;
+  color: inherit;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--gl-line-height-20);
+  overflow-wrap: anywhere;
+}
+
+/* GitLab's .gl-alert-body is gl-text-default at the base size whether or not
+   a title precedes it - it does not demote to subtle/small. */
+
+/* .gl-alert-icon-container: absolute at the spacing-5 inset, its box the
+   height of one 20px line so the glyph centres on the first line of text.
+   With a title GitLab lifts it to calc(spacing-4 + 2px) = 14px. */
+.gitlab-alert-icon {
+  position: absolute;
+  top: var(--gl-spacing-5);
+  left: var(--gl-spacing-5);
+  display: flex;
+  align-items: center;
+  height: var(--gl-line-height-20);
+  color: var(--gl-feedback-neutral-icon);
+}
+
+.gitlab-alert:has(.gitlab-alert-title) .gitlab-alert-icon {
+  top: calc(var(--gl-spacing-4) + 2px);
+}
+
+/* .gl-dismiss-btn: the shared close button (`close_button`), placed absolute
+   at calc(spacing-4 + 2px) / spacing-4 - centred on the first 20px line; with
+   a title the 2px offset is dropped. */
+.gitlab-alert-close {
+  position: absolute;
+  top: calc(var(--gl-spacing-4) + 2px);
+  right: var(--gl-spacing-4);
+}
+
+.gitlab-alert:has(.gitlab-alert-title) .gitlab-alert-close {
+  top: var(--gl-spacing-4);
+}
+
+/* A variant sets three things, exactly as gl-alert-variant() does:
+   background, title colour and icon colour. Which of those actually carries
+   the meaning flips by theme - see the alert tokens in tokens.css. */
+.gitlab-alert-info {
+  background: var(--gl-alert-info-bg);
+  border-bottom-color: var(--gl-alert-info-border);
+}
+.gitlab-alert-info .gitlab-alert-title {
+  color: var(--gl-alert-info-title);
+}
+.gitlab-alert-info .gitlab-alert-icon {
+  color: var(--gl-feedback-info-icon);
+}
+
+.gitlab-alert-success {
+  background: var(--gl-alert-success-bg);
+  border-bottom-color: var(--gl-alert-success-border);
+}
+.gitlab-alert-success .gitlab-alert-title {
+  color: var(--gl-alert-success-title);
+}
+.gitlab-alert-success .gitlab-alert-icon {
+  color: var(--gl-feedback-success-icon);
+}
+
+.gitlab-alert-warning {
+  background: var(--gl-alert-warning-bg);
+  border-bottom-color: var(--gl-alert-warning-border);
+}
+.gitlab-alert-warning .gitlab-alert-title {
+  color: var(--gl-alert-warning-title);
+}
+.gitlab-alert-warning .gitlab-alert-icon {
+  color: var(--gl-feedback-warning-icon);
+}
+
+.gitlab-alert-danger,
+.gitlab-alert-error {
+  background: var(--gl-alert-danger-bg);
+  border-bottom-color: var(--gl-alert-danger-border);
+}
+.gitlab-alert-danger .gitlab-alert-title,
+.gitlab-alert-error .gitlab-alert-title {
+  color: var(--gl-alert-danger-title);
+}
+.gitlab-alert-danger .gitlab-alert-icon,
+.gitlab-alert-error .gitlab-alert-icon {
+  color: var(--gl-feedback-danger-icon);
+}
+
+/* -- Callout - GitLab style -- */
+/* -- Status Indicator (dot + label) -- */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot--xs { width: 6px; height: 6px; }
+.status-dot--sm { width: 8px; height: 8px; }
+.status-dot--md { width: 10px; height: 10px; }
+.status-dot-pulse {
+  animation: pulse var(--gl-anim-loop) var(--motion-ease-loop) infinite;
+}
+.status-dot.success { background: var(--gl-status-success-icon); }
+.status-dot.failed  { background: var(--gl-status-danger-icon); }
+.status-dot.danger  { background: var(--gl-status-danger-icon); }
+.status-dot.running { background: var(--gl-status-info-icon); animation: pulse var(--gl-anim-loop) var(--motion-ease-loop) infinite; }
+.status-dot.info    { background: var(--gl-status-info-icon); }
+.status-dot.pending { background: var(--gl-status-warning-icon); }
+.status-dot.warning { background: var(--gl-status-warning-icon); }
+.status-dot.other   { background: var(--text-disabled); }
+
+/* -- Table filter empty state -- */
+.table-filter-empty {
+  padding: var(--gl-spacing-8) var(--gl-spacing-6);
+  text-align: center;
+  color: var(--gl-text-color-subtle);
+  font-size: var(--font-size-base);
+}
+
+/* ============================================
+   STATUS INDICATOR VARIANTS - replaces inline styles
+   ============================================ */
+
+.status-indicator--success .status-dot { background: var(--gl-feedback-success-icon); }
+.status-indicator--success .status-label { color: var(--gl-text-color-success); }
+.status-indicator--warning .status-dot { background: var(--gl-feedback-warning-icon); }
+.status-indicator--warning .status-label { color: var(--gl-text-color-warning); }
+.status-indicator--error .status-dot { background: var(--gl-feedback-danger-icon); }
+.status-indicator--error .status-label { color: var(--gl-text-color-danger); }
+.status-indicator--info .status-dot { background: var(--gl-feedback-info-icon); }
+.status-indicator--info .status-label { color: var(--gl-text-color-link); }
+.status-indicator--pending .status-dot { background: var(--gl-feedback-neutral-icon); }
+.status-indicator--pending .status-label { color: var(--gl-feedback-neutral-text); }
+.status-indicator--loading .status-dot { background: var(--gl-feedback-info-icon); }
+.status-indicator--loading .status-label { color: var(--gl-text-color-link); }
+.status-indicator--muted .status-dot { background: var(--text-disabled); }
+/* The DOT may be the disabled step; the LABEL may not. "Archivované" measured
+   3.52:1 - a disabled colour on a word that carries state, not on a control that
+   cannot be used. GitLab's quiet text is neutral-600 (`--gl-text-color-subtle`),
+   which is `--text-secondary` here and reads at 5.6:1. */
+.status-indicator--muted .status-label { color: var(--text-secondary); }

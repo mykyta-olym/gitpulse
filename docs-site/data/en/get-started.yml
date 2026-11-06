@@ -1,0 +1,5 @@
+# The row under the cards. Page URLs, not file paths.
+- title: 'First steps with GitPulse'
+  url: 'uvod/'
+- title: 'Thesis objectives'
+  url: 'uvod/ciele/'

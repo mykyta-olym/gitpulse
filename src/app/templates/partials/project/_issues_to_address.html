@@ -1,0 +1,181 @@
+{# -- Issues to Address - structured, actionable issue summary --
+   Aggregates failing checks across the SCORED cohort (real team members
+   excluding teachers, mentors, and excluded-from-scoring). Mirrors the
+   members-table scoring rules so counts & progress reflect only the
+   members whose snapshots contribute to the weighted group score.
+
+   Dynamically re-rendered by /dashboard/projects/{id}/live-data in response
+   to member-role changes, exclusion toggles, run-checks, etc.
+
+   Inputs (from caller context):
+     students        - list[Student] already filtered to visible members
+     snapshots       - dict[UUID, MetricSnapshot]
+     memberships     - dict[UUID, TeamMember]
+     user_roles      - dict[username_lower, role]
+#}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, empty_state, chart_legend %}
+{% from "components/layout.html" import json_island with context %}
+
+{% set _scored_students = scored_students | default([]) %}
+{% set _student_count = _scored_students | length %}
+{% set _issues_map = {} %}
+{% for s in _scored_students %}
+  {% set _snap = snapshots.get(s.id) %}
+  {% if _snap and _snap.checks_detail %}
+    {% for _cid, _info in _snap.checks_detail.items() %}
+      {% if _info and _info is mapping and _info.get('pass') == False and _info.get('expected', True) %}
+        {% if _cid not in _issues_map %}
+          {% set _ = _issues_map.update({_cid: {
+              'check_id': _cid,
+              'name': _info.get('name') or _cid,
+              'weight': _info.get('weight') or 0,
+              'students': []
+          }}) %}
+        {% endif %}
+        {% set _ = _issues_map[_cid]['students'].append({
+            'id': s.id|string,
+            'name': s.full_name or s.gitlab_username or 'Unknown',
+            'username': s.gitlab_username,
+            'detail': t(_info.get('detail') or '')
+        }) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endfor %}
+{% set _issues = [] %}
+{% for _cid, _iss in _issues_map.items() %}
+  {% set _affected = _iss['students'] | length %}
+  {% set _share = (_affected / _student_count) if _student_count > 0 else 0 %}
+  {% set _impact = (_iss['weight'] or 0) * _share %}
+  {% if _iss['weight'] >= 0.15 or _share >= 0.5 %}
+    {% set _sev = 'high' %}
+    {% set _sev_icon = 'alert-circle' %}
+    {% set _sev_label = t('High priority') %}
+  {% elif _iss['weight'] >= 0.08 or _share >= 0.34 %}
+    {% set _sev = 'med' %}
+    {% set _sev_icon = 'alert-triangle' %}
+    {% set _sev_label = t('Needs attention') %}
+  {% else %}
+    {% set _sev = 'low' %}
+    {% set _sev_icon = 'info' %}
+    {% set _sev_label = t('Minor') %}
+  {% endif %}
+  {% set _ = _issues.append({
+      'check_id': _iss['check_id'],
+      'name': _iss['name'],
+      'weight': _iss['weight'],
+      'students': _iss['students'] | sort(attribute='name'),
+      'affected': _affected,
+      'share': _share,
+      'impact': _impact,
+      'severity': _sev,
+      'severity_icon': _sev_icon,
+      'severity_label': _sev_label,
+      'sort_key': (0 if _sev == 'high' else (1 if _sev == 'med' else 2))
+  }) %}
+{% endfor %}
+{% set _issues_sorted = _issues | sort(attribute='impact', reverse=true) | sort(attribute='affected', reverse=true) | sort(attribute='sort_key') %}
+{% set _high_count = _issues_sorted | selectattr('severity', 'equalto', 'high') | list | length %}
+{% set _med_count = _issues_sorted | selectattr('severity', 'equalto', 'med') | list | length %}
+{% set _low_count = _issues_sorted | selectattr('severity', 'equalto', 'low') | list | length %}
+
+<div id="issuesToAddressContainer" data-scored-count="{{ _student_count }}" data-template-fork="{{ '1' if (template_fork is defined and template_fork) else '0' }}">
+{# One card, whatever the state. The four "nothing to show" cases used to carry
+   a copy of the card each - four `{% call card %}` blocks repeating the same
+   title and the same `id='projectBottlenecksCard'`, so the card that the live
+   -data refresh replaces was defined in five places and could drift in four of
+   them. The branch now picks WHAT to say; the card is written once. #}
+{% set _ct %}{{ t('Issues to Address') }}{% endset %}
+{% if template_fork is defined and template_fork %}
+  {# Fork of a template - the repo has upstream (template-author) commits but no
+     student has pushed their own work yet. Distinct from a truly empty repo so
+     the stats read "-" instead of a misleading "0". #}
+  {% set _empty = {
+      'title': t('Template / fork - no student commits yet'),
+      'message': t('This project is a fork of a template. The commits so far are from the template authors; no student has pushed their own work yet. Metrics stay blank until the first student commit.'),
+      'illustration': 'empty-commit'
+  } %}
+{% elif repo_empty is defined and repo_empty %}
+  {# The GitLab repository has no commits yet (or was deleted upstream). #}
+  {% set _empty = {
+      'title': t('No repository data yet'),
+      'message': t('The GitLab repository is empty or has not been synced. Push at least one commit on the default branch to start tracking issues.'),
+      'illustration': 'empty-issues'
+  } %}
+{% elif _student_count == 0 %}
+  {# No scored members yet (teachers/mentors/excluded only, or project empty). #}
+  {% set _empty = {
+      'title': t('No scored members yet'),
+      'message': t('Add team members or run checks to see issues here.'),
+      'illustration': 'empty-user'
+  } %}
+{% elif not _issues_sorted %}
+  {# All checks passing for every scored member. #}
+  {% set _empty = {
+      'title': t('No issues found - great work!'),
+      'message': t('All scored members are passing every expected check.'),
+      'illustration': 'empty-todos-all-done'
+  } %}
+{% else %}
+  {% set _empty = none %}
+{% endif %}
+
+{% if _empty %}
+{% call card(title=_ct, icon_name='alert-circle', id='projectBottlenecksCard') %}
+  {{ empty_state(
+      title=_empty.title, message=_empty.message,
+      illustration=_empty.illustration
+  ) }}
+{% endcall %}
+{% else %}
+{% set _ha %}
+  <div class="issues-summary-badges">
+    {# Only the High-priority count is surfaced here - it is the one that needs
+       action. The Medium/Low counts were shown as extra pills that read as a
+       meaningless "8" next to "3 High" (the label got lost); the chart + legend
+       below already convey the full severity breakdown, so the extra pills are
+       redundant clutter. #}
+    {% if _high_count > 0 %}{{ badge(_high_count ~ ' ' ~ t('High'), variant='danger', size='sm') }}{% endif %}
+  </div>
+{% endset %}
+{% set _issues_payload = [] %}
+{% for iss in _issues_sorted %}
+  {% set _ = _issues_payload.append({
+    'check_id': iss.check_id,
+    'name': iss.name,
+    'severity': iss.severity,
+    'severity_label': iss.severity_label,
+    'affected': iss.affected,
+    'total': _student_count,
+    'share_pct': (iss.share * 100) | round(0, 'common') | int,
+    'weight_pct': ((iss.weight or 0) * 100) | round(0, 'common') | int,
+    'students': iss.students,
+  }) %}
+{% endfor %}
+{% call card(title=_ct, icon_name='alert-circle', id='projectBottlenecksCard', header_actions=_ha) %}
+  <div class="issues-chart-wrap" data-scored-count="{{ _student_count }}">
+    {% call chart_legend([(t('High priority'), 'danger'), (t('Needs attention'), 'warning'), (t('Minor'), 'brand')], class='issues-chart-legend') %}
+      <span class="issues-chart-legend__hint">{{ t('Click a bar to see affected students') }}</span>
+    {% endcall %}
+    <div class="issues-chart-canvas-wrap">
+      <canvas id="issuesChart"
+              role="img"
+              aria-label="{{ t('Issues to Address chart: percentage of students affected per check') }}"></canvas>
+    </div>
+    <div id="issuesChartDetail" class="issues-chart-detail" hidden></div>
+    {{ json_island(_issues_payload, csp_nonce, id='issuesToAddressData') }}
+    <noscript>
+      <ul class="issues-chart-fallback">
+        {% for iss in _issues_sorted %}
+        <li>
+          <strong>{{ iss.check_id }}</strong> - {{ iss.name }}
+          ({{ iss.affected }}/{{ _student_count }}, {{ (iss.share * 100) | round(0, 'common') | int }}%)
+        </li>
+        {% endfor %}
+      </ul>
+    </noscript>
+  </div>
+{% endcall %}
+{% endif %}
+</div>

@@ -1,0 +1,80 @@
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/cards.html" import empty_state, course_card %}
+{% from "components/forms.html" import search_input %}
+{% from "components/academic_period.html" import period_selector, period_label with context %}
+
+    <!-- Courses Section -->
+    {#- Drawn whenever the reader has an active course in ANY term, not only in
+        the chosen one: the period selector lives in this header, and an empty
+        term that hid it would leave no control to leave that term by. -#}
+    {% if active_courses or has_courses_elsewhere %}
+    <div class="gl-home-section" id="my-courses" data-tour="my-courses courses-list">
+      <div class="gl-home-section-head">
+        <h2 class="gl-home-section-title">{{ t('Your courses') }}</h2>
+        <div class="gl-home-section-actions">
+          {{ period_selector(period_scope) }}
+          {{ search_input(placeholder=t('Search courses... (Ctrl+K)'), class='search-box-inline', id='courseSearchInput') }}
+          {% if can_edit %}
+          {#- One group: when the row runs out of room the three go under the
+              search together, left-aligned, instead of the last one running
+              out of the row into the card beside it. -#}
+          <div class="gl-home-section-buttons">
+          {{ btn_icon(t('Import'), 'download', variant='secondary', data_attrs={'modal-open': 'importGitlabCourseModal', 'process-lock-when': 'import', 'tippy-content': t('Import course, groups, students, and projects from a GitLab group')}) }}
+          {{ btn_icon(t('Import JSON'), 'upload', variant='secondary', data_attrs={'modal-open': 'importConfigCourseModal', 'process-lock-when': 'import', 'tippy-content': t('Create or update a course from a JSON configuration file')}) }}
+          {{ btn_icon(t('New Course'), 'plus', variant='primary', data_attrs={'modal-open': 'createCourseModal', 'tippy-content': t('Create a new course manually')}) }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if not active_courses %}
+      {#- The reader has courses, just none running in this term. Saying so -
+          and which term - is the difference between "nothing here yet" and
+          "you are looking at the wrong term". A term whose courses are all
+          archived says where they are (the card below); an empty one offers
+          the newest term that does hold the reader's courses, one click away. -#}
+      {%- set _here = period_label(period_scope.selected.academic_year, period_scope.selected.semester) if period_scope and period_scope.selected else '' %}
+      {% if archived_courses %}
+      {{ empty_state(t('No active courses in {period}.', period=_here) if _here else t('No active courses'), t('This term has ended - its courses are archived, in the card below, and can still be opened.'), illustration='empty-schedule') }}
+      {% elif other_period %}
+      {{ empty_state(t('No courses in {period}.', period=_here) if _here else t('No courses'), t('Your newest courses are in {period}.', period=period_label(other_period.academic_year, other_period.semester)), illustration='empty-schedule', action_text=t('Show {period}', period=period_label(other_period.academic_year, other_period.semester)), action_href='?period=' ~ other_period.key, action_class='btn-secondary') }}
+      {% else %}
+      {{ empty_state(t('No courses in {period}.', period=_here) if _here else t('No courses'), t('Pick another academic period above to see its courses.'), illustration='empty-schedule') }}
+      {% endif %}
+      {% else %}
+      <div class="courses-grid">
+        {% for group_key, group_courses in grouped_courses.items() %}
+        {% for c in group_courses %}
+          {% set sync = course_sync_info.get(c.id) if course_sync_info else none %}
+          {% set student_team_name = student_ctx.team_names.get(c.id|string) if (is_student and student_ctx) else none %}
+          {% set ch = course_health.get(c.id|string) if (is_teacher and course_health) else none %}
+          {% set at_risk = ch.red_teams if (ch and ch.red_teams) else 0 %}
+          {{ course_card(course=c, sync=sync, is_student=is_student, student_team_name=student_team_name, is_teacher=is_teacher, at_risk_count=at_risk, can_edit=can_edit) }}
+        {% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div id="courseSearchEmpty" class="d-none">
+        {{ empty_state(t('No matching courses'), t('No courses match your search. Try a different code or name.'), illustration='empty-search') }}
+      </div>
+    </div>
+    {% else %}
+    <div id="my-courses">
+      {% if is_admin %}
+        {% call() empty_state(t('No Active Courses'), t('Get started by creating a course or importing from GitLab.'), illustration='empty-subgroup') %}
+        {{ btn(t('Create Course'), data_attrs={'modal-open': 'createCourseModal'}) }}
+        {{ btn_icon(t('Import from GitLab'), 'gitlab', variant='secondary', data_attrs={'modal-open': 'importGitlabCourseModal', 'process-lock-when': 'import', 'tippy-content': t('Import from GitLab group')}) }}
+        {{ btn_icon(t('Import JSON'), 'upload', variant='secondary', data_attrs={'modal-open': 'importConfigCourseModal', 'process-lock-when': 'import', 'tippy-content': t('Import from JSON config file')}) }}
+        {% endcall %}
+      {% elif is_teacher %}
+        {% call() empty_state(t('No Active Courses'), t('Create your first course or import it from your GitLab group.'), illustration='empty-subgroup') %}
+        {{ btn(t('Create Course'), data_attrs={'modal-open': 'createCourseModal'}) }}
+        {{ btn_icon(t('Import from GitLab'), 'gitlab', variant='secondary', data_attrs={'modal-open': 'importGitlabCourseModal', 'process-lock-when': 'import', 'tippy-content': t('Import from GitLab group')}) }}
+        {{ btn_icon(t('Import JSON'), 'upload', variant='secondary', data_attrs={'modal-open': 'importConfigCourseModal', 'process-lock-when': 'import', 'tippy-content': t('Import from JSON config file')}) }}
+        {% endcall %}
+      {% else %}
+        {{ empty_state(t('No Enrolled Courses'), t('You are not enrolled in any active courses yet. Your teacher will add you to a course soon.'), illustration='empty-subgroup') }}
+      {% endif %}
+    </div>
+    {% endif %}

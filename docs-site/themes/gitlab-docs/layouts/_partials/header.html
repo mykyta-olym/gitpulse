@@ -1,0 +1,74 @@
+{{/*
+  Check if we're on the search or archives page.
+  These render different header items than regular pages.
+  Note: Hugo functions return strings ("true" or "false"), not actual booleans.
+*/}}
+{{- $isSearchPath := partial "functions/is-versioned-path-match" (dict "path" .RelPermalink "pattern" "/search/") -}}
+{{- $isArchivesPath := partial "functions/is-versioned-path-match" (dict "path" .RelPermalink "pattern" "/archives/") -}}
+
+{{- $mobileNavClass := "" -}}
+{{- if or (.IsHome) (eq $isSearchPath "true") (eq $isArchivesPath "true") -}}
+  {{/* Add a class for pages with fewer items in the mobile nav */}}
+  {{/* We need this to set the height of the mobile header nav correctly. */}}
+  {{- $mobileNavClass = "mobile-header-short" -}}
+{{- end -}}
+
+
+<div class="header-wrapper gl-w-full gl-fixed gl-z-4">
+  <div class="header">
+  <div class="header-top gl-flex gl-items-center">
+    {{ if not .IsHome }}
+    <a href="#skipTarget" class="gl-sr-only skip-link">{{ T "header.skipToMainContent" }}</a>
+    {{ end }}
+    <a class="navbar-logo" href="{{ relLangURL "" }}"><span class="gl-sr-only">{{ T "header.logo" }}</span></a>
+    <div class="mobile-header gl-w-full gl-text-base {{ $mobileNavClass }}">
+      <div class="mobile-header-overlay"></div>
+      <div class="header-right collapse gl-z-4 gl-border-t lg:gl-border-0">
+        <div class="search-wrapper lg:gl-ml-4 lg:gl-grow {{ if .IsHome }}lg:gl-hidden{{end}}">
+        {{ if eq $isSearchPath "false" }}
+          <div class="js-pagefind-search-form gl-spinner-container" {{ if not .IsHome }}data-search-kbd{{ end }}>
+            <span role="status" aria-label="Loading" class="gl-spinner gl-spinner-dark gl-spinner-md"></span>
+          </div>
+        {{ end }}
+        </div>
+        <div class="gl-flex gl-flex-col gl-gap-3 gl-mt-5 lg:gl-mt-0 lg:gl-flex-row lg:gl-items-center gl-ml-auto">
+          <div class="header-menus gl-flex gl-gap-3 gl-flex-col lg:gl-flex-row">
+            {{ if gt (len .AllTranslations) 1 }}
+              <script>
+                window.languageData = window.languageData || {};
+                window.languageData.languages = [
+                  {{- range $index, $translation := .AllTranslations -}}
+                    {{- if $index -}},{{- end -}}
+                    {
+                      code: "{{- $translation.Language.LanguageCode -}}",
+                      name: "{{- $translation.Language.LanguageName -}}",
+                      url: "{{- $translation.RelPermalink -}}",
+                      current: {{- if eq $.Site.Language.LanguageCode $translation.Language.LanguageCode -}}true{{- else -}}false{{- end -}}
+                    }
+                  {{- end -}}
+                ];
+                window.languageData.currentLang = "{{ .Site.Language.LanguageCode }}";
+              </script>
+              <div data-vue-app="language-selector"></div>
+            {{ end }}
+            <div data-vue-app="appearance-toggle"></div>
+          </div>
+
+          <div class="gl-flex gl-justify-evenly lg:gl-justify-normal gl-items-center gl-gap-5">
+            </div>
+          </div>
+      </div>
+    </div>
+    <button
+      class="navbar-toggle gl-button btn-default lg:gl-hidden"
+      data-toggle="collapse"
+      data-target=".header-right">
+      <span class="navbar-toggle-icon"></span>
+      <span class="gl-sr-only">{{ T "header.toggleMenu" }}</span>
+    </button>
+  </div>
+  {{ if not .IsHome }}
+    <div class="header-bottom gl-border-t lg:gl-border-b">{{ partial "subheader.html" . }}</div>
+  {{ end }}
+  </div>
+</div>

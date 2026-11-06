@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% block title %}{{ project.gitlab_project_name or project.gitlab_project_path }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/buttons.html" import btn_icon, btn_link_icon %}
+{% from "components/layout.html" import tab_content with context %}
+
+{% set nav_active = 'project' %}
+
+{% set project_display = project.gitlab_project_name or project.gitlab_project_path %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}] %}
+{% if course %}{% set _ = breadcrumb_items.append({'href': '/dashboard/courses/' ~ course.id, 'label': course.code}) %}{% endif %}
+{% if team and team.name != project_display %}{% set _ = breadcrumb_items.append({'href': '/dashboard/teams/' ~ team.id, 'label': team.name}) %}{% endif %}
+{% set _ = breadcrumb_items.append({'label': project_display}) %}
+
+{# GitLab-style display path for the header subtitle: replace the subgroup slug
+   with the group's display name and the project slug with the project's display
+   name, so it reads "... / ApI 7 (Maťaš - Antypenko) / Chekanov ... - Míny"
+   instead of the raw "api-7-ma-a-antypenko/mines-12770" slugs. Leading org /
+   course segments stay as-is (their display names are not stored here). #}
+{% set _path_parts = (project.gitlab_project_path or '').split('/') %}
+{% set _display_parts = [] %}
+{% for _i in range(_path_parts | length) %}
+  {% if _i == (_path_parts | length - 1) %}
+    {% set _ = _display_parts.append(project.gitlab_project_name or _path_parts[_i]) %}
+  {% elif team and _i == (_path_parts | length - 2) %}
+    {% set _ = _display_parts.append(team.name) %}
+  {% else %}
+    {% set _ = _display_parts.append(_path_parts[_i]) %}
+  {% endif %}
+{% endfor %}
+{% set _project_path_display = _display_parts | join(' / ') %}
+
+{% block extra_head %}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/chart-4.4.7.min.js') }}"></script>
+{% endblock %}
+  
+{# Archived course = read-only. The write actions stay VISIBLE and clickable;
+   the core guard marks them and a click answers with the reason as a toast (see
+   _lockControls). One mechanism, not two: these used to ALSO be server-rendered
+   `disabled`, which meant the same state was expressed twice and behaved
+   differently depending on which won. The archived markers themselves now come
+   from `tab_content()`, which derives them from `course`. #}
+
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{# Same strip as the course pages: an archived project page used to look fully
+   editable, with only a 403 on click to say otherwise. #}
+{% set _is_archived = course and not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _is_archived else '' %}
+{% call page_header(project.gitlab_project_name or project.gitlab_project_path, _project_path_display, back_link='/dashboard/teams/' ~ team.id, back_text=t('Back to Group'), badge=period_badge(course.academic_year, course.semester, current=is_current_period(course.academic_year, course.semester)) if course else '') %}
+    {% if gitlab_url %}
+    {{ btn_link_icon(t('Open in GitLab'), gitlab_url ~ '/' ~ project.gitlab_project_path, 'external-link', target='_blank') }}
+    {% endif %}
+    {# Write actions stay VISIBLE but disabled + explained when the course is
+       archived (read-only), instead of vanishing. The project-active guards stay
+       (you do not Sync/Unlink/Run an already-deactivated project). #}
+    {% if can_edit %}
+    {% if team and project.is_active %}
+    {{ btn_icon(t('Sync'), 'refresh-cw', variant='secondary', id='btnSyncProject', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'team-id': team.id|string, 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id ~ ' project:' ~ project.id, 'tippy-content': t('Re-fetch this project\'s group from GitLab (members, projects, pipelines, MRs, issues, commits).')}) }}
+    {% endif %}
+    {% if project.is_active %}
+    {{ btn_icon(t('Unlink from GitLab'), 'link-2', variant='danger', id='btnUnlinkProject', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'project-id': project.id|string, 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id ~ ' project:' ~ project.id, 'tippy-content': t('Soft-deactivate this project. History is preserved; it can be restored later.')}) }}
+    {% endif %}
+    {% if team and project.is_active %}
+    {% set _run_checks_tip = t('Select and run specific compliance checks') %}
+    {% set _rc_attrs = {'modal-open': 'runChecksModal', 'process-lock-when': 'run_checks sync', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id ~ ' project:' ~ project.id, 'tour': 'run-checks', 'tippy-content': _run_checks_tip} %}
+    {{ btn_icon(t('Run Checks'), 'play-circle', variant='warning', id='btnOpenRunChecks', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs=_rc_attrs) }}
+    {% endif %}
+    {% endif %}
+{% endcall %}
+
+{% call tab_content(course) %}
+  {{ content_html|safe }}
+{% endcall %}
+{% endblock %}
+

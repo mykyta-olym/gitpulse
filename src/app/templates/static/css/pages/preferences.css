@@ -1,0 +1,319 @@
+/* ============================================
+   PREFERENCES - the reader's own settings
+   ============================================
+   Almost everything on this page is a shared form macro, so there is very
+   little here: the accent preview cards, the help text under a radio,
+   and the action row. Anything more would be a second way to draw a control
+   the design system already owns. */
+
+/* -- Accent colour previews --
+   A responsive grid rather than fixed columns: GitLab lays its theme picker
+   out at 2 / 3 / 6 columns across its breakpoints, and auto-fit reaches the
+   same shape without three separate media queries. */
+.gl-accent-grid {
+  display: grid;
+  /* 150px, not 180: GitLab lays all six accents out in ONE row (its cards
+     measure ~152px on a 1180px settings column), and at 180 the sixth wrapped
+     to a line of its own - which is what made the set look ragged next to
+     GitLab's. auto-fit still collapses it to fewer columns when the column
+     itself narrows. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--gl-spacing-5);
+}
+
+.gl-accent-option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+  min-width: 0;
+}
+
+/* The 200x120 board from GitLab's own _theme.svg, styled the way GitLab's own
+   preferences.scss styles `.application-theme .preview`:
+
+     font-size: 0; gl-border; gl-rounded-lg; gl-mb-3; gl-overflow-hidden;
+     svg { width: 100% }
+
+   Width is fluid so the card shrinks with its grid track rather than forcing a
+   horizontal scrollbar. */
+.gl-theme-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-size: 0;
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--gl-border-radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--gl-spacing-3);
+  /* Colour only, at GitLab's own duration - the app animates no transforms. */
+  transition: border-color var(--transition-normal);
+}
+
+/* A chosen preview gets a stronger edge; the card itself never moves. */
+.gl-accent-option:has(input:checked) .gl-theme-preview {
+  border-color: var(--gl-border-color-strong);
+}
+
+/* GitLab's OWN values (preferences.scss), not an approximation. Light uses the
+   neutral-50/0 pair over alpha-DARK ink; dark uses neutral-900 over a hardcoded
+   #18171e - GitLab hardcodes it precisely so a tinted theme scope cannot drag
+   the panel colour with it - over alpha-LIGHT ink. */
+.gl-theme-preview {
+  --theme-preview-application-chrome-background-color: var(--gl-gray-50);
+  --theme-preview-background-color-default: var(--gl-gray-0);
+  --theme-preview-foreground-color-subtle: var(--alpha-dark-8);
+  --theme-preview-foreground-color-default: var(--alpha-dark-16);
+  --theme-preview-foreground-color-strong: var(--alpha-dark-24);
+}
+
+html[data-theme="dark"] .gl-theme-preview,
+html:not([data-theme]) .gl-theme-preview {
+  --theme-preview-application-chrome-background-color: var(--gl-gray-900);
+  --theme-preview-background-color-default: #18171e;
+  --theme-preview-foreground-color-subtle: var(--alpha-light-8);
+  --theme-preview-foreground-color-default: var(--alpha-light-16);
+  --theme-preview-foreground-color-strong: var(--alpha-light-24);
+}
+
+.gl-theme-preview--indigo { --_accent: var(--gl-purple-500); }
+.gl-theme-preview--blue   { --_accent: var(--gl-blue-500); }
+.gl-theme-preview--green  { --_accent: var(--gl-green-500); }
+.gl-theme-preview--red    { --_accent: var(--gl-red-500); }
+.gl-theme-preview--gray   { --_accent: var(--gl-gray-500); }
+/* Each card's primary-button mark is ITS accent, whatever theme the page is
+   on; the default card's is the default blue. */
+.gl-theme-preview { --theme-preview-accent: var(--gl-blue-500); }
+.gl-theme-preview:not(.gl-theme-preview--default) { --theme-preview-accent: var(--_accent); }
+
+/* The accent tints ONLY the chrome, which is the surface the setting changes.
+   Written to out-specify the dark-mode block above: that one is
+   `html[data-theme="dark"] .gl-theme-preview` (0,2,1) and this was
+   `.gl-theme-preview:not(...)` (0,2,0), so in dark mode - the default - the
+   plain grey chrome won and all six previews rendered identically. */
+/* The preview must promise what the app delivers: the same recipe the sidebar
+   uses for the surface (14% of the accent over the navigation background). It
+   mixed 35% over a fixed gray-900 before, so the swatch was both stronger than
+   the result and unaffected by the colour mode. */
+html .gl-theme-preview:not(.gl-theme-preview--default),
+html[data-theme="dark"] .gl-theme-preview:not(.gl-theme-preview--default),
+html[data-theme="light"] .gl-theme-preview:not(.gl-theme-preview--default) {
+  --theme-preview-application-chrome-background-color:
+    color-mix(in srgb, var(--_accent) 14%, var(--app-navigation-bg));
+}
+
+/* -- Help text under a radio --
+   The radio macro has no help_text slot (the checkbox one does), so a layout
+   radio's explanation is a sibling paragraph that has to line up with the
+   label rather than the control. 28px = the 16px indicator + its 12px gap. */
+.gl-radio-help {
+  margin: calc(var(--gl-spacing-1) * -1) 0 var(--gl-spacing-4) 28px;
+}
+
+
+/* -- Syntax highlighting --
+   Same grid the accent swatches use, so the two scheme pickers on this page
+   read as one control repeated rather than two designs. */
+.gl-syntax-grid {
+  display: grid;
+  /* One row, the way GitLab lays its scheme picker out - and GitLab clips the
+     sample to get it: its own previews cut off mid-word at "class DoctypesCon".
+     240px here kept every line whole but wrapped seven schemes onto two rows,
+     which is the thing the user was comparing against and the thing that made
+     the set read as unfinished. The sample is a COLOUR preview; the palette is
+     legible in the first two tokens of each line. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-5);
+}
+
+/* The line-number gutter. `--syn-comment` rather than a fixed grey, so it
+   follows whichever scheme is painting the block - the way GitLab's does. */
+.gl-syntax-ln {
+  /* GitLab's gutter is a COLUMN, not a run of numbers: a fixed track with a
+     faint wash of the scheme's own ink over its own ground, so it reads the
+     same way on white, cream, teal and near-black without a per-scheme value
+     to keep in step. inline-block so each number's box is exactly one line
+     tall and the boxes tile into an unbroken column. */
+  display: inline-block;
+  /* GitLab's gutter is exactly as wide as a number and the code starts straight
+     after it. Ours was a 32px track plus 12px of margin plus 8px of padding, so
+     the code began 46px in on a 151px card and the swatch was mostly the space
+     between a "1" and the line it numbers. 16px holds both digits of a six-line
+     sample; 6px is the gap GitLab leaves. */
+  width: 16px;
+  margin-right: 6px;
+  padding-right: 4px;
+  text-align: right;
+  background: color-mix(in srgb, var(--syn-fg, #e6e1e8) 7%, transparent);
+  color: var(--syn-comment);
+  opacity: 0.7;
+  user-select: none;
+}
+
+.gl-syntax-preview {
+  margin: 0 0 var(--gl-spacing-3);
+  padding: var(--gl-spacing-3);
+  font-size: var(--font-size-xs);
+  line-height: var(--gl-line-height-20);
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--gl-border-radius-lg);
+  overflow: hidden;
+  /* The sample is decorative - it shows the palette, it is not code to read -
+     so a long line is clipped rather than given a scrollbar per swatch. */
+  white-space: pre;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* The sample's <code> is the shared inline-code element, which carries its own
+   pale chip background; inside a scheme swatch that painted a light box over the
+   scheme's OWN editor colour (grey on a dark theme). Clear it so the tokens sit
+   directly on the scheme's ground, the way GitLab's preview shows them. */
+.gl-syntax-preview code {
+  background: none;
+  display: block;
+}
+
+.gl-syntax-option:has(input:checked) .gl-syntax-preview {
+  border-color: var(--gl-border-color-strong);
+}
+
+/* -- Diffs --
+   The preview is the SAME .dn-code-* component the student profile renders,
+   so it cannot drift from what is being configured. It only needs sizing here;
+   every colour comes from student.css. */
+/* Removed on the left, added on the right, as GitLab shows them. Below the
+   panel's small breakpoint they stack, because two code panes side by side in
+   a phone-width column are two unreadable columns rather than one comparison. */
+.gl-diff-preview-panes {
+  display: grid;
+  /* auto-fit + minmax rather than a media query: the panes stack when the
+     COLUMN gets narrow, which is what actually matters here - the settings
+     column narrows with the sidebar too, not only with the viewport. It also
+     keeps this page free of breakpoints, which a test pins. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--gl-spacing-3);
+  margin-bottom: var(--gl-spacing-5);
+}
+
+/* The sample is fixed-width code, so a long line has to scroll inside its own
+   pane rather than widening the grid column and pushing the other pane off.
+   That scroll belongs to the WRAPPER: putting `display:block; overflow-x:auto`
+   on the <table> itself demoted it to a block box, its rows collapsed into an
+   anonymous max-content table, and the row tint - the whole point of this
+   preview - covered 267px of a 667px pane. GitLab tints the diff line edge to
+   edge, and a table left as a table does the same. */
+.gl-diff-preview-pane {
+  border: 1px solid var(--gl-border-color-default);
+  /* Square, not rounded: GitLab's diff/code surfaces have flush corners, and a
+     rounded card edge on a code diff read as a widget rather than the code view
+     it is configuring. */
+  border-radius: 0;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.gl-diff-preview {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.gl-diff-color-input {
+  max-width: 22ch;
+}
+
+.gl-diff-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-3);
+  /* Inside the field's own group now, so the group's margin owns the gap to the
+     next field. This row only needs to clear the description above it; the
+     -4px/24px it used to carry stacked on top of that margin and made this
+     section breathe four times wider than every other one. */
+  margin: var(--gl-spacing-3) 0 0;
+}
+
+/* A real <button>, so it is reachable by keyboard and announced by its
+   aria-label; the colour is the only thing the swatch itself carries. */
+.gl-diff-swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--gl-action-border-radius);
+  background: var(--_swatch);
+  cursor: pointer;
+  /* Colour only - the app animates no transforms. */
+  transition: border-color var(--transition-normal);
+}
+
+.gl-diff-swatch:hover {
+  border-color: var(--gl-border-color-strong);
+}
+
+.gl-diff-swatch:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* GitLab's colour field is an input GROUP: the chip is the hex input's prepend,
+   sharing its edge, not a control standing loose in the swatch row.
+   See vue_shared/components/color_picker/color_picker.vue. */
+.gl-color-input-group {
+  display: flex;
+  align-items: stretch;
+  max-width: 22ch;
+}
+
+/* The chip owns the shared edge, so the input drops its left border and the two
+   left corners - the pair reads as one control rather than two touching boxes. */
+.gl-color-input-group .gl-diff-color-input {
+  max-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* The chip is the native colour input itself: it paints its own current value,
+   so it can never disagree with the hex field. Its default chrome (padding +
+   inset swatch border) is stripped so the colour fills the whole chip. */
+.gl-diff-swatch--picker {
+  flex: 0 0 32px;
+  width: 32px;
+  align-self: stretch;
+  /* `align-self: stretch` alone loses to the colour input's own intrinsic
+     height - measured 27px against the field's 32 - and a chip 5px shorter than
+     the field it is joined to reads as a separate floating square rather than
+     part of one control. `height: auto` is what lets the stretch actually take
+     effect. */
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--gl-border-color-default);
+  border-right: 0;
+  border-radius: var(--gl-action-border-radius) 0 0 var(--gl-action-border-radius);
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.gl-diff-swatch--picker:hover { border-color: var(--gl-border-color-strong); }
+
+.gl-diff-swatch--picker:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+/* Only the two OUTER corners are rounded - the right edge is the seam with the
+   hex input, and rounding it there left a notch in the middle of the control. */
+.gl-diff-swatch--picker::-webkit-color-swatch-wrapper { padding: 0; }
+.gl-diff-swatch--picker::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--gl-action-border-radius) - 1px) 0 0 calc(var(--gl-action-border-radius) - 1px);
+}
+.gl-diff-swatch--picker::-moz-color-swatch {
+  border: 0;
+  border-radius: calc(var(--gl-action-border-radius) - 1px) 0 0 calc(var(--gl-action-border-radius) - 1px);
+}

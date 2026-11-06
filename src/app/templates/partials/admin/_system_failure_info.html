@@ -1,0 +1,6 @@
+{% from "components/alerts.html" import alert %}
+{% if failure_history.available %}
+  <p class="muted text-sm mb-0">{{ t('Retained failed jobs') }}: {{ failure_history.total }}. {{ t('Latest 100 RQ failures are included in this log. Use Purge Old to remove retained failures by age.') }}</p>
+{% else %}
+  {{ alert(t('Failure history is unavailable. Refresh to try again.'), variant='warning', role='status') }}
+{% endif %}

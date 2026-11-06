@@ -1,0 +1,56 @@
+/* -- Member API info note -- */
+.member-api-note {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin: 0;
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--gl-text-color-secondary);
+  background: var(--info-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+.member-api-note .icon { flex-shrink: 0; color: var(--gl-feedback-info-icon); }
+
+/* Pull the note closer to the card header when it's the first child */
+.card-body > .member-api-note:first-child {
+  margin-top: 0;
+}
+
+/* -- Excluded member styling --
+   No `transition` restatement: the row contract in tables.css already eases
+   background, border and colour at --transition-normal, and the baseline rule
+   in animations.css covers opacity. Repeating it here is how one table's rows
+   ended up on a different clock from every other table's. */
+tr.member-excluded {
+  opacity: 0.55;
+}
+@media (hover: hover) {
+  tr.member-excluded:hover {
+    opacity: 0.85;
+  }
+}
+
+/* Exclusion toggle button: a row action like any other (btn_icon_only's
+   24px square), at full strength. It rested at 40% opacity until the row was
+   hovered - and a phone never hovers, so there it stayed a ghost. */
+.btn-toggle-exclusion {
+  vertical-align: middle;
+}
+/* Smoothly tween the icon glyph itself. */
+.btn-toggle-exclusion svg {
+  transition: transform var(--transition-normal);
+}
+/* The pop when the state flips is GP.motion.pop - the same gesture a badge
+   gets when its count changes. */
+.btn-toggle-exclusion.loading svg {
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-toggle-exclusion,
+  .btn-toggle-exclusion svg,
+  tr[data-student-id] {
+    transition: none;
+  }
+}

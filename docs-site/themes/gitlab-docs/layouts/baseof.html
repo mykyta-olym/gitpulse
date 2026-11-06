@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="{{site.Language.Lang }}" dir="{{ or site.Language.LanguageDirection `ltr` }}">
+<head>
+  {{ partial "breadcrumb-schema.html" . }}
+  {{ partial "head.html" . }}
+  {{ block "page-specific-styles" . }}{{ end }} <!-- for page-specific css -->
+</head>
+
+{{- $hasLeftNav := partial "functions/has-left-nav" . -}}
+<body class="{{- if .IsHome -}}home{{- end }} {{ if not $hasLeftNav -}}no-left-nav{{ end }}" data-elastic-exclude>
+  {{ if not .IsHome }}
+    <nav data-ga-section="header" data-elastic-exclude>
+      {{ partial "header.html" . }}
+    </nav>
+  {{ else }}
+    {{/* Site.Home.Permalink, not Site.BaseURL: each language's home page is its
+         own WebSite entity, so /ja-jp/ must not claim the English root URL. */}}
+    <script type="application/ld+json">
+      {{ (dict "@context" "https://schema.org" "@type" "WebSite" "name" .Site.Title "url" .Site.Home.Permalink "inLanguage" .Language.LanguageCode) | jsonify | safeJS }}
+    </script>
+  {{ end }}
+  <main data-ga-section="content-body">
+    {{ partial "content-schema.html" . }}
+
+    {{ block "main" . }}{{ end }}
+  </main>
+  <footer data-ga-section="footer">
+    {{ partial "footer.html" . }}
+  </footer>
+  <script type="module" src="{{ relURL "" }}vite/main.js"></script>
+  <script defer src="{{ relURL "" }}js/reader-role.js"></script>
+
+  {{ if .Store.Get "hasMermaid" }}
+    <script src="{{ relURL "" }}vite/mermaid.min.js"></script>
+    <script>
+      (() => {
+        // Read the class the page is ACTUALLY wearing, not the stored
+        // preference. The two differ whenever the theme was inherited from the
+        // application or came from the site default, and when they differed the
+        // diagram drew light boxes with light text on a dark page - unreadable,
+        // which is exactly what was reported.
+        const paletteForPage = () =>
+          document.documentElement.classList.contains('gl-dark') ? 'dark' : 'neutral';
+
+        // Mermaid replaces the source with SVG and stamps `data-processed`, so a
+        // second run needs the source back. Keep it the first time through.
+        const draw = async () => {
+          document.querySelectorAll('pre.mermaid').forEach((el) => {
+            if (el.dataset.mermaidSource === undefined) {
+              el.dataset.mermaidSource = el.textContent;
+            } else {
+              el.textContent = el.dataset.mermaidSource;
+              el.removeAttribute('data-processed');
+            }
+          });
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: paletteForPage(),
+            themeVariables: { fontFamily: 'GitLab Sans' },
+          });
+          // Render explicitly so we know when diagrams are ready, then let the
+          // frontend enhance them with zoom/pan (see src/features/mermaid_zoom.js).
+          // Dispatch in finally so a single bad diagram can't block enhancement.
+          try {
+            await mermaid.run();
+          } finally {
+            document.dispatchEvent(new CustomEvent('mermaid:rendered'));
+          }
+        };
+
+        document.addEventListener('DOMContentLoaded', draw);
+        // A diagram drawn in one palette stays in it until it is drawn again,
+        // so the theme switch has to reach these too - the stylesheets swap
+        // underneath them and the contrast goes with it.
+        document.addEventListener('themechange', draw);
+      })();
+    </script>
+  {{ end }}
+
+  {{ if .Store.Get "hasPlantuml" }}
+    <script type="module" src="{{ relURL "" }}vite/plantuml.js"></script>
+  {{ end }}
+</body>
+</html>

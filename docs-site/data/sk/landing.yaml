@@ -1,0 +1,44 @@
+# Cards on the documentation home page, Slovak.
+quickLinks:
+  - title: Ciele diplomovej práce
+    url: 'uvod/ciele/'
+  - title: Príručka pre učiteľov
+    url: 'ucitelia/'
+  - title: Príručka pre študentov
+    url: 'studenti/'
+  - title: API Referencia
+    url: 'api/'
+
+siteSection:
+  - title: Príručka pre učiteľov
+    docUrl: 'ucitelia/_index.md'
+    svgUrl: 'gitlab_ui/svgs/book.svg'
+    contentUrl: 'ucitelia/'
+  - title: Príručka pre študentov
+    docUrl: 'studenti/_index.md'
+    svgUrl: 'gitlab_ui/svgs/rocket.svg'
+    contentUrl: 'studenti/'
+  - title: Príručka pre vývojárov
+    docUrl: 'vyvojari/_index.md'
+    svgUrl: 'gitlab_ui/svgs/code.svg'
+    contentUrl: 'vyvojari/'
+  - title: Prevádzka
+    docUrl: 'operatori/_index.md'
+    svgUrl: 'gitlab_ui/svgs/admin.svg'
+    contentUrl: 'operatori/'
+  - title: GitLab integrácia
+    docUrl: 'gitlab/_index.md'
+    svgUrl: 'gitlab_ui/svgs/connected.svg'
+    contentUrl: 'gitlab/'
+  - title: API Referencia
+    docUrl: 'api/_index.md'
+    svgUrl: 'gitlab_ui/svgs/compass.svg'
+    contentUrl: 'api/'
+  - title: Bezpečnosť
+    docUrl: 'bezpecnost/_index.md'
+    svgUrl: 'gitlab_ui/svgs/license.svg'
+    contentUrl: 'bezpecnost/'
+  - title: Diplomová práca
+    docUrl: 'diplomovka/_index.md'
+    svgUrl: 'gitlab_ui/svgs/book.svg'
+    contentUrl: 'diplomovka/'

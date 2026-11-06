@@ -1,0 +1,21 @@
+{{ define "main" }}
+<section class="gl-py-8">
+  <div data-ga-section="content-body" class="docs-content gl-text-center gl-pb-7">
+    <svg width="288" height="288" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <use xlink:href="{{ relURL "" }}illustrations.svg#error-404-lg"></use>
+    </svg>
+    <h1 class="gl-my-6 gl-text-size-h1-xl">{{ T "pageNotFound.pageDoesNotExist" }}</h1>
+    {{/* The two links that used to sit here went to docs.gitlab.com - the
+         latest docs and the version archive. Neither means anything for this
+         site, so they are replaced with the places a reader here can actually
+         go next. */}}
+    <ul class="gl-list-none gl-pl-0">
+      <li class="gl-inline-block"><a href="{{ relURL "" }}search/">{{ T "pageNotFound.searchSite" }}</a></li>
+      &nbsp;&bull;&nbsp;
+      <li class="gl-inline-block"><a href="{{ relURL "" }}">{{ T "pageNotFound.browseLatestDocs" }}</a></li>
+      &nbsp;&bull;&nbsp;
+      <li class="gl-inline-block"><a href="mailto:mykyta.olym.work@gmail.com">{{ T "pageNotFound.accessOlderDocs" }}</a></li>
+    </ul>
+  </div>
+</section>
+{{ end }}

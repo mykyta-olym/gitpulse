@@ -1,0 +1,11 @@
+# Translation environment config to enable translations
+# https://gitlab.com/gitlab-org/gitlab/-/issues/580534
+
+# Enable non-default languages for testing
+languages:
+  ja-jp:
+    disabled: false
+  fr-fr:
+    disabled: false
+  ko-kr:
+    disabled: false

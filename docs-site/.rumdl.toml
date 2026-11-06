@@ -1,0 +1,19 @@
+# Global settings
+[global]  # https://rumdl.dev/global-settings/
+enable = [
+  "MD013",  # line-length (https://rumdl.dev/md013/)
+  "MD057",  # existing-relative-links (https://rumdl.dev/md057/)
+  "MD070",  # nested-code-fence (https://rumdl.dev/md070/)
+  "MD075"  # orphaned-table-rows (https://rumdl.dev/md075/)
+]
+exclude = [
+  "content"  # markdownlint-cli2 is used to test Markdown in the content directory
+]
+
+# Additional options for enabled rules
+[MD013]
+line-length = 200
+
+[MD057]
+absolute-links = "warn"
+compact-paths = true

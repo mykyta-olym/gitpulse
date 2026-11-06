@@ -1,0 +1,47 @@
+{{/*
+  Retrieves page metadata (section and active trail) for the current page
+
+  @param dict
+    $Context
+      Page object
+    $field string
+      Either "section" (for gitlab_docs_section metatag),
+      "active_trail" (for gitlab_docs_breadcrumbs metatag),
+      or "trail_json" (for Vue components)
+
+  @return string
+    The requested metadata field for the page
+*/}}
+
+{{- $lang := .Context.Language.Lang | default site.Params.defaultLang -}}
+{{- $langData := index .Context.Site.Data $lang -}}
+{{- $pageMetadata := index $langData "page-metadata" -}}
+
+{{- /* Get the clean (unprefixed) path */ -}}
+{{- $cleanPath := partial "functions/clean-path" (dict "path" .Context.RelPermalink) | string -}}
+
+{{- /* Lookup page data based on the clean path */ -}}
+{{- $pageData := index $pageMetadata $cleanPath -}}
+{{- $result := "" -}}
+
+{{- if $pageData -}}
+  {{- if eq .field "section" -}}
+    {{- $result = $pageData.metatags.section -}}
+  {{- else if eq .field "trail_string" -}}
+    {{- $result = $pageData.metatags.trail_string -}}
+  {{- else if eq .field "trail_json" -}}
+    {{- $result = jsonify $pageData.trail_items -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Check if it's a Tutorial page and override section */ -}}
+{{- if and (eq .field "section") (hasPrefix .Context.Title "Tutorial: ") -}}
+  {{- $result = "tutorials" -}}
+{{- end -}}
+
+{{- /* Check if it's a release post page and override section */ -}}
+{{- if and (eq .field "section") (strings.HasPrefix $cleanPath "releases/") -}}
+  {{- $result = "release_notes" -}}
+{{- end -}}
+
+{{- $result -}}

@@ -1,0 +1,346 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gitlab-pipeline-event",
+  "title": "GitLab Pipeline Event Webhook",
+  "description": "Schema for GitLab pipeline event webhooks",
+  "type": "object",
+  "required": ["object_kind", "object_attributes", "user", "project"],
+  "properties": {
+    "object_kind": {
+      "type": "string",
+      "const": "pipeline"
+    },
+    "object_attributes": {
+      "$ref": "#/definitions/pipeline_attributes"
+    },
+    "merge_request": {
+      "$ref": "#/definitions/merge_request"
+    },
+    "user": {
+      "$ref": "#/definitions/user"
+    },
+    "project": {
+      "$ref": "#/definitions/project"
+    },
+    "commit": {
+      "$ref": "#/definitions/commit"
+    },
+    "source_pipeline": {
+      "type": ["object", "null"],
+      "description": "Parent pipeline for child pipelines"
+    },
+    "builds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/build"
+      }
+    }
+  },
+  "definitions": {
+    "pipeline_attributes": {
+      "type": "object",
+      "required": ["id", "iid", "ref", "sha", "source", "status", "stages", "created_at", "finished_at"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "iid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ref": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "boolean"
+        },
+        "sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "before_sha": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["push", "web", "trigger", "schedule", "api", "external", "pipeline", "chat", "webide", "merge_request_event", "external_pull_request_event", "parent_pipeline", "ondemand_dast_scan", "ondemand_dast_validation"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["created", "waiting_for_resource", "preparing", "pending", "running", "success", "failed", "canceled", "skipped", "manual", "scheduled"]
+        },
+        "detailed_status": {
+          "type": "string"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "finished_at": {
+          "type": ["string", "null"]
+        },
+        "duration": {
+          "type": ["integer", "null"],
+          "description": "Pipeline duration in seconds"
+        },
+        "queued_duration": {
+          "type": ["integer", "null"],
+          "description": "Queue wait time in seconds"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": ["id", "username", "name"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "path_with_namespace"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "web_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "git_ssh_url": {
+          "type": "string"
+        },
+        "git_http_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "visibility_level": {
+          "type": "integer"
+        },
+        "path_with_namespace": {
+          "type": "string"
+        },
+        "default_branch": {
+          "type": "string"
+        },
+        "ci_config_path": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "commit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "message": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "author": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        }
+      }
+    },
+    "merge_request": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "iid": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "source_branch": {
+          "type": "string"
+        },
+        "target_branch": {
+          "type": "string"
+        },
+        "source_project_id": {
+          "type": "integer"
+        },
+        "target_project_id": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "stage": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["created", "pending", "running", "failed", "success", "canceled", "skipped", "manual"]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": ["string", "null"]
+        },
+        "finished_at": {
+          "type": ["string", "null"]
+        },
+        "duration": {
+          "type": ["number", "null"]
+        },
+        "queued_duration": {
+          "type": ["number", "null"]
+        },
+        "failure_reason": {
+          "type": ["string", "null"]
+        },
+        "when": {
+          "type": "string"
+        },
+        "manual": {
+          "type": "boolean"
+        },
+        "allow_failure": {
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/user"
+        },
+        "runner": {
+          "type": ["object", "null"],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "description": {
+              "type": "string"
+            },
+            "runner_type": {
+              "type": "string"
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "artifacts_file": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": ["string", "null"]
+            },
+            "size": {
+              "type": ["integer", "null"]
+            }
+          }
+        },
+        "environment": {
+          "type": ["object", "null"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "deployment_tier": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

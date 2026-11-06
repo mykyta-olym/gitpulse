@@ -1,0 +1,616 @@
+/* ============================================
+   SIDEBAR - GitLab Pajamas Left Navigation
+   ============================================ */
+
+/* -- CSS Variables -- */
+:root {
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 48px;
+  --sidebar-bg: var(--app-navigation-bg);
+  --sidebar-border: var(--gl-border-color-subtle);
+  --sidebar-item-height: 28px;
+  --sidebar-item-radius: 8px;
+  --sidebar-hover-bg: var(--gl-action-neutral-bg-hover);
+  /* The active item IS the app's selected highlight (tokens.css) - the same
+     tint the selected week pill, filter pill and current page carry, so one
+     theme has one highlight. */
+  --sidebar-active-bg: var(--gl-action-selected-bg-default);
+  --sidebar-active-hover-bg: var(--gl-action-selected-bg-hover);
+}
+
+/* -- Preferences > Theme (accent colour) --
+   `--_accent`, the shell ground and the selected highlight are set on the
+   ROOT in tokens.css (the accent belongs to the application CHROME, which is
+   what the preview card promises). Only the sidebar's own surface is here. */
+html[data-accent]:not([data-accent="default"]) .gl-sidebar {
+  /* The SURFACE carries the theme, which is what GitLab's previews promise and
+     what its `gl-*-scope` classes do - they retint the neutral ramp inside the
+     scope, so the whole panel takes the colour. Tinting only the selected item
+     meant picking a theme changed one 28px row, and the setting read as inert:
+     you had to know where to look to see that anything had happened at all.
+     14% keeps it a TINTED NEUTRAL rather than a coloured block. */
+  --sidebar-bg: color-mix(in srgb, var(--_accent) 14%, var(--app-navigation-bg));
+  --sidebar-border: color-mix(in srgb, var(--_accent) 22%, var(--gl-border-color-subtle));
+  --sidebar-hover-bg: color-mix(in srgb, var(--_accent) 18%, transparent);
+}
+
+/* -- Sidebar Container -- */
+.gl-sidebar {
+  position: fixed;
+  /* Below the full-width top bar, as GitLab's super-sidebar is (measured y=48). */
+  top: var(--navbar-height);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  border-right: none;
+  display: flex;
+  flex-direction: column;
+  z-index: calc(var(--z-sticky) + 1);
+  /* The collapse IS a layout change: the rail hands its width back to the page,
+     which a transform cannot do (it would slide the rail OVER the content).
+     Measured on /dashboard/ at 1440x900: 56 frames, worst 16.8ms, zero frames
+     over 20ms - it is smooth, it is just not compositor-only. */
+  /* impeccable-disable-next-line layout-transition */
+  transition: width var(--transition-slow);
+  overflow: hidden;
+  contain: layout style;
+}
+
+/* -- Sidebar Header (Logo) --
+   Hidden on desktop: the brand now sits in the full-width top bar, where
+   GitLab keeps it. Mobile re-shows it (the sidebar is a drawer there and owns
+   its own header). */
+.gl-sidebar-header {
+  display: none;
+  height: var(--navbar-height);
+  align-items: center;
+  padding: 0 var(--gl-spacing-4);
+  flex-shrink: 0;
+}
+
+.gl-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  color: var(--gl-text-color-strong);
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity var(--transition-fast);
+}
+
+.gl-sidebar-brand:hover {
+  color: var(--gl-text-color-strong);
+  text-decoration: none;
+  opacity: 0.9;
+}
+
+.gl-sidebar-logo {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  transition: transform var(--transition-normal);
+}
+
+.gl-sidebar-brand-text {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+  /* impeccable-disable-next-line layout-transition -- rides the same rail collapse. */
+  transition: opacity var(--transition-normal), max-width var(--transition-slow);
+  max-width: 160px;
+  overflow: hidden;
+}
+
+/* -- Sidebar Body (scrollable nav area) -- */
+.gl-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--gl-spacing-3) 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gl-scrollbar-thumb) transparent;
+}
+
+.gl-sidebar-body::-webkit-scrollbar {
+  width: var(--radius);
+}
+.gl-sidebar-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gl-sidebar-body::-webkit-scrollbar-thumb {
+  background: var(--gl-scrollbar-thumb);
+  border-radius: var(--radius);
+}
+
+/* -- Section -- */
+.gl-sidebar-section {
+  padding: 0 var(--gl-spacing-3);
+  /* impeccable-disable-next-line layout-transition -- rides the same rail collapse. */
+  transition: padding var(--transition-slow), opacity var(--transition-normal);
+}
+
+.gl-sidebar-section + .gl-sidebar-section {
+  margin-top: var(--gl-spacing-3);
+  padding-top: var(--gl-spacing-3);
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.gl-sidebar-section-label {
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  font-size: var(--font-size-base);
+  /* Blue, on the author's explicit instruction after seeing GitLab's own dark
+     sidebar. An earlier measurement read the LIGHT theme's rgb(58,56,63) and
+     concluded the heading is ordinary text; in the dark theme the author uses,
+     GitLab's reads distinctly cooler than the items under it. Weight stays at
+     425 so it does not shout - only the hue separates it. */
+  font-weight: 425;
+  color: var(--gl-text-color-link);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity var(--transition-normal);
+}
+
+/* -- Navigation List -- */
+.gl-sidebar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-1);
+}
+
+/* -- Sidebar Item (nav links) -- */
+.gl-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  /* GitLab's super-sidebar-nav-item: 2px 4px padding with a 2px gap between
+     items, so labels start 12px from the sidebar edge rather than our 16px. */
+  padding: var(--gl-spacing-1) var(--gl-spacing-2);
+  height: var(--sidebar-item-height);
+  color: var(--gl-text-color-default);
+  font-size: var(--font-size-base);
+  font-weight: 425;
+  border-radius: var(--sidebar-item-radius);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+              transform var(--transition-fast),
+              width var(--transition-slow), padding var(--transition-slow),
+              margin var(--transition-slow);
+}
+.gl-sidebar-item:hover,
+.gl-sidebar-bottom-item:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--gl-text-color-strong);
+  text-decoration: none;
+}
+
+/* GitLab does NOT bolden the selected item - measured weight 425 on both the
+   selected and the idle rows. The selection reads through the tint and the
+   label colour alone; making ours semibold was an extra emphasis GitLab has
+   nowhere in its sidebar. */
+.gl-sidebar-item.active {
+  background: var(--sidebar-active-bg);
+  color: var(--gl-action-selected-text);
+}
+
+.gl-sidebar-item.active:hover {
+  background: var(--sidebar-active-hover-bg);
+}
+
+.gl-sidebar-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-inset);
+}
+.gl-sidebar-item .icon,
+.gl-sidebar-bottom-item .icon {
+  flex-shrink: 0;
+  color: var(--gl-text-color-subtle);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.gl-sidebar-item:hover .icon {
+  color: var(--gl-text-color-strong);
+}
+.gl-sidebar-item.active .icon {
+  color: var(--gl-action-selected-text);
+}
+
+.gl-sidebar-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* impeccable-disable-next-line layout-transition -- rides the same rail collapse. */
+  transition: opacity var(--transition-normal), max-width var(--transition-slow);
+  max-width: 160px;
+}
+
+/* -- Item Count Badge -- */
+.gl-sidebar-badge {
+  /* The shared count badge (GitLab's nav item pill), at the item's end. */
+  margin-left: auto;
+}
+
+
+/* -- Bottom Section -- */
+.gl-sidebar-bottom {
+  flex-shrink: 0;
+  padding: var(--gl-spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-1);
+  /* impeccable-disable-next-line layout-transition -- rides the same rail collapse. */
+  transition: padding var(--transition-slow);
+}
+
+.gl-sidebar-bottom-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-1) var(--gl-spacing-2);
+  height: var(--sidebar-item-height);
+  color: var(--gl-text-color-default);
+  /* Same 14px as .gl-sidebar-item above - the bottom group used to render a
+     step smaller than the nav items right over it. */
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--sidebar-item-radius);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-family);
+  transition: background var(--transition-fast), color var(--transition-fast),
+              width var(--transition-slow), padding var(--transition-slow),
+              margin var(--transition-slow);
+}
+.gl-sidebar-bottom-item:hover .icon {
+  color: var(--gl-text-color-strong);
+  /* Colour only on hover - GitLab's whole transition inventory carries no
+     transform outside animated icons (@gitlab/ui 136.3.0). The lift was
+     already removed from the course cards once; it survived here. */
+}
+
+/* Sign out - red on hover */
+.gl-sidebar-signout:hover {
+  color: var(--gl-text-color-danger);
+}
+.gl-sidebar-signout:hover .icon {
+  color: var(--gl-text-color-danger);
+}
+
+/* -- Language Switcher -- */
+.gl-sidebar-lang {
+  position: relative;
+}
+
+/* -- Language dropdown (now uses unified .gl-dropdown) -- */
+.gl-sidebar-lang-menu {
+  left: 0;
+  right: 0;
+}
+
+/* -- Collapse Toggle -- */
+.gl-sidebar-toggle-icon {
+  transition: transform var(--transition-normal);
+}
+
+/* -- Collapsed State -- */
+.gl-sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+  overflow: visible;
+}
+.gl-sidebar.collapsed .gl-sidebar-brand-text,
+.gl-sidebar.collapsed .gl-sidebar-item-text,
+.gl-sidebar.collapsed .gl-sidebar-badge {
+  opacity: 0;
+  max-width: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Section labels must be fully removed from layout in collapsed state
+   to prevent ghost padding/height gaps and text leaking through. */
+.gl-sidebar.collapsed .gl-sidebar-section-label {
+  display: none;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-header {
+  padding: 0;
+  justify-content: center;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-brand {
+  justify-content: center;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-item,
+.gl-sidebar.collapsed .gl-sidebar-bottom-item {
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-section {
+  padding: 0 var(--gl-spacing-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Hide section separator borders in collapsed state - they appear as
+   stray horizontal lines across the narrow sidebar. */
+.gl-sidebar.collapsed .gl-sidebar-section + .gl-sidebar-section {
+  margin-top: var(--gl-spacing-1);
+  padding-top: 0;
+  border-top: none;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-list {
+  align-items: center;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-bottom {
+  padding: var(--gl-spacing-3) var(--gl-spacing-2);
+  align-items: center;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.gl-sidebar.collapsed .gl-sidebar-lang {
+  display: flex;
+  justify-content: center;
+}
+
+.gl-sidebar.collapsed .gl-sidebar-lang-menu {
+  left: 100%;
+  right: auto;
+  bottom: 0;
+  top: auto;
+  min-width: 140px;
+  margin-bottom: 0;
+  margin-left: var(--gl-spacing-1);
+}
+
+/* -- Mobile Overlay -- */
+.gl-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--gl-overlay-bg);
+  z-index: var(--z-sticky);
+  opacity: 0;
+  visibility: hidden;
+  /* Sync with .gl-sidebar mobile slide (--transition-slow = 300ms) so the
+     backdrop fade and the sidebar translate finish on the same frame. */
+  transition: opacity var(--transition-slow),
+              visibility var(--transition-slow);
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.gl-sidebar-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* -- Page Content Wrapper -- */
+.gl-page {
+  /* Flush against the sidebar, as GitLab is: measured `.paneled-view` x=240 with
+     a 240px sidebar, i.e. no gutter between them - the visible separation is the
+     panel's own 12px radius letting the shell colour through at the corners.
+     Our extra 8px only made the content column 8px narrower than GitLab's. */
+  margin-left: var(--sidebar-width);
+  margin-top: var(--navbar-height);
+  display: flex;
+  flex-direction: column;
+  /* Fixed height so the content panel fills the viewport and scrolls INTERNALLY
+     via .gl-page-content (GitLab's model: a static content panel that is always
+     full height, never collapsing to content). This is the reliable behaviour;
+     the earlier max-height + flex:0-1-auto experiment made the panel shrink
+     during load, which read as "half the page is missing". */
+  height: calc(100vh - var(--navbar-height) - 8px);
+  /* impeccable-disable-next-line layout-transition -- rides the same rail collapse. */
+  transition: margin-left var(--transition-slow);
+  background: var(--gl-background-color-default);
+  /* GitLab's .paneled-view measures a 12px radius, not 16px. */
+  border-radius: var(--gl-card-border-radius);
+  overflow: hidden;  /* not clip - clip traps position:fixed modals inside this box */
+}
+
+@supports (height: 100dvh) {
+  .gl-page {
+    height: calc(100dvh - var(--navbar-height) - 8px);
+  }
+}
+
+/* -- Content Breadcrumb Bar (like GitLab panel-header / top-bar-fixed) -- */
+/* GitLab's breadcrumb is a 24px LINE sitting 8px below the panel's top edge and
+   inset 12px from its left - not a 48px bar with its own border. Measured on
+   gitlab.com: x=252 y=56 h=24 inside a panel at x=240 y=48. Ours was a full
+   navbar-height strip, which pushed the page title ~25px further down than
+   GitLab's on every screen. */
+/* GitLab's `.panel-header-inner`, measured on gitlab.example.com: an OPAQUE
+   36px block flush with the panel's top edge (y 48 -> 84), rounded 8px on its
+   top corners, 8px of padding above the 24px crumb row and 4px below it. That
+   block is the whole mechanism behind the notch - content scrolls underneath it
+   and is cut at exactly 84px. We used to get the same 84px with margins on a
+   bare 24px row, which left the two 8px/4px strips painted by the panel rather
+   than by the header itself. */
+.gl-content-breadcrumb {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: var(--gl-spacing-3) var(--gl-spacing-4) var(--gl-spacing-2);
+  margin: 0;
+  border-bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  background-color: var(--gl-background-color-default);
+}
+
+/* Measured on gitlab.com: crumbs are 12px on a 16px line inside a 24px row,
+   the row is `overflow: visible` so nothing clips, the separator is the
+   CHARACTER "/" (a ::after on each non-last crumb, 12px) rather than a chevron
+   icon, and the current page is the only crumb at weight 600. Ours ran at 14px
+   with a chevron in a clipped row, which is why the text sat tight and looked
+   cut off along the bottom. */
+.gl-content-breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-xs);
+  line-height: 1rem;
+  height: 100%;             /* GitLab's crumb row measures 24px tall */
+  color: var(--gl-text-color-subtle);
+  overflow: visible;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.gl-content-breadcrumb-nav a {
+  color: var(--gl-text-color-subtle);
+  border-radius: var(--radius);   /* GitLab rounds the crumb's focus target */
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-normal);
+  /* Long intermediate crumbs (course / group names) ellipsis-truncate so the
+     row never clips the CURRENT page crumb off the right edge. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* GitLab underlines the crumb on hover and leaves its colour alone - measured
+   idle `text-decoration: none` -> hover `underline`, colour rgb(191,191,195)
+   throughout. Ours did the opposite: it changed the colour and explicitly
+   suppressed the underline. */
+.gl-content-breadcrumb-nav a:hover {
+  text-decoration: underline;
+}
+
+.gl-content-breadcrumb-sep {
+  color: var(--text-tertiary);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+}
+
+.gl-content-breadcrumb-current {
+  color: var(--gl-text-color-strong);
+  font-weight: var(--font-weight-bold);   /* GitLab: 600 on the current crumb */
+  /* The current page is the most important crumb - never shrink/clip it. */
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The cut. GitLab's `.panel-content-inner::before`, measured at 1123x4: sticky
+   at top 0, z-index 2, margin-bottom -4px so it takes no space, opacity 0 -> 1
+   on scroll.
+
+   It is painted in the SHELL colour, not the panel's - that is the whole point.
+   The band reads as a slot cut clean through the panel, continuous with the
+   background around it, which is exactly what separates the header from the
+   content sliding underneath. Painting it in the panel's own colour (what an
+   earlier reading of ours did) makes it merge into the panel and do nothing
+   visible at all. */
+.gl-page-content::before {
+  content: '';
+  display: block;
+  position: sticky;
+  top: 0;
+  /* Above every sticky the CONTENT can hold. Sticky section headings and
+     sticky table headers both sat at z-index 2 as well, and being later in the
+     DOM they painted over this strip - so the boundary line under the
+     breadcrumb vanished the moment such a page scrolled. This is the scroll
+     boundary; nothing inside the scroll area should cover it. */
+  z-index: 3;
+  height: 2px;
+  flex-shrink: 0;          /* a column flex would collapse it to 0 */
+  margin-bottom: -2px;     /* takes no space, as GitLab's does */
+  pointer-events: none;
+  background: var(--app-shell-bg);
+  opacity: 0;
+  transition: opacity var(--motion-duration-normal);
+}
+.gl-page-content.is-scrolled::before {
+  opacity: 1;
+}
+
+/* Scrollable content area below breadcrumb bar (like GitLab panel-content-inner) */
+.gl-page-content {
+  --page-bottom-gutter: 8px;
+  /* Keep absolute accessibility labels inside this scrollport. */
+  position: relative;
+  /* flex: 1 - fill the panel and scroll INTERNALLY (GitLab's .panel-content-inner
+     model). The panel is always full height; content scrolls inside it. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden auto;
+  min-height: 0;
+  padding-bottom: var(--page-bottom-gutter);
+  /* GitLab-style thin scrollbar - always visible when content overflows */
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--gl-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+}
+
+.gl-page-content::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.gl-page-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gl-page-content::-webkit-scrollbar-thumb {
+  background: var(--gl-scrollbar-thumb);
+  border-radius: var(--radius);
+}
+
+.gl-page-content::-webkit-scrollbar-thumb:hover {
+  background: var(--gl-scrollbar-thumb-hover);
+}
+
+.gl-page-content.gl-scrollbar {
+  scrollbar-color: var(--gl-scrollbar-thumb) transparent;
+  scrollbar-width: thin;
+}
+
+.gl-page-content.gl-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.gl-page-content.gl-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--gl-scrollbar-thumb);
+  border-radius: var(--radius);
+}
+
+.gl-sidebar.collapsed ~ .gl-page {
+  margin-left: var(--sidebar-width-collapsed);
+}
+

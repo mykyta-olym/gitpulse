@@ -1,0 +1,43 @@
+{{- /*
+The per-language sitemap, kept in step with layouts/sitemapindex.xml.
+
+Nothing links to this file any more - the site's robots.txt points at
+/docs/sitemap.xml, which now carries both languages - but Hugo still writes it
+and a crawler that has seen the old sitemap index will come back for
+/docs/en/sitemap.xml. Without this override it would keep serving Hugo's
+default listing, gated sections and all, which is the 302 noise this change
+exists to remove.
+
+Same exclusions, same reasons: see the comment in sitemapindex.xml.
+*/ -}}
+{{- $gated := site.Params.gatedSections | default slice -}}
+{{- $noindex := site.Params.noindexSections | default slice -}}
+{{- $skip := "" -}}
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+{{- range $p := .Pages -}}
+  {{- $skip = false -}}
+  {{- if or (eq $p.Params.noindex true) (isset $p.Params "redirect_to") -}}
+    {{- $skip = true -}}
+  {{- end -}}
+  {{- /* On the URL, not `.Section` - see the note in sitemapindex.xml. */ -}}
+  {{- range $noindex -}}
+    {{- if in $p.RelPermalink (printf "/%s/" .) -}}{{- $skip = true -}}{{- end -}}
+  {{- end -}}
+  {{- range $gated -}}
+    {{- if in $p.RelPermalink (printf "/%s/" .) -}}{{- $skip = true -}}{{- end -}}
+  {{- end -}}
+  {{- if not $skip }}
+  <url>
+    <loc>{{ $p.Permalink }}</loc>
+    {{- with $p.Lastmod }}
+    <lastmod>{{ .Format "2006-01-02" }}</lastmod>
+    {{- end }}
+    {{- range $p.AllTranslations }}
+    <xhtml:link rel="alternate" hreflang="{{ .Language.Lang }}" href="{{ .Permalink }}"/>
+    {{- end }}
+  </url>
+  {{- end -}}
+{{- end }}
+</urlset>

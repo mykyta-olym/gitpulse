@@ -1,0 +1,49 @@
+{
+  "event": "Push Hook",
+  "payload": {
+    "ref": "refs/heads/10-cyril-konflikt",
+    "after": "5f86b5c44b85ae128c01a689f0bc3ab8bdb2169b",
+    "before": "0000000000000000000000000000000000000000",
+    "commits": [],
+    "message": null,
+    "project": {
+      "id": 1,
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "namespace": "TIM-01",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-01/projekt"
+    },
+    "user_id": 5,
+    "user_name": "Cyril Horváth",
+    "event_name": "push",
+    "project_id": 1,
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "visibility_level": 0
+    },
+    "user_email": "[REDACTED]",
+    "object_kind": "push",
+    "user_avatar": "https://www.gravatar.com/avatar/45768fc50878883a20bb3cdd748b19a8afdf83c7fc013e51e8e6091100e1f0ae?s=80&d=identicon",
+    "checkout_sha": "5f86b5c44b85ae128c01a689f0bc3ab8bdb2169b",
+    "push_options": {},
+    "ref_protected": false,
+    "user_username": "cyril.horvath",
+    "total_commits_count": 0
+  }
+}

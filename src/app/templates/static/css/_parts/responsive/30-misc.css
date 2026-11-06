@@ -1,0 +1,56 @@
+@media (max-height: 450px) and (orientation: landscape) {
+  .modal {
+    max-height: calc(100vh - 1rem);
+  }
+  .modal-body {
+    max-height: calc(100vh - 8rem);
+  }
+  .main-container {
+    padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  }
+}
+
+/* -- Wide screens - a roomier FIXED width for data-heavy pages -- */
+/* Routed through --content-width-xl (not a hardcoded value) so the layout-width
+   preference still governs it: "Fluid" sets that token to `none` (tokens.css)
+   and the container goes full-width even here. The old `max-width: 1600px` at
+   >=1800px ignored the token entirely, so on a wide screen "Fixed" ballooned to
+   ~full width and "Fluid" never uncapped - the setting looked dead. Capping
+   "Fixed" at the -xl width (1400px) also keeps it visibly narrower than "Fluid"
+   instead of the two collapsing onto the same width. */
+@media (min-width: 1440px) {
+  .main-container {
+    max-width: var(--content-width-xl);
+  }
+}
+
+/* -- Reduce motion for accessibility (main rules in performance.css) -- */
+@media (prefers-reduced-motion: reduce) {
+  .gl-home-stat:hover .gl-home-stat-value {
+    transform: none;
+  }
+}
+
+/* -- Print styles -- */
+@media print {
+  .gl-sidebar,
+.gl-top-bar,
+.gl-content-breadcrumb,
+.gl-sidebar-overlay,
+.gl-mobile-menu-btn,
+.toast-container,
+.global-job-bar {
+    display: none !important;
+  }
+  .gl-page {
+    margin: 0 !important;
+    height: auto !important;
+  }
+  .main-container {
+    padding: 0 !important;
+  }
+  .card {
+    break-inside: avoid;
+    border: 1px solid var(--border-color);
+  }
+}

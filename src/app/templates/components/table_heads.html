@@ -1,0 +1,169 @@
+{#
+  Shared table <colgroup> + <thead> definitions.
+
+  These are the SINGLE SOURCE OF TRUTH for a table's column set: every partial
+  that draws the table imports its head from here, so two renderings of one
+  table can never drift apart in column count, order, classes, hidden-column
+  breakpoints, or sortable-header markup. Add a column here once.
+
+  Import `with context` so t() / the request locale resolve.
+#}
+{% from "components/tables.html" import sortable_header %}
+
+{# User Management + Service Accounts tables (partials/admin/_users_content.html). #}
+{% macro users_table_head() %}
+<colgroup>
+  <col class="col-username">
+  <col class="col-gitlabid col-hide-sm">
+  <col class="col-fullname">
+  <col class="col-email col-hide-xs">
+  <col class="col-role">
+  <col class="col-period col-hide-xs">
+  <col class="col-status col-hide-xs">
+  <col class="col-created col-hide-sm">
+  <col class="col-actions">
+</colgroup>
+<thead>
+  <tr>
+    {{ sortable_header(t('Username'), 'username', default_sort='asc', class='col-username') }}
+    {{ sortable_header(t('GitLab User ID'), 'gitlab_id', sort_type='number', class='col-gitlabid col-hide-sm') }}
+    {{ sortable_header(t('Full Name'), 'full_name', class='col-fullname') }}
+    {{ sortable_header(t('Email'), 'email', class='col-email col-hide-xs') }}
+    {{ sortable_header(t('Role'), 'role', class='col-role') }}
+    {{ sortable_header(t('Period'), 'period', class='col-period col-hide-xs', tooltip=t('The terms of the courses a student is in, or a teacher teaches. Administrators and service accounts are in every term.')) }}
+    {{ sortable_header(t('Status'), 'status', class='col-status col-hide-xs') }}
+    {{ sortable_header(t('Created'), 'created', sort_type='date', class='col-created col-hide-sm') }}
+    <th class="col-actions text-right">{{ t('Actions') }}</th>
+  </tr>
+</thead>
+{% endmacro %}
+
+{# Course-detail Groups (teams) tree table (partials/course/_detail_content.html).
+   sort_by_status flips which column carries the default sort. #}
+{% macro teams_table_head(sort_by_status=false) %}
+<colgroup>
+  <col class="col-tree-toggle col-hide-sm">
+  <col class="col-team-name">
+  <col class="col-contributors">
+  <col class="col-avg-score">
+  <col class="col-status">
+  <col class="col-last-updated col-hide-md">
+  <col class="col-actions">
+</colgroup>
+<thead>
+  <tr>
+    <th class="col-tree-toggle col-hide-sm" aria-label="{{ t('Expand') }}"></th>
+    {{ sortable_header(t('Group'), 'team', default_sort='' if sort_by_status else 'asc') }}
+    {{ sortable_header(t('Contributors'), 'contributors', sort_type='number') }}
+    {{ sortable_header(t('Avg Score'), 'avg_score', sort_type='number', tooltip=t('Average weighted compliance score of group members')) }}
+    {{ sortable_header(t('Status'), 'status', class='text-center', tooltip=t('Overall traffic light based on compliance checks'), default_sort='asc' if sort_by_status else '') }}
+    {{ sortable_header(t('Last Updated'), 'last_updated', sort_type='date', class='col-hide-md', tooltip=t('When metrics were last computed from GitLab data')) }}
+    <th class="text-right">{{ t('Actions') }}</th>
+  </tr>
+</thead>
+{% endmacro %}
+
+{# Project Members - student privacy view, 1 sortable column
+   (partials/project/_members_table.html, student branch). #}
+{% macro project_members_head_basic() %}
+<colgroup>
+  <col class="col-member-student">
+</colgroup>
+<thead>
+  <tr>
+    {{ sortable_header(t('Student'), 'student', default_sort='asc') }}
+  </tr>
+</thead>
+{% endmacro %}
+
+{# Project Members - teacher/admin full metrics view. `checks` is the dynamic
+   list of (attr, code, name) compliance checks, so the per-check columns come
+   from one place. #}
+{% macro project_members_head_full(checks) %}
+<colgroup>
+  <col class="col-member-student">
+  {% for _ in checks %}
+  <col class="col-member-checks">
+  {% endfor %}
+  <col class="col-member-score">
+  <col class="col-member-actions">
+</colgroup>
+<thead>
+  <tr>
+    {{ sortable_header(t('Student'), 'student', default_sort='asc') }}
+    {% for _, code, name in checks %}
+    <th class="th-check" data-tippy-content="{{ name }}">{{ code }}</th>
+    {% endfor %}
+    {{ sortable_header(t('Score'), 'score', sort_type='number', class='text-center th-center-50') }}
+    <th class="min-w-100 text-right">{{ t('Actions') }}</th>
+  </tr>
+</thead>
+{% endmacro %}
+
+{# Group members: students see names without individual grades. #}
+{% macro team_members_head_basic() %}
+<colgroup>
+  <col class="col-member-student">
+</colgroup>
+<thead>
+  <tr>
+    {{ sortable_header(t('Student'), 'student', default_sort='asc') }}
+  </tr>
+</thead>
+{% endmacro %}
+
+{# Group (team) Members - teacher/admin summary metrics view. Fixed columns (no
+   per-check columns, no actions): score/checks-count/MRs/issues/pipelines. #}
+{% macro team_members_head_summary() %}
+<colgroup>
+  <col class="col-member-student">
+  <col class="col-member-score">
+  <col class="col-member-checks col-hide-lg">
+  <col class="col-member-mrs">
+  <col class="col-member-issues">
+  <col class="col-member-pipelines">
+</colgroup>
+<thead>
+  <tr>
+    {{ sortable_header(t('Student'), 'student', default_sort='asc') }}
+    {{ sortable_header(t('Score'), 'score', sort_type='number', class='text-center', tooltip=t('Weighted compliance score (0-100%)')) }}
+    {{ sortable_header(t('Checks'), 'checks', sort_type='number', class='text-center col-hide-lg', tooltip=t('Number of passed / total compliance checks')) }}
+    {{ sortable_header(t('MRs'), 'mrs', sort_type='number', class='text-center') }}
+    {{ sortable_header(t('Issues'), 'issues', sort_type='number', class='text-center') }}
+    {{ sortable_header(t('Pipelines'), 'pipelines', sort_type='number', class='text-center', tooltip=t('Number of successful / total pipelines')) }}
+  </tr>
+</thead>
+{% endmacro %}
+
+{# Support Tickets table (partials/support/_tickets_content.html). #}
+{% macro tickets_table_head() %}
+<colgroup>
+  {# The select column exists only for an admin - the only role that may remove
+     a ticket - so the header and the rows agree on the column count. #}
+  {% if is_admin %}<col class="col-ticket-select">{% endif %}
+  <col class="col-ticket-title">
+  <col class="col-ticket-submitter">
+  <col class="col-ticket-status">
+  <col class="col-ticket-priority col-hide-sm">
+  <col class="col-ticket-category">
+  <col class="col-ticket-date col-hide-sm">
+  <col class="col-ticket-assigned">
+  <col class="col-ticket-actions">
+</colgroup>
+<thead>
+  <tr>
+    {% if is_admin %}
+    <th><input type="checkbox" class="form-check-input" id="ticketsSelectAll"
+        aria-label="{{ t('Select all') }}" data-tippy-content="{{ t('Select all') }}"></th>
+    {% endif %}
+    {{ sortable_header(t('Title'), 'title', default_sort='asc') }}
+    {{ sortable_header(t('Submitted By'), 'submitted_by') }}
+    {{ sortable_header(t('Status'), 'status') }}
+    {{ sortable_header(t('Priority'), 'priority', class='col-hide-sm') }}
+    {{ sortable_header(t('Category'), 'category') }}
+    {{ sortable_header(t('Date'), 'date', sort_type='date', class='col-hide-sm') }}
+    {{ sortable_header(t('Assigned'), 'assigned') }}
+    <th class="text-right">{{ t('Actions') }}</th>
+  </tr>
+</thead>
+{% endmacro %}

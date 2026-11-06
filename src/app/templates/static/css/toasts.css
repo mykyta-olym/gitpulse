@@ -1,0 +1,313 @@
+/* ============================================
+   TOAST NOTIFICATION SYSTEM
+   GitLab Pajamas-aligned · Dark-first design
+   ============================================ */
+
+/* -- Container ------------------------------- */
+#toastContainer,
+.toast-container {
+  position: fixed;
+  z-index: var(--z-toast);
+  /* .b-toaster-bottom-left pins the slot at spacing-6 from both edges and
+     stacks with a spacing-4 gap. The left inset clears our sidebar, which
+     GitLab's viewport-anchored toaster has no equivalent of. */
+  bottom: var(--gl-spacing-6);
+  left: calc(var(--sidebar-width, 240px) + var(--gl-spacing-6));
+  right: auto;
+  top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-4);
+  pointer-events: none;
+  /* ONE stable width for the whole stack, so consecutive toasts never appear at
+     different sizes - the "toast size keeps changing by itself" report came from
+     each toast sizing to its own content (min 18rem .. max 586px). The width is
+     resolved once from the layout, not per toast, and clamps to the viewport on
+     mobile. Every toast below is width:100% of this, so they are all identical. */
+  width: min(24rem, calc(100vw - var(--sidebar-width, 240px) - var(--gl-spacing-7)));
+}
+
+/* -- Individual toast ------------------------ */
+.toast {
+  --_toast-ttl: 5000ms;
+  --_toast-bg: var(--gl-feedback-strong-bg);
+  --_toast-accent: var(--gl-blue-400, #428fdc);
+  --_toast-accent-line: var(--gl-blue-400, #428fdc);
+  --_toast-text: var(--gl-feedback-strong-text, #ececef);
+  --_toast-text-dim: var(--gl-text-color-subtle, #89888d);
+  --_toast-title-color: var(--gl-blue-300, #63a2eb);
+  --_toast-h: auto;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: var(--gl-spacing-5) var(--gl-spacing-6);
+
+  background: var(--_toast-bg);
+  color: var(--_toast-text);
+  border: 0;
+  border-radius: var(--gl-feedback-border-radius);
+
+  box-shadow:
+    0 0 1px 0 var(--gl-shadow-color-default),
+    0 0 2px 0 var(--gl-shadow-color-default),
+    0 2px 8px 0 var(--gl-shadow-color-default);
+
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow var(--transition-normal);
+}
+
+/* Feedback stays visible while fields and footer actions in a dialog receive
+   clicks. The toast's close button and optional action remain interactive. */
+body:has(.modal-backdrop.active) .toast {
+  pointer-events: none;
+}
+body:has(.modal-backdrop.active) .toast :is(button, a) {
+  pointer-events: auto;
+}
+
+/* Signature GitLab Docs Top Gradient Line (Photo 1, 2, 3) */
+.toast::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--_toast-accent-line, var(--gl-blue-400)) 50%,
+    transparent 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* -- Variant accents ------------------------- */
+.toast-info {
+  --_toast-accent: var(--gl-blue-400, #428fdc);
+  --_toast-accent-line: var(--gl-blue-400, #428fdc);
+  --_toast-title-color: var(--gl-blue-300, #63a2eb);
+}
+.toast-success {
+  --_toast-accent: var(--gl-green-400, #108548);
+  --_toast-accent-line: var(--gl-green-400, #108548);
+  --_toast-title-color: var(--gl-green-300, #34d058);
+}
+.toast-warning {
+  --_toast-accent: var(--gl-orange-400, #fc6d26);
+  --_toast-accent-line: var(--gl-orange-400, #fc6d26);
+  --_toast-title-color: var(--gl-orange-300, #fca326);
+}
+.toast-error,
+.toast-danger {
+  --_toast-accent: var(--gl-red-400, #dd2b0e);
+  --_toast-accent-line: var(--gl-red-400, #dd2b0e);
+  --_toast-title-color: var(--gl-red-300, #f87171);
+}
+.toast-tip,
+.toast-neutral {
+  --_toast-accent: var(--gl-color-neutral-400, #89888d);
+  --_toast-accent-line: var(--gl-color-neutral-400, #89888d);
+  --_toast-title-color: var(--gl-text-color-strong, #ffffff);
+}
+
+/* -- Light theme ----------------------------- */
+html:not([data-theme]) .toast,
+html[data-theme="light"] .toast {
+  --_toast-bg: #ffffff;
+  --_toast-text: var(--gl-gray-950, #18171d);
+  --_toast-text-dim: var(--gl-text-color-subtle, #535158);
+  border: 1px solid var(--gl-border-color-default, #dcdcde);
+  border-top: none;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+}
+html:not([data-theme]) .toast-info,
+html[data-theme="light"] .toast-info {
+  --_toast-accent: var(--gl-blue-500, #1f75cb);
+  --_toast-accent-line: var(--gl-blue-500, #1f75cb);
+  --_toast-title-color: var(--gl-blue-600, #1068bf);
+}
+html:not([data-theme]) .toast-success,
+html[data-theme="light"] .toast-success {
+  --_toast-accent: var(--gl-green-500, #108548);
+  --_toast-accent-line: var(--gl-green-500, #108548);
+  --_toast-title-color: var(--gl-green-700, #0d6838);
+}
+html:not([data-theme]) .toast-warning,
+html[data-theme="light"] .toast-warning {
+  --_toast-accent: var(--gl-orange-500, #e24329);
+  --_toast-accent-line: var(--gl-orange-500, #e24329);
+  --_toast-title-color: var(--gl-orange-700, #ab2b16);
+}
+html:not([data-theme]) .toast-error,
+html:not([data-theme]) .toast-danger,
+html[data-theme="light"] .toast-error,
+html[data-theme="light"] .toast-danger {
+  --_toast-accent: var(--gl-red-500, #dd2b0e);
+  --_toast-accent-line: var(--gl-red-500, #dd2b0e);
+  --_toast-title-color: var(--gl-red-700, #ae1800);
+}
+html:not([data-theme]) .toast-tip,
+html:not([data-theme]) .toast-neutral,
+html[data-theme="light"] .toast-tip,
+html[data-theme="light"] .toast-neutral {
+  --_toast-accent: var(--gl-gray-600, #535158);
+  --_toast-accent-line: var(--gl-gray-600, #535158);
+  --_toast-title-color: var(--gl-gray-950, #18171d);
+}
+
+/* -- Icon ------------------------------------ */
+.toast-icon {
+  flex: 0 0 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--_toast-accent);
+  margin-top: 0;
+  overflow: visible;
+}
+.toast-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* -- Content --------------------------------- */
+.toast-content {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.toast-title {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  line-height: 1.25rem;
+  color: var(--_toast-title-color, var(--_toast-text));
+  margin: 0 0 2px;
+}
+
+/* "x2", "x3": the same toast raised again while it was still up. showToast
+   does not stack a copy; the one on screen counts instead (_toastAgain,
+   core/09-toasts.js). Its own accent, so it reads as part of this toast. */
+.toast-repeat {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--gl-spacing-2);
+  padding: 0 var(--gl-spacing-2);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--_toast-accent) 20%, transparent);
+  color: var(--_toast-title-color, var(--_toast-text));
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+  vertical-align: top;
+}
+
+.toast-message {
+  font-size: var(--font-size-sm);
+  line-height: 1.25rem;
+  color: var(--_toast-text-dim);
+  margin: 0;
+  word-break: break-word;
+  white-space: pre-line;
+}
+
+/* -- Action link / button inside toast ------- */
+.toast-action {
+  display: inline-block;
+  margin-top: 0.375rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25rem;
+  color: var(--_toast-accent);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.toast-action:hover  { text-decoration: underline; }
+.toast-action:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--gl-action-border-radius);
+}
+
+/* -- Close button: the shared one, held at the row's end -- */
+.toast-close {
+  flex: 0 0 auto;
+  margin: -2px -4px -2px 0;
+}
+
+/* -- Progress bar (auto-dismiss countdown) --- */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+}
+
+.toast-progress-bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--_toast-accent);
+  opacity: 0.5;
+  transform-origin: left center;
+  /* Countdown is a GSAP tween so hover-to-pause is `.pause()` on the same
+     object. As a CSS animation it could be frozen but never resumed from the
+     frozen position, which is why a hovered toast used to restart its bar. */
+}
+
+/* Track + fill - for progress_toast macro */
+.toast-progress-track {
+  height: 3px;
+  /* Theme-aware track so it is visible on both the dark chip and the light
+     toast surface. */
+  background: var(--gl-hover-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.toast-progress-fill {
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--_toast-accent, var(--primary));
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress) var(--motion-ease-standard);
+  border-radius: 2px;
+}
+
+/* -- Dismiss --------------------------------- */
+.toast-dismissing {
+  pointer-events: none;
+}
+
+/* -- Duration utility classes ---------------- */
+.toast-ttl-2000    { --_toast-ttl: 2000ms; }
+.toast-ttl-3000    { --_toast-ttl: 3000ms; }
+.toast-ttl-4000    { --_toast-ttl: 4000ms; }
+.toast-ttl-5000    { --_toast-ttl: 5000ms; }
+.toast-ttl-7000    { --_toast-ttl: 7000ms; }
+.toast-ttl-10000   { --_toast-ttl: 10000ms; }
+.toast-ttl-infinite { --_toast-ttl: 999999s; }
+
+/* -- Sidebar-collapse aware positioning ------- */
+.gl-sidebar.collapsed ~ #toastContainer {
+  left: calc(var(--sidebar-width-collapsed, 48px) + 1rem);
+  max-width: min(28rem, calc(100vw - var(--sidebar-width-collapsed, 48px) - 2rem));
+}
+
+/* Reduced motion is handled by GP.motion, which collapses every toast tween to
+   a single frame - there is no CSS animation left here to override. */
+

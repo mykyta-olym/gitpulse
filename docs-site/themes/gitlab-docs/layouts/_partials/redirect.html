@@ -1,0 +1,19 @@
+{{ $redirectTo := .Params.redirect_to }}
+{{ if $redirectTo }}
+  <meta name="robots" content="noindex">
+  {{ if hasPrefix $redirectTo "http" }}
+    <!-- External link -->
+    <link rel="canonical" href="{{ $redirectTo }}">
+    <meta http-equiv="refresh" content="0; url={{ $redirectTo }}">
+  {{ else }}
+    <!-- Internal link -->
+    {{ $redirectPath := replace $redirectTo ".md" "" }}
+    {{ with relref . $redirectPath }}
+      <link rel="canonical" href="{{ . }}">
+      <meta http-equiv="refresh" content="0; url={{ . }}">
+    {{ else }}
+      <!-- Log an error for invalid internal redirect -->
+      {{ warnf "Invalid internal redirect path in %s: %s" .Page.File $redirectTo }}
+    {{ end }}
+  {{ end }}
+{{ end }}

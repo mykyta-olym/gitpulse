@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Course Management') }}{% endblock %}
+
+{% from "components/buttons.html" import btn, btn_icon_only, btn_link_icon_only %}
+{% from "components/badges.html" import badge %}
+{% from "components/responsive_text.html" import responsive_text %}
+{% from "components/cards.html" import card %}
+{% from "components/tables.html" import table_controls, data_table, sortable_header, table_empty, pagination_controls %}
+{% from "components/layout.html" import page_header, page_config with context %}
+{% from "components/forms.html" import search_input, select_field with context %}
+{% from "components/alerts.html" import status_indicator %}
+{% from "components/academic_period.html" import period_selector, period_badge, period_label with context %}
+{# Use the same badges in the visible and expanded teacher lists. #}
+{% macro teacher_chip(teacher, owners) -%}
+{{ badge(teacher, variant='teal' if teacher|lower in owners else 'info', size='sm') }}
+{%- endmacro %}
+
+{% block extra_head %}{% endblock %}
+
+{% set nav_active = 'courses' %}
+
+{% block content %}
+{% if is_admin %}
+{{ page_header(t('Course Teacher Management'), t('Assign teachers to courses. Manage course lifecycle.')) }}
+{% else %}
+{{ page_header(t('My Courses'), t('Courses you are assigned to as teacher.')) }}
+{% endif %}
+
+{% set ct_courses %}{{ t('All Courses') }}{% endset %}
+{# Finding a course is not an action on the table, so the search box goes in
+   the controls band rather than the card header - the same band, in the same
+   place, as every other table in the app. #}
+{% set courses_search %}
+{{ search_input(id='courseSearch', placeholder=t('Search courses...'), data_attrs={'filter': 'adminCoursesTable', 'filter-dropdowns': 'status:#courseStatusFilter@data-status'}) }}
+{% endset %}
+<div data-paginator="adminCoursesTable" data-controls="#paginationControls" data-page-size="50">
+{% call card(title=ct_courses, icon_name='book') %}
+    {# The period narrows this table the same way it narrows User Management,
+       and sits in the same place: the controls band, beside search. Status
+       keeps the running or the archived courses of that period - pre-set from
+       ?status= (a link from the Dashboard's "archived courses" item), and
+       written back to the address as it changes (TableFilter). #}
+    {% set courses_period %}
+    <div class="d-flex gap-2 items-center flex-wrap">
+      {{ select_field('courseStatusFilter', options=[('', t('All Statuses')), ('active', t('Active')), ('archived', t('Archived'))], value=request.query_params.get('status', ''), placeholder='', class='gl-form-dropdown-sm') }}
+      {{ period_selector(period_scope) }}
+    </div>
+    {% endset %}
+    {{ table_controls(search=courses_search, filters=courses_period) }}
+    {% call data_table(headers=[], class='tbl-fixed table-scrollable table-sticky-actions', sortable=true, id='adminCoursesTable') %}
+      <colgroup>
+        <col class="col-course-code">
+        <col class="col-course-name">
+        <col class="col-course-year">
+        <col class="col-course-status">
+        <col class="col-course-teachers">
+        <col class="col-course-actions">
+      </colgroup>
+      <thead>
+        <tr>
+          {{ sortable_header(t('Course Code'), 'course_code', default_sort='asc') }}
+          {{ sortable_header(t('Name'), 'name') }}
+          {{ sortable_header(t('Year / Semester'), 'year_semester') }}
+          {{ sortable_header(t('Status'), 'status') }}
+          <th data-tippy-content="{{ t('Assigned Teachers') }}">{{ responsive_text(t('Assigned Teachers'), t('Teachers')) }}</th>
+          <th class="col-course-actions text-right">{{ t('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in courses %}
+        <tr data-course-id="{{ course.id }}" id="course-{{ course.id }}" data-is-active="{{ 'true' if course.is_active else 'false' }}" data-status="{{ 'active' if course.is_active else 'archived' }}" data-course-period="{{ period_label(course.academic_year, course.semester) }}"
+            data-search="{{ course.code|lower }} {{ course.name|lower }} {{ course.academic_year|lower }} {{ course.semester|lower }} {{ (course_teacher_map.get(course.id, []) or []) | join(' ') | lower }}">
+          <td data-label="{{ t('Course Code') }}"><a href="/dashboard/courses/{{ course.id }}" class="course-code">{{ course.code }}</a></td>
+          <td data-label="{{ t('Name') }}"><span class="course-name">{{ course.name }}</span></td>
+          {%- set _pkey = (course.academic_year ~ '-' ~ course.semester)|replace('/', '-') %}
+          <td data-label="{{ t('Year / Semester') }}" data-sort-value="{{ course.academic_year }}-{{ '0' if course.semester == 'winter' else '1' }}">{{ period_badge(course.academic_year, course.semester, current=(period_scope and _pkey == period_scope.current_key)) }}</td>
+          <td class="status-cell" data-label="{{ t('Status') }}">
+            {% if course.is_active %}
+              {{ status_indicator('success', t('Active')) }}
+            {% else %}
+              {{ status_indicator('muted', t('Archived')) }}
+            {% endif %}
+          </td>
+          <td data-label="{{ t('Teachers') }}">
+            <div class="teacher-list">
+              {% set _staff_names = course_teacher_map.get(course.id, []) %}
+              {% if _staff_names %}
+                {% set owners = course_owners.get(course.id, []) %}
+                {% set ns = namespace(visible=[]) %}
+                {% for i in _staff_names %}{% if i|lower not in admin_usernames and not is_bot_user(i) %}{% set ns.visible = ns.visible + [i] %}{% endif %}{% endfor %}
+                {% for teacher in ns.visible[:3] %}{{ teacher_chip(teacher, owners) }}{% endfor %}
+                {% if ns.visible|length > 3 %}
+                <span class="teacher-overflow d-none">
+                  {% for teacher in ns.visible[3:] %}{{ teacher_chip(teacher, owners) }}{% endfor %}
+                </span>
+                {{ btn_icon_only('chevron-down', variant='tertiary', size='sm', title=t('Show all teachers') ~ ' (' ~ ns.visible|length ~ ')', aria_pressed=false, data_attrs={'expand-toggle': '', 'no-process-lock': '1', 'label-less': t('Show less'), 'label-more': t('Show all teachers') ~ ' (' ~ ns.visible|length ~ ')'}) }}
+                {% endif %}
+                {% if not ns.visible %}
+                <span class="no-teachers">{{ t('All teachers (no restrictions)') }}</span>
+                {% endif %}
+              {% else %}
+              <span class="no-teachers">{{ t('All teachers (no restrictions)') }}</span>
+              {% endif %}
+            </div>
+          </td>
+          <td class="col-course-actions text-right">
+            <div class="gl-row-actions">
+              {# Icon-only, like the rest of this group. Labelled, it was the
+                 widest thing in a 12% column and pushed the three icons onto a
+                 second line, so that row stood ~40px taller than the ones around
+                 it. `btn_link_icon_only`, not a `btn_link_icon` with no words:
+                 that one kept its text padding and was 34px wide beside 24px
+                 squares. #}
+              {{ btn_link_icon_only('edit', '/dashboard/courses/' ~ course.id ~ '/teachers', t('Assign teachers'), size='sm') }}
+              {% if is_admin %}
+              {% if course.is_active %}
+              {{ btn_icon_only('archive', variant='warning', size='sm', class='btn-archive-course', data_attrs={'course-id': course.id|string, 'course-code': course.code, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Archive')}) }}
+              {% else %}
+              {{ btn_icon_only('check-circle', variant='success', size='sm', class='btn-activate-course', data_attrs={'course-id': course.id|string, 'course-code': course.code, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Activate')}) }}
+              {{ btn_icon_only('trash', variant='danger', size='sm', class='btn-delete-course', data_attrs={'course-id': course.id|string, 'course-code': course.code, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Delete permanently')}) }}
+              {% endif %}
+              {{ btn_link_icon_only('settings', '/dashboard/courses/' ~ course.id ~ '/settings', t('Settings'), size='sm') }}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not courses %}
+        {% if period_scope and period_scope.selected %}
+        {{ table_empty(t('No courses in {period}.', period=period_label(period_scope.selected.academic_year, period_scope.selected.semester)), colspan=6) }}
+        {% else %}
+        {{ table_empty(t('No courses found. Create your first course to get started.'), colspan=6) }}
+        {% endif %}
+        {% endif %}
+      </tbody>
+    {% endcall %}
+    {{ pagination_controls(total=courses | length, page_size=default_page_size | default('50')) }}
+{% endcall %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+{# `isAdmin` / `isTeacher` come from page_config itself now. `canEdit` stays an
+   explicit override: on an admin page it means ADMIN, where the shared flag
+   would say true for a teacher - who can open this page but change nothing. #}
+{{ page_config({'canEdit': is_admin | default(false)}, csp_nonce) }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/admin-courses.js') }}"></script>
+{% endblock %}

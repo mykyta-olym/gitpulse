@@ -1,0 +1,58 @@
+{{/*
+  Extract the clean path by stripping version/review app/language prefixes
+
+  @param dict
+    $path string - The full path to clean
+  @return string
+    The path with all known prefixes stripped
+*/}}
+
+{{- $keepTrailingSlash := and (ne .path "/") (hasSuffix .path "/") -}}
+{{- $segments := split (strings.Trim .path "/") "/" -}}
+
+{{- /* Strip the site's own base path.
+       docs.gitlab.com is served at a domain root, so upstream never sees one.
+       This site lives under /docs/, which made every RelPermalink come back as
+       "docs/<page>/" and match nothing in page-metadata.json - so every page
+       reported no navigation trail and lost its sidebar and breadcrumbs. */ -}}
+{{- $basePath := strings.Trim (urls.Parse site.BaseURL).Path "/" -}}
+{{- if and (ne $basePath "") (gt (len $segments) 0) (eq (index $segments 0) $basePath) -}}
+  {{- $segments = after 1 $segments -}}
+{{- end -}}
+
+{{- /* Strip up to 3 known prefixes (review app, version, language) */ -}}
+{{- range $i := seq 3 -}}
+  {{- if gt (len $segments) 0 -}}
+    {{- $firstSegment := index $segments 0 -}}
+
+    {{- /* Check all prefix types and strip if found */ -}}
+    {{- $isPrefix := false -}}
+    {{- if eq (partial "functions/is-stable-version" (dict "version" $firstSegment)) "true" -}}
+      {{- $isPrefix = true -}}
+    {{- else if eq (partial "functions/is-review-app" (dict "segment" $firstSegment)) "true" -}}
+      {{- $isPrefix = true -}}
+    {{- else -}}
+      {{- /* Check language codes */ -}}
+      {{- range site.Languages -}}
+        {{- if eq $firstSegment .Lang -}}
+          {{- $isPrefix = true -}}
+          {{- break -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+
+    {{- if $isPrefix -}}
+      {{- $segments = after 1 $segments -}}
+    {{- else -}}
+      {{- break -}} {{- /* No more prefixes found, stop */ -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Rebuild path */ -}}
+{{- $cleanPath := cond (gt (len $segments) 0) (delimit $segments "/") "" -}}
+{{- if $keepTrailingSlash -}}
+  {{- printf "%s/" $cleanPath -}}
+{{- else -}}
+  {{- $cleanPath -}}
+{{- end -}}

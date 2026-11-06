@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ t('User Management') }}{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{# Import component macros #}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/modals.html" import modal %}
+{% from "components/forms.html" import text_input, select_field, checkbox with context %}
+{% from "components/layout.html" import page_header, page_config with context %}
+{% from "components/loaders.html" import block_loading %}
+
+{% set nav_active = 'users' %}
+
+{% block content %}
+{% call page_header(t('User Management'), t('Manage OAuth users and their roles. Users appear here after their first GitLab login.')) %}
+  <form class="m-0" id="enrichForm">
+    {{ btn_icon(t('Refresh from GitLab'), 'refresh-cw', variant='secondary', type='submit', id='enrichBtn', title=t('Re-sync names, emails, and avatars from GitLab for all users')) }}
+  </form>
+{% endcall %}
+
+{% include "partials/admin/_users_content.html" %}
+
+
+{% endblock %}
+
+{% block modals %}
+<!-- User Info Modal -->
+{% call modal('userInfoModal', t('User Info')) %}
+<div id="userInfoContent">
+  {{ block_loading(height='120px', label=t('Loading user info...'), size='md') }}
+</div>
+<div class="modal-footer">
+  {{ btn(t('Close'), variant='secondary', data_attrs={'modal-close': 'userInfoModal'}) }}
+</div>
+{% endcall %}
+
+<!-- Edit User Modal -->
+{% if is_admin %}
+{% call modal('editUserModal', t('Edit User')) %}
+<form id="editUserForm" data-submit-action="updateUser">
+  <input type="hidden" id="editUserId" name="user_id">
+  {{ text_input('username', label=t('Username (GitLab)'), id='editUsername', disabled=true, help_text=t('Synced from GitLab - cannot be changed'), autocomplete='off') }}
+  {{ select_field('role', label=t('Role'), options=[('student', t('Student')), ('teacher', t('Teacher')), ('admin', t('Admin'))], required=true, id='editRole', help_text=t('Role determines access level in the system'), placeholder='') }}
+  {{ checkbox('is_active', label=t('Account Active'), id='editIsActive', help_text=t('Deactivated users cannot log in')) }}
+  {{ checkbox('is_bot', label=t('Service Account (bot)'), id='editIsBot', help_text=t('Mark as GitLab service account / bot. Bots are hidden from the main user table and stats. Toggle off to restore a mistakenly tagged human account.')) }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'editUserModal'}) }}
+    {{ btn(t('Save Changes'), type='submit', id='editUserBtn') }}
+  </div>
+</form>
+{% endcall %}
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{# `isAdmin` / `isTeacher` come from page_config itself now. `canEdit` stays an
+   explicit override: on an admin page it means ADMIN, where the shared flag
+   would say true for a teacher - who can open this page but change nothing. #}
+{{ page_config({'canEdit': is_admin | default(false)}, csp_nonce) }}
+{# user-info-modal.js is NOT loaded here any more. It was loaded on this page
+   alone, while the modal that needs it opens from member tables, discussion
+   notes and project pages too - so this was the only page that got the real
+   card. core/12-user-info.js now fetches it on the first open, from anywhere. #}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/admin-users.js') }}"></script>
+{% endblock %}

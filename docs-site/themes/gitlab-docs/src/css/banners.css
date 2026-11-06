@@ -1,0 +1,14 @@
+/* Sticky l10n banner */
+.l10n-sticky-banner {
+  top: var(--header-height-lg);
+}
+@media (max-width: 991px) {
+  .l10n-sticky-banner {
+    top: var(--header-height);
+  }
+  }
+
+/* Survey banner */
+[data-vue-app="survey-banner"].vue-loading {
+  display: none;
+}

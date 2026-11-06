@@ -1,0 +1,8 @@
+# Disable non-default languages for archives
+languages:
+  ja-jp:
+    disabled: true
+  fr-fr:
+    disabled: true
+  ko-kr:
+    disabled: true

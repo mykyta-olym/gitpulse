@@ -1,0 +1,24 @@
+<section class="search-hero gl-mx-5">
+  <div class="search-hero-bg">
+    <div class="bg-left"></div>
+    <div class="bg-top"></div>
+    <div class="bg-right"></div>
+    <div class="bg-bottom"></div>
+  </div>
+  <nav data-ga-section="header" data-elastic-exclude>
+    {{ partial "header.html" . }}
+  </nav>
+  <div class="container">
+    <h1 id="find-gitLab-answers-fast" class="gl-my-3">{{ T "landing-search.findGLAnswers"}}</h1>
+    <div class="js-pagefind-search-form gl-spinner-container" data-search-kbd>
+          <span role="status" aria-label="Loading" class="gl-spinner gl-spinner-light gl-spinner-md"></span>
+      </div>
+    <ul class="quick-links gl-flex gl-justify-center gl-gap-7 gl-flex-wrap gl-mt-5 lg:gl-mt-7 gl-mb-0 gl-list-none">
+      {{ $q := (index .Site.Data .Lang "landing").quickLinks }}
+      {{ if not $q }}{{ $q = (index .Site.Data site.Params.defaultLang "landing").quickLinks }}{{ end }}
+      {{ range $q }}
+      <li><a href="{{ relLangURL "" }}{{ strings.TrimPrefix "/" .url }}" class="gl-text-white gl-inline-block gl-whitespace-nowrap">{{ .title }}</a></li>
+      {{ end }}
+    </ul>
+  </div>
+</section>

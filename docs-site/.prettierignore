@@ -1,0 +1,8 @@
+/coverage/
+/node_modules/
+/public/
+/tmp/
+
+# Ignore yml files since prettier formatting clashes with yamllint.
+# https://github.com/adrienverge/yamllint/issues/443
+*.yml

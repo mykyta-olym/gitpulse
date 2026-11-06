@@ -1,0 +1,251 @@
+/* main.css for shared sitewide styles */
+
+@import "tailwind.css";
+@import "variables.css";
+@import "typography.css";
+@import "layout.css";
+@import "header.css";
+@import "footer.css";
+@import "cards.css";
+@import "lightbox.css";
+@import "mermaid.css";
+@import "print.css";
+
+
+html {
+  overflow-y: scroll;
+}
+
+/* Dark mode */
+.gl-dark {
+  color-scheme: dark;
+    svg {
+      fill: var(--gl-color-brand-white);
+  }
+}
+.gl-light {
+  color-scheme: light;
+}
+
+/* Pajamas overrides */
+.gl-button:not(.gl-search-box-by-click-search-button):not(.copy-for-llm .gl-button) {
+  border-radius: 8px !important;
+}
+
+/* Modal overlays */
+.modal-backdrop {
+  top: var(--header-height);
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s linear;
+}
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
+
+
+
+/* Bootstrap-style collapsible sections */
+.collapse {
+  display: block;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .5s cubic-bezier(0, 1, 0, 1);
+}
+.collapse.show {
+  max-height: 99em;
+  transition: max-height .5s ease-in-out;
+}
+
+/* Search */
+nav.header {
+  .search-form,
+  .search-form-wrapper,
+  .search-results {
+    width: calc(100vw - 3rem);
+    @media (min-width: 992px) {
+      width: var(--search-sm-width);
+    }
+    @media (min-width: 1110px) {
+      width: var(--search-lg-width);
+    }
+  }
+
+  .search-form .input-group-append {
+    background-color: inherit;
+  }
+}
+.gl-form-input.gl-search-box-by-click-input {
+  height: auto;
+}
+.search-form-wrapper kbd {
+  background-color: var(--gl-background-color-default);
+  color: var(--gl-text-color-default);
+  display: inline;
+  top: 0.25rem;
+  right: 0.3rem;
+  font-size: 1rem;
+}
+.gl-dark .search-form-wrapper kbd {
+  background-color: var(--gl-color-brand-white);
+  color: var(--gl-color-brand-charcoal);
+}
+.header .search-form-wrapper kbd {
+  /* Don't show kbd on mobile version */
+  @media (max-width: 992px) {
+    display: none;
+  }
+}
+.gl-search-box-by-type-input:not(.home .gl-search-box-by-type-input) {
+  border-radius: 8px;
+}
+.home .container .search-results {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  line-height: 1.6;
+  a {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8rem;
+  }
+}
+.search-results a {
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.search-results a:hover,
+.search-results a:focus {
+  text-decoration: none;
+  background-color: var(--gl-background-color-strong);
+  color: var(--gray-700);
+  outline: none;
+}
+.gl-search-box-by-click {
+  width: var(--search-lg-width);
+}
+
+/* Search overlay */
+body.home .modal-backdrop {
+  display: none;
+}
+.modal-backdrop {
+  top: var(--header-height);
+}
+
+/* Search results page */
+.template-search-results .main-content {
+  margin-right: 0;
+}
+
+/* Override styles for search results pagination element */
+.gl-pagination {
+  a {
+    border-bottom: 0 !important;
+  }
+
+  .gl-pagination-item:not(.disabled).active:active {
+    color: var(--gl-color-brand-white) !important;
+  }
+  .gl-pagination-item:not(.active) {
+    color: var(--gl-action-neutral-foreground-color-default) !important;
+  }
+
+  .disabled .gl-pagination-item {
+    border-color: var(--gl-border-color-transparent, var(--gl-color-alpha-0, transparent));
+    background-color: transparent;
+    color: var(--gl-action-disabled-foreground-color) !important;
+  }
+}
+
+/* Pagefind UI overrides */
+#search-container {
+  .pagefind-ui {
+    color: var(--gl-text-color-default);
+    ol {
+      padding-inline-start: 0;
+    }
+  }
+
+  /* Magnifiying glass icon */
+  .pagefind-ui__form::before {
+    background-color: var(--gl-text-color-default);
+    z-index: 1;
+  }
+
+  .pagefind-ui__result-tags {
+    display: none;
+  }
+
+  input {
+    background-color: var(--gl-background-color-default);
+    color: var(--gl-text-color-default);
+  }
+
+  button {
+    background-color: transparent;
+    color: var(--gl-text-color-default);
+  }
+
+  /* Clear button */
+  .pagefind-ui__search-clear {
+    border: 0;
+  }
+
+  /* Main search result links */
+  a {
+    color: var(--gl-status-brand-text-color);
+    text-decoration: none;
+    border-bottom: 0;
+  }
+
+  .pagefind-ui__result-excerpt {
+    word-break: break-word;
+  }
+}
+
+/**
+ * Fill in styles that are missing from GitLab UI
+*/
+/* gl-display-block is still needed for GlDiscloseDropdown. See https://gitlab.com/gitlab-org/technical-writing/docs-gitlab-com/-/merge_requests/87/diffs#note_1935946247 */
+.gl-display-block,
+.gl-display-block\! {
+  display: block !important;
+}
+/* Fixes the chevron icon. See https://gitlab.com/gitlab-org/gitlab-ui/-/issues/2095 */
+.gl-form-select {
+  background-image: url('data:image/svg+xml,%3Csvg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath fill-rule="evenodd" clip-rule="evenodd" d="M0.21967 0.21967C0.512563 -0.0732232 0.987437 -0.0732232 1.28033 0.21967L4 2.93934L6.71967 0.21967C7.01256 -0.073223 7.48744 -0.0732229 7.78033 0.21967C8.07322 0.512563 8.07322 0.987437 7.78033 1.28033L4.53033 4.53033C4.23744 4.82322 3.76256 4.82322 3.46967 4.53033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z" fill="%23666666"/%3E%3C/svg%3E%0A');
+}
+
+
+
+/* The role badge and whatever follows it were flush against each other. */
+.availability {
+  margin-bottom: 1rem;
+}
+
+
+/* The footer attribution, as a definition list so the facts stack as label and
+   value inside their column. It used to be a full-width block under the grid
+   with a border across the top, which read as a second footer; it is one of the
+   footer's columns now, and `.gp-footer-copy` lives in footer.css with the bar
+   it belongs to. */
+.gp-footer-meta {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.gp-footer-meta dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.125rem;
+}
+
+.gp-footer-meta dd {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--gl-color-brand-white);
+}

@@ -1,0 +1,60 @@
+{{/*
+  Server-renders the active top-level section's side navigation.
+
+  Renders only the current section's submenu tree (not the full ~3k-node nav),
+  with the active trail marked, so crawlers and no-JS clients see real side-nav
+  links in the HTML. The Vue `SidebarMenu` component replaces this markup on
+  hydration, restoring collapse/mobile/topic-switcher behavior.
+
+  @param Page
+    The page object (passed as the dot context).
+*/}}
+{{- $lang := .Language.Lang | default site.Params.defaultLang -}}
+
+{{- /* Read the active trail; bail out when the page has no left nav. */ -}}
+{{- $trailJSON := partial "functions/page-metadata" (dict "Context" . "field" "trail_json") | default "[]" | string -}}
+{{- if ne $trailJSON "[]" -}}
+  {{- $trail := unmarshal $trailJSON -}}
+  {{- if gt (len $trail) 0 -}}
+    {{- $activeSection := (index $trail 0).title -}}
+    {{- /* page-metadata trail paths are locale-prefixed (e.g. "sk/uvod/") but
+           navigation.yaml URLs are not, so strip the prefix before matching.
+           Href construction in sidebar-nav-items.html re-adds it.
+
+           TrimPrefix unconditionally: which languages the metadata generator
+           prefixes is its business, and asking "is this one particular
+           language" got the answer wrong for every site whose default is not
+           the generator's. Trimming a prefix that is not there costs nothing. */ -}}
+    {{- $langPrefix := printf "%s/" $lang -}}
+    {{- $rawActive := (index $trail (sub (len $trail) 1)).path -}}
+    {{- $activePath := strings.TrimPrefix $langPrefix $rawActive -}}
+    {{- $trailPaths := slice -}}
+    {{- range $trail -}}
+      {{- $p := strings.TrimPrefix $langPrefix .path -}}
+      {{- $trailPaths = $trailPaths | append $p -}}
+    {{- end -}}
+
+    {{- /* Load navigation.yaml from site data (cached), falling back to the
+           site's default language. */ -}}
+    {{- $langData := index site.Data $lang -}}
+    {{- $nav := index $langData "navigation" -}}
+    {{- if not $nav -}}
+      {{- $nav = index (index site.Data site.Params.defaultLang) "navigation" -}}
+    {{- end -}}
+
+    {{- /* Render the submenu of the top-level section that matches the trail. */ -}}
+    {{- range $nav -}}
+      {{- if and (eq .title $activeSection) .submenu -}}
+        <div class="gl-pt-6">
+          <aside class="global-nav-wrapper" aria-label="{{ T "navBar.mainNavigation" }}">
+            <div class="global-nav">
+              <nav aria-label="{{ T "navBar.main" }}">
+                {{- partial "sidebar-nav-items.html" (dict "items" .submenu "trailPaths" $trailPaths "activePath" $activePath "lang" $lang) -}}
+              </nav>
+            </div>
+          </aside>
+        </div>
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

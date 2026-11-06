@@ -1,0 +1,114 @@
+# Global navigation for the GitPulse documentation.
+# GENERATED per language from that language's content by scripts/gen_docs_nav.py
+# NOTE: no commas in these comments - Hugo unmarshal guesses the format
+# from the content and a comma makes it read this YAML as CSV.
+
+- title: Úvod
+  url: 'uvod/'
+  submenu:
+    - title: Architektúra systému
+      url: 'uvod/architektura/'
+    - title: Ciele diplomovej práce
+      url: 'uvod/ciele/'
+    - title: Osobné predvoľby
+      url: 'uvod/predvolby/'
+    - title: Prehľad projektu
+      url: 'uvod/prehlad/'
+- title: Učitelia
+  url: 'ucitelia/'
+  submenu:
+    - title: Asistent cvičení
+      url: 'ucitelia/asistent/'
+    - title: Dashboard a metriky
+      url: 'ucitelia/dashboard/'
+    - title: Často kladené otázky
+      url: 'ucitelia/faq/'
+    - title: Interpretácia výsledkov
+      url: 'ucitelia/interpretacia/'
+    - title: Vyhodnotenie vo výučbe
+      url: 'ucitelia/pilot/'
+    - title: Začíname
+      url: 'ucitelia/zaciname/'
+- title: Študenti
+  url: 'studenti/'
+  submenu:
+    - title: FAQ pre študentov
+      url: 'studenti/faq/'
+    - title: Pochopenie metrík
+      url: 'studenti/metriky/'
+    - title: Začíname
+      url: 'studenti/zaciname/'
+- title: Vývojári
+  url: 'vyvojari/'
+  submenu:
+    - title: Databázové migrácie
+      url: 'vyvojari/migracie/'
+    - title: Prispievanie
+      url: 'vyvojari/prispievanie/'
+    - title: Lokálne prostredie
+      url: 'vyvojari/prostredie/'
+    - title: Štruktúra projektu
+      url: 'vyvojari/struktura/'
+    - title: Testovanie
+      url: 'vyvojari/testovanie/'
+- title: Prevádzka
+  url: 'operatori/'
+  submenu:
+    - title: Aktualizácie
+      url: 'operatori/aktualizacie/'
+    - title: Monitoring
+      url: 'operatori/monitoring/'
+    - title: Nasadenie
+      url: 'operatori/nasadenie/'
+    - title: Troubleshooting
+      url: 'operatori/troubleshooting/'
+    - title: Zálohovanie
+      url: 'operatori/zalohovanie/'
+- title: GitLab
+  url: 'gitlab/'
+  submenu:
+    - title: CI/CD integrácia
+      url: 'gitlab/cicd/'
+    - title: Prístupové tokeny
+      url: 'gitlab/tokeny/'
+    - title: Webhooky
+      url: 'gitlab/webhooky/'
+- title: API
+  url: 'api/'
+- title: Bezpečnosť
+  url: 'bezpecnost/'
+  submenu:
+    - title: Hardening
+      url: 'bezpecnost/hardening/'
+    - title: Model hrozieb
+      url: 'bezpecnost/hrozby/'
+    - title: Bezpečnostný model
+      url: 'bezpecnost/model/'
+- title: Diplomovka
+  url: 'diplomovka/'
+  submenu:
+    - title: 1. Úvod
+      url: 'diplomovka/uvod/'
+    - title: 2. Analýza tímových zadaní
+      url: 'diplomovka/analyza/'
+    - title: 3. Existujúce nástroje
+      url: 'diplomovka/nastroje/'
+    - title: 4. Získavanie údajov z GitLabu
+      url: 'diplomovka/preskumanie/'
+    - title: 5. Návrh platformy GitPulse
+      url: 'diplomovka/navrh/'
+    - title: 6. Realizácia riešenia
+      url: 'diplomovka/realizacia/'
+    - title: 7. Metódy vyhodnotenia
+      url: 'diplomovka/vyhodnotenie/'
+    - title: 8. Záver
+      url: 'diplomovka/zaver/'
+- title: Zmeny
+  url: 'changelog/'
+- title: Právne
+  url: 'pravne/'
+  submenu:
+    - title: Vyhlásenie o ochrane osobných údajov
+      url: 'pravne/ochrana-udajov/'
+    - title: Podmienky používania
+      url: 'pravne/podmienky/'

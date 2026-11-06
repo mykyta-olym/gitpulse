@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% block title %}{{ student.gitlab_username }}{% endblock %}
+
+{% block extra_head %}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/chart-4.4.7.min.js') }}"></script>
+{% endblock %}
+  
+{% from "components/layout.html" import page_header %}
+{% from "components/layout.html" import tab_content with context %}
+
+{% set nav_active = 'student' %}
+{% set _role = member_role_label|default('Student') %}
+{% set _is_teacher_profile = _role in ('Admin', 'Teacher', 'Mentor') %}
+{% set _from_project = from_project|default(none) %}
+{% set _project_display = (_from_project.gitlab_project_name or _from_project.gitlab_project_path) if _from_project else none %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'href': '/dashboard/courses/' ~ course.id, 'label': course.code}, {'href': '/dashboard/teams/' ~ team.id, 'label': team.name}] %}
+{% if _from_project %}{% set _ = breadcrumb_items.append({'href': '/dashboard/projects/' ~ _from_project.id, 'label': _project_display}) %}{% endif %}
+{% set _ = breadcrumb_items.append({'label': student.full_name or student.gitlab_username}) %}
+
+{# Archived course = read-only. This page carries a write action too (Run
+   Checks), so it needs the same strip + marker as the group / project pages. #}
+
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{% if _from_project %}
+  {% set _back_link = '/dashboard/projects/' ~ _from_project.id %}
+  {% set _back_text = t('Back to') ~ ' ' ~ _project_display %}
+{% else %}
+  {% set _back_link = '/dashboard/teams/' ~ team.id %}
+  {% set _back_text = t('Back to Group') %}
+{% endif %}
+{% if is_own_profile %}
+  {{ page_header(t('Your Profile'), team.name ~ ' - ' ~ (course.code if course else ''), back_link=_back_link, back_text=_back_text, badge=period_badge(course.academic_year, course.semester, current=is_current_period(course.academic_year, course.semester)) if course else '') }}
+{% else %}
+  {% set _subtitle = team.name ~ ' - ' ~ (course.code if course else '') %}
+  {{ page_header(student.full_name or student.gitlab_username, _subtitle, back_link=_back_link, back_text=_back_text, badge=period_badge(course.academic_year, course.semester, current=is_current_period(course.academic_year, course.semester)) if course else '') }}
+{% endif %}
+
+{% call tab_content(course) %}
+  {{ content_html|safe }}
+{% endcall %}
+{% endblock %}

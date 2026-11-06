@@ -1,0 +1,55 @@
+# The @NAME@ placeholders are filled from .env.production when the container
+# starts (see the alertmanager service in docker-compose.yml): the application's
+# own SMTP account sends the alerts, to ALERT_EMAIL_TO. The password is not
+# here - it reaches the container as the compose secret `smtp_password`, and
+# /tmp/smtp_password is that secret without its whitespace.
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: "@SMTP_HOST@:@SMTP_PORT@"
+  smtp_from: "GitPulse alerts <@SMTP_FROM_EMAIL@>"
+  smtp_auth_username: "@SMTP_USERNAME@"
+  smtp_auth_password_file: /tmp/smtp_password
+  smtp_require_tls: true
+
+# The email itself - GitPulse's mail chrome with GitLab's pipeline status bar.
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
+route:
+  group_by: ["alertname", "service", "component"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: ops-default
+  routes:
+    - matchers:
+        - severity = critical
+      receiver: ops-critical
+      group_wait: 0s
+      repeat_interval: 1h
+
+receivers:
+  - name: ops-default
+    email_configs:
+      - to: "@ALERT_EMAIL_TO@"
+        send_resolved: true
+        headers:
+          Subject: '{{ template "gitpulse.email.subject" . }}'
+        html: '{{ template "gitpulse.email.html" . }}'
+        text: '{{ template "gitpulse.email.text" . }}'
+
+  - name: ops-critical
+    email_configs:
+      - to: "@ALERT_EMAIL_TO@"
+        send_resolved: true
+        headers:
+          Subject: '{{ template "gitpulse.email.subject" . }}'
+        html: '{{ template "gitpulse.email.html" . }}'
+        text: '{{ template "gitpulse.email.text" . }}'
+
+inhibit_rules:
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: ["alertname", "service", "component"]

@@ -1,0 +1,42 @@
+{#
+  Loader Components - the spinner + label loading states
+
+  Usage:
+    from "components/loaders.html" import block_loading, sk_table_loading
+    from "components/spinner.html"  import spinner
+#}
+
+{% from "components/icons.html" import icon %}
+{# THE loading mark lives in its own dependency-free template: this file imports
+   buttons.html, so buttons.html cannot import back from here. #}
+{% from "components/spinner.html" import spinner %}
+
+
+{# ============================================================
+   LOADER COMPONENTS - Componentized spinner loading (GitLab Pajamas)
+   ============================================================ #}
+
+{# The ONE loading state for a table body. Same box as the empty state, so
+   loading / empty / loaded are three states of one shape rather than three
+   layouts - which is what stops the container resizing between them. #}
+{% macro sk_table_loading(cols=6, label=None) %}
+<tr class="table-empty-row table-loading-row">
+  <td colspan="{{ cols }}">
+    <div class="table-empty-state table-loading-state">
+      <div class="table-empty-icon">{{ spinner(size='md') }}</div>
+      <p class="table-empty-message">{{ label or t('Loading...') }}</p>
+    </div>
+  </td>
+</tr>
+{% endmacro %}
+
+{# THE loading state for any block whose content arrives after first paint.
+   The tanuki, its label, and the height the content is going to occupy - so the
+   block is the right size from the first frame and nothing below it moves when
+   the data lands. A spinner says "waiting" and cannot be mistaken for content. #}
+{% macro block_loading(height='200px', label=None, size='lg') %}
+<div class="gp-block-loading" style="min-height: {{ height }}" role="status" aria-live="polite">
+  {{ spinner(size=size) }}
+  <p class="gp-block-loading-text">{{ label or t('Loading...') }}</p>
+</div>
+{% endmacro %}

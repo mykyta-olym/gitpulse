@@ -1,0 +1,351 @@
+/* ============================================
+   ANIMATIONS - GitLab Pajamas Design System
+   ============================================ */
+
+/* Full-document redirects retain the browser's old frame until the new
+   document can paint. One short crossfade, without scaling or card entrances.
+   In-app navigation uses GP.motion's cover while page scripts initialise. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-group(root) {
+  animation-duration: var(--motion-duration-normal);
+  animation-timing-function: var(--motion-ease-standard);
+}
+/* The incoming document's first-frame gate also waits for its page scripts.
+   Keep the old browser snapshot opaque until that gate opens. */
+html[data-gp-gate]:not([data-gp-ready])::view-transition-old(root),
+html[data-gp-gate]:not([data-gp-ready])::view-transition-new(root) {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
+
+/* One continuous fill, completed and faded by GP.motion after the last release. */
+#gp-top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+  z-index: calc(var(--z-toast) + 5);
+  overflow: hidden;
+  opacity: 0;
+  transition-property: none;
+  padding-top: env(safe-area-inset-top, 0);
+}
+#gp-top-progress.is-active,
+#gp-top-progress.is-finishing { opacity: 1; }
+.gp-top-progress-bar {
+  width: 0;
+  height: 100%;
+  background: var(--primary);
+}
+
+/* tableReveal removed - even transform-only animation created a compositor
+   layer that prevented right-side td backgrounds from painting during
+   the 0.3 s reveal, causing a visible stripe cut artefact. */
+
+/* The loading state -> content hand-off is GP.motion.loadingHandoff. It has to
+   be JS: a loader that is already hidden must NOT animate out (fading out
+   something already invisible while fading the content in is what reads as the
+   reveal fighting the loader), and the cross-fade has to pin the loader over its
+   own box so the card never holds both heights. Neither is a keyframe. */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* TRANSFORM ONLY - deliberately no `opacity` here.
+   The dialog is a child of .modal-backdrop, which runs fadeIn/fadeOut at the
+   same time. Nested opacity MULTIPLIES, so animating it in both places faded
+   the dialog in twice over, and because the dialog uses --motion-ease-spring
+   (cubic-bezier(0.34, 1.4, ...), which overshoots past 1) the value ran above
+   1, clamped, then settled - a visible double-expose / blink of everything
+   inside the modal. The backdrop owns the fade; the dialog only moves, which
+   is where a spring overshoot is actually wanted.
+   The dialog now GROWS from its own centre (scale) rather than sliding up from
+   below - it appears at its resting position and settles into it, instead of
+   travelling in from off-screen. transform-origin: center is the modal default. */
+/* Measured on an open GitLab modal: `.modal-dialog` carries
+   `transition: transform 0.3s ease-out` and travels from 50px above its resting
+   place - Bootstrap's modal motion, which GitLab keeps. Ours used to grow from
+   scale(0.85) on a spring, which reads as a different component entirely. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* THE popover entrance for a panel CSS opens (date picker, mobile filter
+   panel) - GP.motion.popIn in keyframe form: opacity and a 4px rise, over
+   --gl-anim-fast. The CSS dropdown transitions the same two values. */
+@keyframes gp-pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* -- Course card hover lift --
+   PERF: `will-change` + `backface-visibility:hidden` removed.  These
+   permanently promoted every card to its own GPU layer, which (a) forced
+   text re-rasterisation on every scroll -> visible blur until idle,
+   and (b) ballooned compositor memory on dashboards with many cards.
+   Modern browsers already handle hover transforms efficiently. */
+.course-card {
+  transition: border-color var(--transition-normal),
+              box-shadow var(--transition-normal);
+}
+.course-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* The badge pop is GP.motion.pop (core/45-gsap-motion.js). It was declared here
+   AND in sidebar.css on a different easing, so the same badge popped differently
+   depending on which rule won; replaying it also needed a remove / force-reflow
+   / re-add dance plus an `animationend` listener at every call site. */
+
+/* -- HTMX content entrance --
+   REMOVED: the staggered `contentEnter` reveal made lazy-loaded cards
+   pop in one-by-one after every swap, which read as blinking. Content
+   now appears instantly when swapped in. */
+
+/* No `scroll-behavior: smooth` on <html>. It was global, so it did not just
+   ease anchor clicks - it animated EVERY programmatic scroll in the app
+   (`scrollIntoView` on a jump-to-row, the search palette, restoring position
+   after an SPA swap), each one several hundred ms during which the page ignores
+   the wheel. GitLab sets no `scroll-behavior` anywhere in @gitlab/ui 136.2.0
+   (`grep -r scroll-behavior src/` -> no hits); jumps there are instant. */
+
+/* -- Checkbox / toggle micro-interaction -- */
+input[type="checkbox"] {
+  transition: background-color var(--transition-control),
+              border-color var(--transition-control),
+              box-shadow var(--transition-control);
+}
+
+/* -- JS-driven animation utility classes -- */
+
+/* The change-feedback flash is GP.motion.flash / GP.flashValue
+   (core/45-gsap-motion.js). `.value-updated` had been reduced to
+   `background-color: transparent`, so every live update in the app arrived with
+   no feedback at all while six separate call sites still did the
+   remove / force-reflow / re-add dance to "replay" it. `cellFlashDanger` had no
+   rule using it, and the two `animation: none` overrides below it existed only
+   to switch off animations that were already gone. */
+
+/* Spin utility (for refresh icons / loaders) */
+.spin {
+  animation: spin var(--gl-anim-spin) linear infinite;
+  /* SVG elements default `transform-origin` to 0 0 in many browsers,
+     which makes rotation appear to wobble around the top-left corner
+     instead of spinning around the icon's centre - users perceived this
+     as the spinner being "stuck" on the DLQ table loader row.
+     Using `transform-box: fill-box` rebases the origin onto the SVG's
+     own bounding box so 50% 50% truly means the visual centre of the
+     rendered icon, regardless of viewBox. */
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+}
+
+.gl-spinner-inline {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+/* Modal-open body lock */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Scroll lock on body - also lock the main content area scrollbar.
+   scrollbar-gutter: stable on .gl-page-content prevents layout shift
+   when overflow toggles between auto and hidden. */
+body.scroll-locked {
+  overflow: hidden;
+}
+body.scroll-locked .gl-page-content {
+  overflow: hidden;
+  /* Keep the gutter reserved (overflow:hidden is still a scroll container) so the
+     content width - and thus its horizontal position - does not change on lock. */
+  scrollbar-gutter: stable;
+}
+
+/* Disclosure motion is GP.motion.disclose. The `animation: none` overrides that
+   used to sit here (two for <details> children, one for the pipeline chart)
+   existed only to switch off entrance animations that were themselves removed
+   long ago - they suppressed nothing.
+
+   Note card transitions (no entrance animation, to avoid re-animation flicker
+   when ClientPaginator toggles display). */
+.nr {
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+/* -- Global link transitions -- */
+a:not(.btn) {
+  transition: color var(--transition-normal),
+              opacity var(--transition-normal);
+}
+
+/* -- Motion System Utilities --
+   Deliberately SMALL. Removed as unused flair (no template ever applied
+   them, or they were cut in the app-wide animation rethink): .motion-page-enter,
+   .motion-soft-reveal (+ IntersectionObserver machinery in 40-motion.js),
+   .motion-scale-in, .motion-fade-slide, .motion-htmx-enter/-exit. Motion here
+   exists only for: overlay enter/exit, loading, change feedback, layout ease. */
+.motion-card {
+  transition: border-color var(--motion-duration-normal) var(--motion-ease-standard),
+              box-shadow var(--motion-duration-normal) var(--motion-ease-standard),
+              background var(--motion-duration-normal) var(--motion-ease-standard);
+}
+
+.motion-card-interactive {
+  transition: border-color var(--motion-duration-normal) var(--motion-ease-standard),
+              box-shadow var(--motion-duration-normal) var(--motion-ease-standard),
+              background var(--motion-duration-normal) var(--motion-ease-standard);
+  cursor: pointer;
+}
+.motion-card-interactive:hover {
+  /* Calm hover: border + shadow only. The old translateY/scale lift was
+     removed app-wide (it read as jumpy and strained the eye) - don't
+     re-add hover transforms. */
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--primary);
+}
+.motion-card-interactive:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+/* The traffic-light halo pulse (.motion-status-pulse + @keyframes
+   status-halo-pulse) is GONE, at the root: rule, keyframes, the `pulse=` flag on
+   `traffic_light()` and the class on every `course_card`.
+
+   It was an INFINITE animation of `transform` + `opacity` on an `::after` that
+   also carried `box-shadow: 0 0 12px` - a blurred shadow rescaled on every frame
+   for as long as the page was open, once per course card. Measured on the
+   dashboard: one running instance per card, forever, on a page whose cards
+   otherwise cost nothing.
+
+   It is also the same call the logo already lost, for the same reason (see
+   logo.css): measured on gitlab.com, nothing in a GitLab status badge or card
+   animates at rest. The card's own colour carries the status. */
+
+/* Compliance circular ring styles */
+.compliance-ring-svg {
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+.compliance-ring-bg {
+  fill: none;
+  stroke: var(--surface-strong);
+  stroke-width: var(--ring-stroke-width, 3);
+}
+.compliance-ring-fill {
+  fill: none;
+  stroke: var(--ring-color, var(--primary));
+  stroke-width: var(--ring-stroke-width, 3);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset var(--gl-anim-progress) var(--motion-ease-emphasized);
+}
+
+/* -- Respect user motion preferences -- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Spinners are essential progress indicators - keep them rotating
+     (slower, to honour the spirit of reduced-motion) instead of letting
+     the universal rule above freeze them on the end frame, which renders
+     as a static broken arc and looks like a layout bug. */
+  .global-job-spinner {
+    animation-duration: 1600ms !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* -- Micro-motion baseline ---------------------------------------------------
+   Every interactive CONTROL animates its state change, on ONE clock.
+
+   Numbers and property list taken from @gitlab/ui 136.2.0 `dist/index.css`
+   (`npm pack @gitlab/ui`, then grep every `transition:` in the built CSS).
+   GitLab's whole transition inventory for controls is:
+
+     .gl-button.gl-button   color, background-color, border-color, box-shadow
+                            0.2s cubic-bezier(.22, .61, .36, 1)
+     .gl-badge              the same four, same duration, same easing
+     .gl-dropdown-item      background-color 0.1s, box-shadow 0.2s (same curve)
+     .form-control          border-color 0.15s, box-shadow 0.15s
+     $gl-transition-duration-fast/medium/slow = 0.1s / 0.2s / 0.4s
+     $gl-easing-out-cubic   = cubic-bezier(0.22, 0.61, 0.36, 1)  <- ours exactly
+
+   Two things are true of that inventory and were not true of this rule:
+   NOTHING in GitLab transitions a `span`, a `tr`, a `th` or a `td`, and nothing
+   outside `.gl-animated-icon` transitions `transform`.
+
+   The old selector list carried `span, tr, th, td, .icon, .avatar, label,
+   .muted, .btn-text, .badge-text` with EIGHT properties including `transform`.
+   Measured on the course-settings page (1440x900, Chromium, computed styles):
+   1817 elements ended up with a live transition and 10 004 transition
+   properties - 1177 of them `box-shadow` and 1153 `transform`, on 807 spans and
+   278 table cells that never change colour. Every hover over a table row armed
+   a transition on each of its cells and their spans. That is the jank; the fix
+   is to stop declaring motion for elements that do not move.
+
+   `transition-property` never creates motion by itself - a property only
+   animates if a rule actually changes it on :hover / :focus / :active / a state
+   class - so this list only has to cover the CONTROLS that have such rules. */
+:where(a, button, summary, input, select, textarea, .btn, .card, .card-header, .badge, .chip, .gl-dropdown-item, .stat-card, .gl-home-stat, .course-card, .mr-card, .tab, .gl-sidebar-item, .pagination-btn, .sort-link) {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--motion-duration-normal);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+/* Components that rotate a chevron own their `transform` transition next to the
+   rule that rotates it (74 such rules across the stylesheets). This is the
+   safety net for the few that relied on the blanket list above - one rule, so
+   there is still exactly one place transform timing is declared for icons. */
+:where(.gl-dropdown-chevron, .card-collapse-icon, .section-toggle-chevron, .gl-sidebar-toggle-icon, .mr-card-toggle-icon, .sort-arrow) {
+  transition: transform var(--motion-duration-normal) var(--motion-ease-standard);
+}
+
+/* Alpine's x-collapse writes its own inline `height 250ms
+   cubic-bezier(0.4, 0, 0.2, 1)`; every other disclosure (<details>, a
+   collapsible card) opens through GP.motion.disclose at 200ms out-cubic. The
+   same gesture, one clock. */
+div[x-collapse] {
+  transition-duration: var(--motion-duration-normal) !important;
+  transition-timing-function: var(--motion-ease-standard) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(a, button, summary, input, select, textarea, .btn, .card, .card-header, .badge, .chip, .gl-dropdown-item, .stat-card, .gl-home-stat, .course-card, .mr-card, .tab, .gl-sidebar-item, .pagination-btn, .sort-link, .gl-dropdown-chevron, .card-collapse-icon, .section-toggle-chevron, .gl-sidebar-toggle-icon, .mr-card-toggle-icon, .sort-arrow) {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* Tab panels are animated by GP.motion.panelIn (core/45-gsap-motion.js), called
+   from _activateTab. A panel hidden with the `hidden` ATTRIBUTE cannot animate
+   from CSS at all: `display: none` is not an animatable state, so a transition
+   declared on it never runs. The `@starting-style` + `allow-discrete` workaround
+   that used to live here only worked in browsers new enough to support both,
+   and silently did nothing everywhere else - which is why tab panels were among
+   the surfaces that still appeared whole instead of easing in. */

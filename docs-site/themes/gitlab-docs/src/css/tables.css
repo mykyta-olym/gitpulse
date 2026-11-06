@@ -1,0 +1,122 @@
+.table-container {
+  background-color: var(--gl-background-color-default);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  overflow-y: clip;
+  scrollbar-gutter: stable;
+  text-wrap: wrap;
+  width: 100%;
+
+  &.condensed {
+    contain: layout style paint;
+    max-height: 32rem;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+
+    /* In condensed tables the container scrolls vertically, so the header
+       sticks to the top of the container rather than the page. */
+    thead th {
+      top: 0;
+    }
+  }
+
+  a {
+    text-underline-offset: 0.1rem !important;
+  }
+
+  /* Sticky header: sticks below the site header on page scroll */
+  thead th {
+    background-color: var(--gl-background-color-default);
+    pointer-events: auto;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  /* Non-condensed tables use the JS-managed fixed clone header. */
+  &:not(.condensed) thead th {
+    position: static;
+  }
+
+  .docs-table {
+    width: 100%;
+    table-layout: auto;
+
+    tr:nth-child(even) {
+      background-color: var(--gl-background-color-default);
+    }
+    tr:nth-child(odd) {
+      background-color: var(--gl-background-color-subtle);
+    }
+    td {
+      line-height: 1.25;
+      max-width: 16rem;
+      min-width: 4rem;
+      overflow-wrap: break-word;
+      padding: 1rem;
+    }
+  }
+}
+
+.table-sticky-clone {
+  background-color: var(--gl-background-color-default);
+  font-size: 0.875rem;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 50ms linear;
+  visibility: hidden;
+  z-index: 1;
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .docs-table {
+    margin: 0;
+    table-layout: auto;
+    width: auto;
+  }
+
+  th {
+    background-color: var(--gl-background-color-default);
+  }
+  a {
+    pointer-events: auto;
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in srgb, var(--gl-text-color-link), transparent 65%);
+    text-decoration-thickness: .063rem;
+    text-underline-offset: .1rem;
+  }
+}
+
+.table-container .docs-table,
+.table-sticky-clone .docs-table {
+  border-collapse: collapse;
+  tr {
+    border-top: 1px solid var(--gl-border-color-default);
+  }
+  tr:last-child {
+    border-bottom: 1px solid var(--gl-border-color-default);
+  }
+}
+
+.table-container .docs-table th,
+.table-sticky-clone .docs-table th {
+  line-height: 1.25;
+  padding: 1em;
+}
+
+@media screen and (max-width: 991px) {
+  .table-container thead th {
+    top: var(--banner-scroll-offset, var(--header-height));
+  }
+
+  table:not(.gl-table):not(.docs-table) th {
+    top: var(--banner-scroll-offset, var(--header-height));
+  }
+}

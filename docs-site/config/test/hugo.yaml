@@ -1,0 +1,61 @@
+# Test environment config for validating individual project docs
+# This overrides the module mounts to use local project paths
+
+module:
+  mounts:
+  # English content from the current project
+  - source: ../doc
+    target: content
+
+  # Japanese content from the current project
+  - source: ../doc-locale/ja-jp
+    target: content
+    sites:
+      matrix:
+        languages: ['ja-jp']
+
+  # French content from the current project
+  - source: ../doc-locale/fr-fr
+    target: content
+    sites:
+      matrix:
+        languages: ['fr-fr']
+
+  # Korean content from the current project
+  - source: ../doc-locale/ko-kr
+    target: content
+    sites:
+      matrix:
+        languages: ['ko-kr']
+
+  # GitLab Runner and CLI use different directory names,
+  # so we need to include those as well.
+  # For other projects, these will just be empty.
+  - source: ../docs
+    target: content
+  - source: ../docs/source
+    target: content
+  - source: ../docs-locale/ja-jp
+    target: content
+    sites:
+      matrix:
+        languages: ['ja-jp']
+  - source: ../docs-locale/fr-fr
+    target: content
+    sites:
+      matrix:
+        languages: ['fr-fr']
+  - source: ../docs-locale/ko-kr
+    target: content
+    sites:
+      matrix:
+        languages: ['ko-kr']
+
+# Enable non-default languages for testing
+languages:
+  ja-jp:
+    disabled: false
+  fr-fr:
+    disabled: false
+  ko-kr:
+    disabled: false

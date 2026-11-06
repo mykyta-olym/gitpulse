@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Preferences') }}{% endblock %}
+
+{% from "components/layout.html" import page_header, section, page_config with context %}
+{% from "components/forms.html" import checkbox, radio, select_field, field_group, form_group with context %}
+{% from "components/buttons.html" import btn %}
+{% from "components/theme_switcher.html" import theme_switcher with context %}
+{% from "components/theme_preview.html" import theme_preview %}
+
+{% set nav_active = 'preferences' %}
+{% set page_footer = false %}
+
+{# Every option below is rendered from the SAME `fields` table the POST endpoint
+   validates against (api/dashboard/preferences.py), so the form cannot offer a
+   value the server would refuse. `by_name` gives the sections direct access to
+   a field without re-declaring its choices here. #}
+{% set by_name = {} %}
+{% for f in fields %}{% set _ = by_name.update({f.name: f}) %}{% endfor %}
+
+{# select_field takes (value, label) pairs; build them here so t() still applies
+   to each label rather than shipping an untranslated string from Python. #}
+
+{% block content %}
+{# Called as a plain macro, not a call block: this page's actions (Save changes,
+   Restore defaults) live in the sticky footer at the bottom of the form, where
+   GitLab keeps them, so the block form only rendered an empty
+   `.page-header-actions` div above the first section. #}
+{{ page_header(t('Preferences'), t('These settings are yours alone and follow your account to any device you sign in from.')) }}
+
+<form id="preferencesForm" class="settings-form" data-preferences-form data-no-anti-spam="true" novalidate>
+  {# -- Mode ------------------------------------------------------------- #}
+  {# The SAME control the top bar carries, not a second radio group for the
+     same setting: theme-bootstrap.js already owns [data-theme-value], applies
+     the mode instantly and persists it to /dashboard/api/theme by itself.
+     A parallel set of radios here would be a second way to change one thing,
+     and would double-write on save. It is therefore deliberately OUTSIDE the
+     form's saved fields - it has already saved by the time you release it. #}
+  {% call section(t('Mode'), t('Choose a color mode.'), id='mode') %}
+    <div data-tour="preferences-mode">{{ theme_switcher(class='theme-switcher--segmented') }}</div>
+  {% endcall %}
+
+  {# -- Theme (accent) --------------------------------------------------- #}
+  {% call section(t('Theme'), t('Select the accent color for the application interface.'), id='accent-theme') %}
+    <div class="gl-accent-grid" data-tour="preferences-accent">
+      {% for choice in by_name['accent_theme'].choices_for(user_role) %}
+        {# The preview is a presentational sibling of the real radio, not a
+           replacement for it: the input keeps its own focus ring, keyboard
+           behaviour and screen-reader name, and the SVG is aria-hidden. #}
+        <div class="gl-accent-option">
+          {{ theme_preview(choice.value) }}
+          {{ radio('accent_theme', choice.value, label=t(choice.label),
+                   checked=(prefs['accent_theme'] == choice.value)) }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+
+  {# -- Syntax highlighting --------------------------------------------- #}
+  {# GitLab's own section, and a real setting here rather than a copied label:
+     app/i18n highlights fenced code blocks with Pygments, and each scheme
+     redefines the ten token colours cards.css uses. The swatch is a LIVE
+     highlighted sample carrying the scheme's own class, not a screenshot - so
+     it renders through the exact rules the page will, and cannot drift from
+     them the way a checked-in PNG does. #}
+  {% call section(t('Syntax highlighting'), t('Choose a highlight color scheme for viewing and editing code.'), id='syntax-highlighting') %}
+    {#- GitLab's preview is a numbered six-line block, and the numbers are what
+        make it read as CODE rather than a coloured swatch. They live inside the
+        same <pre> as the sample: a separate gutter would need its own
+        background and would drift from the scheme colouring the block.
+
+        The sample FILLS the card and is clipped at its right edge, which is what
+        GitLab's own previews do - theirs cut off at "class DoctypesCon". A
+        deliberately short one was tried instead, to keep every line whole: it
+        left two thirds of each swatch empty, so the row read as seven mostly
+        blank boxes rather than seven code samples. The palette still shows in
+        the first tokens of each line: comment, keyword, class and function
+        names, parameter, string, number, operator, punctuation. -#}
+    {% call field_group(label=t('Color scheme')) %}
+    <div class="gl-syntax-grid" data-tour="preferences-syntax">
+      {% for choice in by_name['syntax_theme'].choices_for(user_role) %}
+        <div class="gl-syntax-option">
+          <pre class="gl-desc-pre highlight gl-syntax-preview gl-syntax-preview--{{ choice.value }}" aria-hidden="true"><code><span class="gl-syntax-ln">1</span><span class="c1"># compliance rules</span>
+<span class="gl-syntax-ln">2</span><span class="k">class</span> <span class="nc">RuleSet</span><span class="p">(</span><span class="nc">Base</span><span class="p">):</span>
+<span class="gl-syntax-ln">3</span>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="gl-syntax-ln">4</span>        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s">"ready"</span>
+<span class="gl-syntax-ln">5</span>        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="mi">100</span>
+<span class="gl-syntax-ln">6</span></code></pre>
+          {{ radio('syntax_theme', choice.value, label=t(choice.label),
+                   checked=(prefs['syntax_theme'] == choice.value)) }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endcall %}
+  {% endcall %}
+
+  {# -- Diffs ------------------------------------------------------------ #}
+  {# Real settings here, not decoration: the student profile renders a unified
+     diff (components/student.html) with tinted +/- rows, and the profile
+     header and commit table carry additions/deletions counters. #}
+  {% call section(t('Diffs'), t('Choose a color scheme for removed and added lines in diffs.'), id='diffs') %}
+    <div data-tour="preferences-diffs">
+      <p class="form-label">{{ t('Preview') }}</p>
+      {# Two panes, removed on the left and added on the right, over a real code
+         sample - the arrangement GitLab's own preview uses. The rows are the
+         SAME .dn-code-* markup the student page renders a diff with, so what
+         you are looking at is the component being configured, not a mockup. #}
+      {% set _sample = [
+        ('# Removed content', '# Added content'),
+        ('v = 1', 'v = 1'),
+        ('s = "string"', 's = "string"'),
+        ('', ''),
+        ('for i in range(-10, 10):', 'for i in range(-10, 10):'),
+        ('    print(i + 1)', '    print(i + 1)'),
+        ('', ''),
+        ('class LinkedList(object):', 'class LinkedList(object):'),
+        ('    def __init__(self, x):', '    def __init__(self, x):'),
+        ('        self.val = x', '        self.val = x'),
+        ('        self.next = None', '        self.next = None'),
+      ] %}
+      <div class="gl-diff-preview-panes">
+        {% for side, mark, row_class in [('removed', '-', 'dn-code-row--del'),
+                                         ('added', '+', 'dn-code-row--add')] %}
+        {#- The scroll container is the WRAPPER, never the table: `display:block`
+            on a <table> demotes it to a block box, its rows collapse to an
+            anonymous max-content table, and the tint then covers only as much
+            of the pane as the longest line - measured at 267px of 667px. -#}
+        <div class="gl-diff-preview-pane">
+        <table class="dn-code-table gl-diff-preview"
+               aria-label="{{ t('Preview of removed lines') if side == 'removed' else t('Preview of added lines') }}">
+          <tbody>
+            {% for removed, added in _sample %}
+            {% set line = removed if side == 'removed' else added %}
+            <tr class="dn-code-row {{ row_class }}">
+              <td class="dn-code-ln">{{ loop.index }}</td>
+              <td class="dn-code-mark" aria-hidden="true">{{ mark }}</td>
+              <td class="dn-code-text"><code>{{ line }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% for name, label in [
+          ('diff_color_removed', t('Color for removed lines')),
+          ('diff_color_added', t('Color for added lines'))] %}
+        {# GitLab's control is ONE field: a colour chip sitting flush against the
+           hex input as its prepend, not a control of its own in the row below
+           (vue_shared/components/color_picker/color_picker.vue). Standing loose
+           in the swatch row, the native input rendered the platform's own
+           colour-well chrome - it read as an eighth "suggested" colour, and
+           clicking it dropped the OS picker panel over the page instead of
+           opening it anchored to the field it edits.
+
+           The chip IS the native input rather than a div with a hidden one over
+           it: it paints its own current value, so the chip cannot disagree with
+           the field beside it, and there is no second value to keep in sync. #}
+        {# The field, its description and the suggested colours are ONE group, in
+           GitLab's order. They used to be a form_group followed by a loose
+           sibling swatch row, and that row's own margins stacked on top of the
+           group's: the gap between the two colour fields measured 68px where
+           every other section on this page uses 16. #}
+        {% call form_group(label=label, id=name) %}
+          <div class="gl-color-input-group">
+            <input type="color" id="{{ name }}_picker" class="gl-diff-swatch--picker"
+                   data-diff-picker="{{ name }}" data-dirty-ignore
+                   value="{{ prefs[name] if prefs[name] and (prefs[name]|length == 7) else '#808080' }}"
+                   tabindex="-1"
+                   aria-label="{{ label }} - {{ t('custom color') }}"
+                   data-tippy-content="{{ t('Pick a custom color') }}">
+            <input type="text" name="{{ name }}" id="{{ name }}"
+                   class="form-input gl-diff-color-input"
+                   value="{{ prefs[name] }}" placeholder="#RRGGBB"
+                   pattern="#[0-9a-fA-F]{6}" maxlength="7">
+          </div>
+          <span class="form-help">{{ t('Enter any hex color, or choose one of the suggested colors below.') }}</span>
+          <div class="gl-diff-swatches" role="group" aria-label="{{ label }}">
+            {% for hex, swatch_label in suggested_diff_colors %}
+              <button type="button" class="gl-diff-swatch"
+                      data-diff-swatch="{{ name }}" data-color="{{ hex }}"
+                      style="--_swatch: {{ hex }};"
+                      aria-label="{{ t(swatch_label) }}"
+                      data-tippy-content="{{ t(swatch_label) }} {{ hex }}"></button>
+            {% endfor %}
+          </div>
+        {% endcall %}
+      {% endfor %}
+    </div>
+  {% endcall %}
+
+  {# -- Behavior --------------------------------------------------------- #}
+  {% call section(t('Behavior'), t('Customize the behavior of the system layout and default views.'), id='behavior') %}
+    <div data-tour="preferences-behavior">
+    {% call field_group(label=t('Keyboard shortcuts')) %}
+      {{ checkbox('keyboard_shortcuts_enabled', label=t('Enable keyboard shortcuts'),
+                  checked=prefs['keyboard_shortcuts_enabled'],
+                  help_text=t('Turns on the search palette and the other global shortcuts.')) }}
+    {% endcall %}
+
+    {% call field_group(label=t('Layout width')) %}
+      {% for choice in by_name['layout_width'].choices_for(user_role) %}
+        {{ radio('layout_width', choice.value, label=t(choice.label),
+                 checked=(prefs['layout_width'] == choice.value)) }}
+        {% if choice.description %}
+          <p class="form-help gl-radio-help">{{ t(choice.description) }}</p>
+        {% endif %}
+      {% endfor %}
+    {% endcall %}
+
+    {% set _o = [] %}{% for c in by_name['default_homepage'].choices_for(user_role) %}{% set _ = _o.append((c.value, t(c.label))) %}{% endfor %}
+    {{ select_field('default_homepage', options=_o, value=prefs['default_homepage'], label=t('Homepage'), help_text=t('Choose what content you want to see by default on your homepage.')) }}
+
+    {# GitPulse's own. Both already exist as client-side choices that are lost
+       on a new device; here they become the account-level default. #}
+    {% set _o = [] %}{% for c in by_name['default_page_size'].choices_for(user_role) %}{% set _ = _o.append((c.value, t(c.label))) %}{% endfor %}
+    {{ select_field('default_page_size', options=_o, value=prefs['default_page_size'], label=t('Rows per page'), help_text=t('The default for every table. Changing it on one table still overrides this for that table.')) }}
+
+    {#- Which period every page with a period selector opens on, as Homepage
+        picks the page. One pick, every page: with "The period I picked last" a
+        term chosen anywhere is where every page opens until the next term. -#}
+    {% set _o = [] %}{% for c in by_name['default_period'].choices_for(user_role) %}{% set _ = _o.append((c.value, t(c.label))) %}{% endfor %}
+    {{ select_field('default_period', options=_o, value=prefs['default_period'], label=t('Default period'), help_text=t('Where every page with a period selector opens. With the period you picked last, a term chosen on any page is kept on every page until the next term starts; with the others, a pick changes only the page you are on. A link that names a period always wins.')) }}
+
+    {% call field_group(label=t('Sidebar')) %}
+      {{ checkbox('sidebar_collapsed', label=t('Start with the sidebar collapsed'),
+                  checked=prefs['sidebar_collapsed'],
+                  help_text=t('Applies on a device you have not collapsed it on yet.')) }}
+    {% endcall %}
+    </div>
+  {% endcall %}
+
+  {# -- Localization ----------------------------------------------------- #}
+  {% call section(t('Localization'), t('Customize language and region related settings.'), id='localization') %}
+    <div data-tour="preferences-localization">
+    {% set _o = [] %}{% for c in by_name['preferred_language'].choices_for(user_role) %}{% set _ = _o.append((c.value, t(c.label))) %}{% endfor %}
+    {{ select_field('preferred_language', options=_o, value=prefs['preferred_language'], label=t('Language'), help_text=t('Applies on your next page load.')) }}
+
+    {% set _o = [] %}{% for c in by_name['first_day_of_week'].choices_for(user_role) %}{% set _ = _o.append((c.value, t(c.label))) %}{% endfor %}
+    {{ select_field('first_day_of_week', options=_o, value=prefs['first_day_of_week'], label=t('First day of the week')) }}
+    </div>
+  {% endcall %}
+
+  {# -- Notifications ----------------------------------------------------- #}
+  {# Each toggle maps to a category enqueue_email() is called with, and is
+     enforced in that function - turning one off stops the mail on the SERVER,
+     not just in this form. The welcome mail has no toggle on purpose: it is
+     sent before a new account has ever seen this page. #}
+  {% call section(t('Notifications'), t('Choose which emails GitPulse sends you.'), id='notifications') %}
+    <div data-tour="preferences-notifications">
+      {% call field_group(label=t('Email notifications')) %}
+        {{ checkbox('notify_tickets', label=t('Support tickets'),
+                    checked=prefs['notify_tickets'],
+                    help_text=t('Replies, assignments, status and priority changes on your tickets.')) }}
+        {% if is_teacher %}
+        {# Staff only: students never receive queue mail, so showing them a
+           switch for it would be a control that does nothing. #}
+        {{ checkbox('notify_ticket_queue', label=t('New tickets needing an owner'),
+                    checked=prefs['notify_ticket_queue'],
+                    help_text=t('A ticket has arrived that nobody has taken yet.')) }}
+        {% endif %}
+        {{ checkbox('notify_courses', label=t('Courses'),
+                    checked=prefs['notify_courses'],
+                    help_text=t('Being assigned to a course, and a course being archived or reactivated.')) }}
+        {{ checkbox('notify_account', label=t('Account'),
+                    checked=prefs['notify_account'],
+                    help_text=t('Role changes and account reactivation.')) }}
+      {% endcall %}
+    </div>
+  {% endcall %}
+
+  {# -- Time preferences -------------------------------------------------- #}
+  {% call section(t('Time preferences'), t('Configure how dates and times display for you.'), id='time-preferences') %}
+    <div data-tour="preferences-time">
+    {% call field_group(label=t('Relative times')) %}
+      {{ checkbox('use_relative_times', label=t('Use relative times'),
+                  checked=prefs['use_relative_times'],
+                  help_text=t('For example: 30 minutes ago.')) }}
+    {% endcall %}
+
+    {% call field_group(label=t('Time format')) %}
+      {% for choice in by_name['time_format'].choices_for(user_role) %}
+        {{ radio('time_format', choice.value, label=t(choice.label),
+                 checked=(prefs['time_format'] == choice.value)) }}
+      {% endfor %}
+    {% endcall %}
+    </div>
+  {% endcall %}
+
+  <div class="settings-sticky-footer" data-tour="preferences-actions">
+    {# Rendered disabled so it never flashes enabled for a frame before the dirty
+       guard runs (the course-settings save button does the same); the guard
+       enables it the moment a preference changes. #}
+    {{ btn(t('Save changes'), variant='confirm', type='submit', id='preferencesSave', disabled=true) }}
+    {{ btn(t('Restore defaults'), variant='default', type='button', id='preferencesReset') }}
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ page_config({
+  'preferencesEndpoint': '/dashboard/api/preferences',
+  'defaults': defaults|default({})
+}, csp_nonce) }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/preferences.js') }}"></script>
+{% endblock %}

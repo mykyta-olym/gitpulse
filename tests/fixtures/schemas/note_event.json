@@ -1,0 +1,395 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gitlab-note-event",
+  "title": "GitLab Note (Comment) Event Webhook",
+  "description": "Schema for GitLab note/comment event webhooks",
+  "type": "object",
+  "required": ["object_kind", "event_type", "user", "project_id", "project", "object_attributes"],
+  "properties": {
+    "object_kind": {
+      "type": "string",
+      "const": "note"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "note"
+    },
+    "user": {
+      "$ref": "#/definitions/user"
+    },
+    "project_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "project": {
+      "$ref": "#/definitions/project"
+    },
+    "object_attributes": {
+      "$ref": "#/definitions/note_attributes"
+    },
+    "repository": {
+      "$ref": "#/definitions/repository"
+    },
+    "merge_request": {
+      "$ref": "#/definitions/merge_request",
+      "description": "Present when note is on a merge request"
+    },
+    "issue": {
+      "$ref": "#/definitions/issue",
+      "description": "Present when note is on an issue"
+    },
+    "commit": {
+      "$ref": "#/definitions/commit",
+      "description": "Present when note is on a commit"
+    },
+    "snippet": {
+      "type": "object",
+      "description": "Present when note is on a snippet"
+    }
+  },
+  "definitions": {
+    "user": {
+      "type": "object",
+      "required": ["id", "username", "name"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "path_with_namespace"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "web_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "git_ssh_url": {
+          "type": "string"
+        },
+        "git_http_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "visibility_level": {
+          "type": "integer"
+        },
+        "path_with_namespace": {
+          "type": "string"
+        },
+        "default_branch": {
+          "type": "string"
+        },
+        "ci_config_path": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "ssh_url": {
+          "type": "string"
+        },
+        "http_url": {
+          "type": "string"
+        }
+      }
+    },
+    "note_attributes": {
+      "type": "object",
+      "required": ["id", "note", "noteable_type", "author_id", "created_at", "updated_at", "project_id", "noteable_id"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "note": {
+          "type": "string",
+          "description": "The comment text content"
+        },
+        "noteable_type": {
+          "type": "string",
+          "enum": ["Commit", "MergeRequest", "Issue", "Snippet"]
+        },
+        "author_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attachment": {
+          "type": ["string", "null"]
+        },
+        "line_code": {
+          "type": ["string", "null"],
+          "description": "Line code for diff notes"
+        },
+        "commit_id": {
+          "type": ["string", "null"],
+          "description": "Commit SHA for commit notes"
+        },
+        "discussion_id": {
+          "type": "string",
+          "description": "ID for threaded discussions"
+        },
+        "noteable_id": {
+          "type": ["integer", "null"]
+        },
+        "system": {
+          "type": "boolean",
+          "description": "True for system-generated notes"
+        },
+        "st_diff": {
+          "type": ["object", "null"],
+          "description": "Diff information for diff notes"
+        },
+        "resolvable": {
+          "type": "boolean"
+        },
+        "resolved": {
+          "type": ["boolean", "null"]
+        },
+        "resolved_by_id": {
+          "type": ["integer", "null"]
+        },
+        "resolved_at": {
+          "type": ["string", "null"]
+        },
+        "confidential": {
+          "type": ["boolean", "null"]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "type": {
+          "type": ["string", "null"],
+          "enum": ["DiffNote", "DiscussionNote", null],
+          "description": "Type of note (DiffNote for code comments)"
+        },
+        "position": {
+          "$ref": "#/definitions/position"
+        },
+        "change_position": {
+          "$ref": "#/definitions/position"
+        },
+        "original_position": {
+          "$ref": "#/definitions/position"
+        }
+      }
+    },
+    "position": {
+      "type": ["object", "null"],
+      "description": "Position information for diff notes",
+      "properties": {
+        "base_sha": {
+          "type": "string"
+        },
+        "start_sha": {
+          "type": "string"
+        },
+        "head_sha": {
+          "type": "string"
+        },
+        "old_path": {
+          "type": "string"
+        },
+        "new_path": {
+          "type": "string"
+        },
+        "position_type": {
+          "type": "string",
+          "enum": ["text", "image"]
+        },
+        "old_line": {
+          "type": ["integer", "null"]
+        },
+        "new_line": {
+          "type": ["integer", "null"]
+        },
+        "line_range": {
+          "type": ["object", "null"]
+        }
+      }
+    },
+    "merge_request": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "iid": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "state": {
+          "type": "string"
+        },
+        "source_branch": {
+          "type": "string"
+        },
+        "target_branch": {
+          "type": "string"
+        },
+        "source_project_id": {
+          "type": "integer"
+        },
+        "target_project_id": {
+          "type": "integer"
+        },
+        "author_id": {
+          "type": "integer"
+        },
+        "assignee_id": {
+          "type": ["integer", "null"]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "merge_status": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/commit"
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "iid": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "state": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "integer"
+        },
+        "author_id": {
+          "type": "integer"
+        },
+        "assignee_id": {
+          "type": ["integer", "null"]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "commit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "author": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

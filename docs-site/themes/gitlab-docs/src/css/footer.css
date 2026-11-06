@@ -1,0 +1,115 @@
+footer {
+  background-color: var(--gl-color-neutral-900);
+}
+
+.footer-section {
+  margin: 0 auto;
+  max-width: var(--max-width);
+
+  .footer-section-title {
+    color: var(--gl-color-brand-white);
+  }
+  a {
+    color: var(--gl-color-brand-white);
+
+    &:focus-visible {
+      outline: 2px solid var(--gl-color-brand-white);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+  }
+
+  ul li {
+    margin-bottom: 0.5rem;
+  }
+  ul li a {
+    line-height: 1.5rem;
+  }
+
+  @media (min-width: 992px) and (max-width: 1200px) {
+
+    .docs-title, .logo {
+      width: 9rem;
+    }
+
+    .footer-links {
+      a {
+        font-size: .875rem;
+      }
+
+      .footer-section-title {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  /* The icon row under the logo. One rule, inside .footer-section, so it is not
+     competing with a second one at lower specificity - which is what happened
+     when a flat `.docs-social a` was added beside the nested one and lost.
+     The masked social icons that used to be here belonged to accounts this
+     project does not have. */
+  .docs-social {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    gap: 0.5rem;
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 4px;
+      color: var(--gl-color-brand-white);
+      transition: background-color 0.1s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    a:hover {
+      /* The footer is always dark, so lift on hover rather than reaching for a
+         page token that flips with the theme. */
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+    .gl-icon {
+      width: 1rem;
+      height: 1rem;
+      fill: currentColor;
+    }
+  }
+  .footer-links {
+    display: grid;
+  }
+
+}
+
+/* One line under the logo saying what the site is. GitLab's footer has the same
+   thing; ours had a logo and then nothing until the link columns. */
+.gp-footer-tagline {
+  margin: 0.75rem 0 0;
+  max-width: 22rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* The bottom bar. This is what is left of the attribution block that used to
+   sit below the grid as a second footer: the facts moved into a column, and one
+   quiet line stays here behind a divider, which is where GitLab puts theirs. */
+.gp-footer-bar {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.gp-footer-bar .container {
+  margin: 0 auto;
+  max-width: var(--max-width);
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.gp-footer-copy {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.gp-footer-copy a {
+  color: var(--gl-color-brand-white);
+}

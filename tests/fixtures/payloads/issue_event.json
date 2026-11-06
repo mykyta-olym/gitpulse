@@ -1,0 +1,128 @@
+{
+  "object_kind": "issue",
+  "event_type": "issue",
+  "user": {
+    "id": 43,
+    "name": "Maria Kovacova",
+    "username": "mkovacova",
+    "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/43/avatar.png",
+    "email": "maria.kovacova@student.university.edu"
+  },
+  "project": {
+    "id": 123,
+    "name": "team-alpha-project",
+    "description": "ZSI course project - Team Alpha",
+    "web_url": "https://gitlab.example.com/zsi-2025/team-alpha-project",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "git_http_url": "https://gitlab.example.com/zsi-2025/team-alpha-project.git",
+    "namespace": "zsi-2025",
+    "visibility_level": 0,
+    "path_with_namespace": "zsi-2025/team-alpha-project",
+    "default_branch": "main",
+    "ci_config_path": ".gitlab-ci.yml",
+    "homepage": "https://gitlab.example.com/zsi-2025/team-alpha-project",
+    "url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "ssh_url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "http_url": "https://gitlab.example.com/zsi-2025/team-alpha-project.git"
+  },
+  "object_attributes": {
+    "id": 567,
+    "iid": 15,
+    "title": "Implement user authentication",
+    "description": "## Description\nWe need to implement user authentication using JWT tokens.\n\n## Acceptance Criteria\n- [ ] Login endpoint\n- [ ] Logout endpoint\n- [ ] Token refresh\n- [ ] Password reset\n\n## Technical Notes\nUse PyJWT library.",
+    "state": "opened",
+    "action": "open",
+    "author_id": 43,
+    "project_id": 123,
+    "created_at": "2025-01-28 10:00:00 UTC",
+    "updated_at": "2025-01-28 10:00:00 UTC",
+    "closed_at": null,
+    "due_date": "2025-02-15",
+    "milestone_id": 12,
+    "state_id": 1,
+    "confidential": false,
+    "discussion_locked": null,
+    "assignee_ids": [42],
+    "assignee_id": 42,
+    "labels": [
+      {
+        "id": 101,
+        "title": "feature",
+        "color": "#428BCA",
+        "project_id": 123,
+        "created_at": "2025-01-01 00:00:00 UTC",
+        "updated_at": "2025-01-01 00:00:00 UTC",
+        "template": false,
+        "description": "New feature",
+        "type": "ProjectLabel",
+        "group_id": null
+      },
+      {
+        "id": 102,
+        "title": "priority::high",
+        "color": "#FF0000",
+        "project_id": 123,
+        "created_at": "2025-01-01 00:00:00 UTC",
+        "updated_at": "2025-01-01 00:00:00 UTC",
+        "template": false,
+        "description": "High priority",
+        "type": "ProjectLabel",
+        "group_id": null
+      }
+    ],
+    "url": "https://gitlab.example.com/zsi-2025/team-alpha-project/-/issues/15",
+    "last_edited_at": null,
+    "last_edited_by_id": null,
+    "weight": null,
+    "time_estimate": 28800,
+    "total_time_spent": 0,
+    "human_time_estimate": "8h",
+    "human_total_time_spent": null,
+    "severity": "unknown",
+    "escalation_status": null,
+    "escalation_policy": null
+  },
+  "repository": {
+    "name": "team-alpha-project",
+    "url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "description": "ZSI course project - Team Alpha",
+    "homepage": "https://gitlab.example.com/zsi-2025/team-alpha-project"
+  },
+  "labels": [
+    {
+      "id": 101,
+      "title": "feature",
+      "color": "#428BCA",
+      "project_id": 123,
+      "created_at": "2025-01-01 00:00:00 UTC",
+      "updated_at": "2025-01-01 00:00:00 UTC",
+      "template": false,
+      "description": "New feature",
+      "type": "ProjectLabel",
+      "group_id": null
+    },
+    {
+      "id": 102,
+      "title": "priority::high",
+      "color": "#FF0000",
+      "project_id": 123,
+      "created_at": "2025-01-01 00:00:00 UTC",
+      "updated_at": "2025-01-01 00:00:00 UTC",
+      "template": false,
+      "description": "High priority",
+      "type": "ProjectLabel",
+      "group_id": null
+    }
+  ],
+  "changes": {},
+  "assignees": [
+    {
+      "id": 42,
+      "name": "Jan Novak",
+      "username": "jnovak",
+      "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/42/avatar.png",
+      "email": "jan.novak@student.university.edu"
+    }
+  ]
+}

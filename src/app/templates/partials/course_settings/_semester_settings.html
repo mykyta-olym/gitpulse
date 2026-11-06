@@ -1,0 +1,29 @@
+{% from "components/cards.html" import card %}
+{% from "components/forms.html" import checkbox with context %}
+{% from "components/academic_period.html" import period_date_inputs, period_hint with context %}
+{% import "partials/course_settings/_settings_form_macros.html" as settings_ui with context %}
+
+{% set ct %}{{ t('Semester Settings') }}{% endset %}
+{% call card(title=ct, icon_name='calendar') %}
+  <p class="muted">{{ t('Set the academic calendar for this course. The semester start date determines "Week N" labels shown on dashboards, reports, and student compliance views. Deadlines are used to detect last-minute commit clustering and are visible to students.') }}</p>
+
+  {% call settings_ui.settings_callout(t('Scope cascade:'), class='semester-scope-callout') %}
+    {{ t('Changing the semester window re-scopes every dashboard, sync job, compliance score, and report for this course. Pre-semester commits, merge requests, issues, and pipelines remain stored but are hidden from current-semester views. Existing data is never deleted.') }}
+  {% endcall %}
+
+  {%- set _start = settings.semester_start_date.isoformat() if settings.semester_start_date else '' %}
+  {%- set _end = settings.semester_end_date.isoformat() if settings.semester_end_date else '' %}
+  <div class="form-row">
+    {{ period_date_inputs('semester_start_date', 'semester_end_date', _start, _end,
+         start_help=t('Monday of the first teaching week. Defines the lower bound for all dashboards, compliance scoring, and GitLab sync - older commits, MRs, issues, and pipelines are hidden from current-semester views until you change this date. Required format: YYYY-MM-DD (e.g. 2026-09-21).'),
+         end_help=t('Last day of teaching / exams. After this date + grace period (default 14 days) the course is auto-archived and all periodic automation stops to reduce system load. Must be strictly after the start date.'),
+         start_placeholder=t('Select semester start date'),
+         end_placeholder=t('Select semester end date')) }}
+    {{ settings_ui.semester_status_display(semester_status) }}
+  </div>
+  {{ period_hint() }}
+
+  <div class="form-row mt-2">
+    {{ checkbox(name='skip_auto_archive', id='skip_auto_archive', label=t('Skip automatic archiving for this course'), checked=settings.skip_auto_archive, help_text=t('When enabled, this course is excluded from the semester-end auto-archive sweep even if the end date has passed. Set automatically when a course is re-activated after being archived.')) }}
+  </div>
+{% endcall %}

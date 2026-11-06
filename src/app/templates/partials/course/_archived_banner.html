@@ -1,0 +1,27 @@
+{# Archived-course read-only strip. Rendered via the shared top_banner macro so
+   it looks identical to every other page-level status strip and portals into
+   the global top slot (#globalBannerSlot). Included from _course_nav.html so one
+   edit covers overview / settings / activity / analytics / teachers. The
+   read-only guard keys off .tabs-nav[data-course-archived], NOT this strip, so
+   it stays correct either way.
+
+   Not dismissible, and deliberately so: this strip is the only explanation on
+   the page for why every form is disabled. It used to carry a dismiss key, and
+   because dismissals persist forever and across tabs, one click turned every
+   page of that course into a screen of dead controls with no reason given.
+
+   `archived_note` replaces "read-only" where that is not what an archived
+   course means: Support takes requests for it and its tickets can be answered,
+   so the Support pages say that instead. #}
+{% from "components/alerts.html" import top_banner %}
+{% if course is defined and course and not course.is_active %}
+{% call top_banner(
+    variant='warning',
+    icon_name='archive',
+    action_href=('/dashboard/courses/' ~ course.id ~ '/settings#danger-zone') if can_edit|default(false) else '',
+    action_label=t('Reactivate'),
+    action_icon='refresh-cw',
+    dismissible=false) %}
+  <strong>{{ t('Archived course') }}</strong> · {{ archived_note | default(t('read-only')) }}{% if course.archived_at %} · {{ t('archived') }} {{ local_time(course.archived_at) }}{% endif %}
+{% endcall %}
+{% endif %}

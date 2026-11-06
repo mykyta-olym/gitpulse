@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_label with context %}
+{% block title %}{{ t('Assistant') }} - {{ course.code }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/layout.html" import tab_content with context %}
+{% from "components/badges.html" import course_role_badge %}
+
+{% set nav_active = 'course' %}
+{% set page_footer = false %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'href': '/dashboard/courses/' ~ course.id, 'label': course.code}, {'label': t('Assistant')}] %}
+
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{% set _badge = course_role_badge('owner') if course_role == 'owner' else (course_role_badge('teacher') if course_role == 'teacher' else '') %}
+{{ page_header(course.code ~ ' - ' ~ (course.name or ''), period_label(course.academic_year, course.semester), badge=_badge) }}
+
+{% if course.description %}
+<p class="course-description muted">{{ course.description }}</p>
+{% endif %}
+
+{% set active_tab = 'assistant' %}
+{% include "partials/course/_course_nav.html" %}
+
+{% call tab_content(course) %}
+  {% include "partials/course/_assistant_content.html" %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/course-assistant.js') }}"></script>
+{% endblock %}

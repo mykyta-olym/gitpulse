@@ -1,0 +1,16 @@
+{{/*
+  Adds zeroes around numbers in a string.
+  
+  This allows us to compare semantic version numbers.
+
+  We can drop this if Hugo adds this feature:
+  https://github.com/gohugoio/hugo/issues/9402
+
+  Credit: https://somethingstrange.com/posts/natural-sorting-of-semver-strings-in-hugo/
+
+  @return string 
+*/}}
+{{- $padSize := 6 }}
+{{- $paddedString := replaceRE "(\\d+)" (print (strings.Repeat (sub $padSize 1) "0") "$1") . }}
+{{- $trimmedString := replaceRE (print "0+(\\d{" $padSize "})") "$1" $paddedString }}
+{{- return $trimmedString }}

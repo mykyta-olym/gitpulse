@@ -1,0 +1,102 @@
+{
+  "event": "Issue Hook",
+  "payload": {
+    "user": {
+      "id": 1,
+      "name": "Administrator",
+      "email": "[REDACTED]",
+      "username": "root",
+      "avatar_url": "https://www.gravatar.com/avatar/bf39fbad4281cf4c31bdf9f49427146901be0bc0ee56c71814cf859450fa8718?s=80&d=identicon"
+    },
+    "labels": [],
+    "changes": {
+      "state_id": {
+        "current": 2,
+        "previous": 1
+      },
+      "closed_at": {
+        "current": "2026-10-19T13:18:26.873Z",
+        "previous": null
+      },
+      "updated_at": {
+        "current": "2026-10-19T13:18:26.876Z",
+        "previous": "2026-10-19T13:14:31.338Z"
+      }
+    },
+    "project": {
+      "id": 1,
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "namespace": "TIM-01",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-01/projekt"
+    },
+    "assignees": [
+      {
+        "id": 4,
+        "name": "Boris Novák",
+        "email": "[REDACTED]",
+        "username": "boris.novak",
+        "avatar_url": "https://www.gravatar.com/avatar/41c24f6bdbcf332fcd5663bf449edf1e43b25f07dfd76b43083b599954093627?s=80&d=identicon"
+      }
+    ],
+    "event_type": "issue",
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "description": null
+    },
+    "object_kind": "issue",
+    "object_attributes": {
+      "id": 7,
+      "iid": 6,
+      "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/work_items/6",
+      "type": "Issue",
+      "state": "closed",
+      "title": "Doplň súbor ulohy-1792415656/boris.novak.txt",
+      "action": "close",
+      "labels": [],
+      "due_date": null,
+      "severity": "unknown",
+      "state_id": 2,
+      "author_id": 8,
+      "closed_at": "2026-10-19T13:18:26.873Z",
+      "created_at": "2026-10-19T13:14:31.338Z",
+      "project_id": 1,
+      "start_date": null,
+      "updated_at": "2026-10-19T13:18:26.876Z",
+      "assignee_id": 4,
+      "description": "Tvoja úloha, krok za krokom:\n\n1. Vytvor si vlastnú vetvu z `main`.\n2. V súbore `ulohy-1792415656/boris.novak.txt` nahraď každé `???` svojou odpoveďou.\n3. Zmenu commitni so správou, ktorá hovorí, čo sa zmenilo, a vetvu pushni.\n4. Otvor merge request do `main` a do jeho popisu napíš `Closes #N`, kde N je číslo tohto tiketu. Popis musí mať aj sekcie `## Description`, `## Testing`.\n5. Merge request skontrolujem, a keď bude v poriadku, schválim ho. Zlúčiš ho potom ty.\n\n<!-- gitpulse-assistant:3e52e0dd-5fc3-4ce3-9b7d-fad5ce24b364 -->",
+      "moved_to_id": null,
+      "time_change": 0,
+      "assignee_ids": [
+        4
+      ],
+      "confidential": false,
+      "milestone_id": null,
+      "time_estimate": 0,
+      "updated_by_id": null,
+      "last_edited_at": null,
+      "duplicated_to_id": null,
+      "total_time_spent": 0,
+      "discussion_locked": null,
+      "human_time_change": null,
+      "last_edited_by_id": null,
+      "relative_position": 1799,
+      "human_time_estimate": null,
+      "human_total_time_spent": null,
+      "customer_relations_contacts": []
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{{ $lang := .Site.Language.Lang }}
+
+{{ $pageData := partial "functions/page-metadata" (dict "Context" . "field" "trail_json") | default "[]" }}
+{{ $activeItem := "" }}
+{{ if ne $pageData "[]" }}
+  {{ $trailData := unmarshal $pageData }}
+  {{ if gt (len $trailData) 0 }}
+    {{ $activeItem = (index $trailData 0).title }}
+  {{ end }}
+{{ end }}
+
+{{ $navigationData := "" }}
+{{ $langFile := printf "data/%s/navigation.yaml" $lang }}
+{{ $defaultFile := printf "data/%s/navigation.yaml" site.Params.defaultLang }}
+
+{{ if fileExists $langFile }}
+  {{ $navigationData = readFile $langFile | unmarshal }}
+{{ else }}
+  {{ $navigationData = readFile $defaultFile | unmarshal }}
+{{ end }}
+
+<ul class="subheader-menu gl-hidden lg:gl-flex gl-list-none gl-text-base gl-space-x-5 gl-py-4 gl-pl-0 gl-mb-0">
+  {{ range $navigationData }}
+  <li>
+    {{ $linkClass := cond (eq .title $activeItem) "active" "" }}
+    {{/* relLangURL adds the current language's prefix, and none for the default
+         language. Building the prefix by hand against a hardcoded language sent
+         every top-level link on the default language through a redirect. */}}
+    <a href="{{ .url | relLangURL }}" class="{{ $linkClass }}">{{ .title }}</a>
+  </li>
+  {{ end }}
+</ul>

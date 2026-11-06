@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% block title %}{{ team.name }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/buttons.html" import btn_icon %}
+{% from "components/layout.html" import tab_content with context %}
+
+{% set nav_active = 'team' %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'href': '/dashboard/courses/' ~ course.id, 'label': course.code}, {'label': team.name}] %}
+
+{# Archived course = read-only. The write actions stay VISIBLE and clickable;
+   the core guard marks them and a click answers with the reason as a toast (see
+   _lockControls). One mechanism, not two: these used to ALSO be server-rendered
+   `disabled`, which meant the same state was expressed twice and behaved
+   differently depending on which won. The archived markers themselves now come
+   from `tab_content()`, which derives them from `course`. #}
+
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{# Same strip as the course pages: without it an archived group page looked
+   perfectly editable and only the server said otherwise, on click. #}
+{% set _is_archived = course and not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _is_archived else '' %}
+{% call page_header(team.name, (course.code if course else '') ~ ' - ' ~ (course.name if course else ''), back_link='/dashboard/courses/' ~ team.course_id, back_text=t('Back to Course'), badge=period_badge(course.academic_year, course.semester, current=is_current_period(course.academic_year, course.semester)) if course else '') %}
+    {% if can_edit and team.is_active %}
+    {{ btn_icon(t('Link Project'), 'link', variant='secondary', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'modal-open': 'linkProjectModal', 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id, 'tippy-content': t('Link a GitLab project to this group')}) }}
+    {{ btn_icon(t('Sync'), 'refresh-cw', variant='secondary', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'triggerSync', 'sync-trigger': 'team', 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id, 'tippy-content': t('Sync group data from GitLab')}) }}
+    {{ btn_icon(t('Run Checks'), 'play-circle', variant='warning', id='btnOpenRunChecks', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'modal-open': 'runChecksModal', 'process-lock-when': 'run_checks sync', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id, 'tour': 'run-checks', 'tippy-content': t('Select and run specific compliance checks')}) }}
+    {% endif %}
+    {% if can_edit and team.is_active %}
+    {{ btn_icon(t('Delete'), 'trash', variant='danger', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'deleteTeam', 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id, 'tippy-content': t('Permanently delete this group')}) }}
+    {% endif %}
+{% endcall %}
+
+{% call tab_content(course) %}
+  {{ content_html|safe }}
+{% endcall %}
+{% endblock %}

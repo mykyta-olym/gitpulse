@@ -1,0 +1,160 @@
+/* Color mode controls and transitions shared by all application surfaces. */
+
+.theme-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gl-spacing-1);
+  padding: var(--gl-spacing-1);
+  color: var(--gl-text-color-subtle);
+  background: var(--gl-background-color-strong);
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--radius-md);
+}
+
+.theme-switcher-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gl-spacing-2);
+  min-width: 0;
+  min-height: 32px;
+  padding: var(--gl-spacing-1) var(--gl-spacing-3);
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition:
+    color var(--transition-normal),
+    background-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.theme-switcher-button:hover {
+  color: var(--gl-text-color-default);
+  background: var(--gl-action-neutral-bg-hover);
+}
+
+/* Selected: the class/aria the script keeps in sync, AND the <html> attribute
+   theme-bootstrap.js sets before first paint - so the right segment is lit
+   in the first frame even when the browser's local choice outranks the
+   account default the server rendered. */
+.theme-switcher-button.is-selected,
+.theme-switcher-button[aria-pressed="true"],
+:where(html[data-theme-preference="light"]) .theme-switcher-button[data-theme-value="light"],
+:where(html[data-theme-preference="dark"]) .theme-switcher-button[data-theme-value="dark"],
+:where(html[data-theme-preference="system"]) .theme-switcher-button[data-theme-value="system"] {
+  --theme-segment-border: var(--gl-action-selected-border);
+  color: var(--gl-btn-selected-text);
+  background: var(--gl-btn-selected-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-switcher-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.theme-switcher-button .icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+/* A joined, labelled variant of the same control. State colours and focus
+   stay on the base component, including when the accent changes. */
+.theme-switcher--segmented {
+  display: inline-flex;
+  gap: 0;
+  padding: 0;
+  margin-top: var(--gl-spacing-3);
+  background: transparent;
+  border: 0;
+}
+.theme-switcher--segmented .theme-switcher-button {
+  border: 1px solid var(--theme-segment-border, var(--gl-border-color-default));
+  border-radius: 0;
+  margin-inline-start: -1px;
+  min-height: 32px;
+}
+.theme-switcher--segmented .theme-switcher-button:first-child {
+  margin-inline-start: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.theme-switcher--segmented .theme-switcher-button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.theme-switcher--segmented .theme-switcher-button:focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
+/* Inside the profile dropdown the switcher is a clean 3-segment control:
+   the icon sits above its label and each segment fills its column, so on a
+   narrow phone menu it stays a readable, evenly sized control instead of
+   three tiny icons floating in a wide row. */
+
+@keyframes gp-theme-reveal {
+  from {
+    clip-path: circle(0 at var(--theme-transition-x) var(--theme-transition-y));
+  }
+  to {
+    clip-path: circle(150vmax at var(--theme-transition-x) var(--theme-transition-y));
+  }
+}
+
+::view-transition,
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  pointer-events: none !important;
+}
+
+html.theme-transitioning::view-transition-old(root) {
+  animation: none;
+  z-index: 1;
+}
+
+html.theme-transitioning::view-transition-new(root) {
+  /* A full-screen circular wipe reads as abrupt at --motion-duration-slow, so
+     it uses --motion-duration-cinematic - the token that exists for page-level
+     reveals. It was a literal 620ms, which is the same intent off the scale. */
+  animation: gp-theme-reveal var(--motion-duration-cinematic) var(--motion-ease-emphasized);
+  z-index: 2;
+}
+
+/* On mobile the circular clip-path reveal (and even a cross-fade) tears because
+   the open profile dropdown holding the control is captured in the snapshot, so
+   theme-bootstrap.js skips the view-transition entirely there and swaps the
+   theme instantly. No mobile transition CSS is needed. */
+
+/* While the theme flips, suppress every element's colour transition so the swap
+   is instant instead of thousands of elements animating at once (the mobile
+   "theme switch lags hard" report). theme-bootstrap.js adds/removes this class. */
+html.theme-no-transition,
+html.theme-no-transition *,
+html.theme-no-transition *::before,
+html.theme-no-transition *::after {
+  transition: none !important;
+}
+
+@media (max-width: 480px) {
+  /* Collapse to icon-only ONLY for the inline / standalone switchers (top
+     bar, floating). The in-menu switcher keeps its labels - the dropdown is
+     wide enough and labels read better than bare icons. */
+  .theme-switcher:not(.theme-switcher--segmented) .theme-switcher-button {
+    width: 32px;
+    padding: 0;
+  }
+
+  /* The label is hidden by the shared rule in utilities.css (.sr-only-xs). */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switcher-button {
+    transition: none;
+  }
+}

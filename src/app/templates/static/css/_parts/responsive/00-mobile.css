@@ -1,0 +1,847 @@
+/* ============================================
+   RESPONSIVE - GitLab Pajamas Design System
+   Comprehensive mobile-first responsive rules
+   ============================================ */
+
+/* -- Tablet & mobile (≤ 768px) -- */
+@media (max-width: 768px) {
+  /* Wrapped metadata follows the same reading edge as its title. Desktop
+     trailing alignment is kept in the component styles. */
+  .gh-thread-header .gh-thread-role,
+  .mr-card-time,
+  .dn-wc,
+  .rcm-toolbar-actions,
+  .issues-chart-legend__hint,
+  .issues-chart-detail__stat {
+    margin-left: 0;
+  }
+  .user-info-card {
+    flex-wrap: wrap;
+  }
+  .user-info-card-main {
+    flex-basis: 50%;
+  }
+  .user-info-card-badges {
+    justify-content: flex-start;
+    max-width: 100%;
+  }
+
+  /* A single header action keeps both its icon and label. */
+  .card-header .card-actions > .btn:only-child,
+  .page-header-actions > .btn:only-child {
+    flex-shrink: 0;
+  }
+
+  /* Preserve the avatar shape and minimum control sizes in the top bar. */
+  .gl-top-bar-right,
+  .gl-top-bar-user-wrap,
+  .gl-top-bar-search,
+  .gl-search-btn {
+    flex-shrink: 0;
+  }
+  /* Group search with the right controls on mobile (immediately before date/clock) */
+
+  /* On narrow phones, hide only the academic year so the live clock remains visible. */
+  @media (max-width: 575px) {
+    .gl-top-bar-context .gl-context-item:first-child,
+    .gl-top-bar-context .gl-context-separator {
+      display: none;
+    }
+  }
+
+  /* -- Action clusters in a card header ------------------------------------
+     `.card-actions` wraps, but the hand-rolled `.d-flex` wrappers INSIDE it do
+     not, so a cluster of three buttons stayed one unbroken row: measured on Job
+     History at 390px, 436px of buttons inside a 348px header, running straight
+     off the right edge. The wrapper wraps too, and its buttons may shrink to
+     their label. */
+  .card-actions > .d-flex,
+  .card-header .card-actions .d-flex {
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: var(--gl-spacing-2);
+  }
+  .card-actions .btn {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  /* A button that has to shrink truncates its label rather than pushing the
+     row wider - the icon still identifies it. */
+  .card-actions .btn > span:not(.icon) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The space above the first card. A page header carries its title, its
+     description and its actions, each with desktop margins; on a phone that is
+     most of the first screen before any content appears. */
+  .page-header h1 {
+    margin-bottom: var(--gl-spacing-2);
+  }
+
+  /* Cards sit closer together: `--gl-spacing-7` between them is a desktop
+     rhythm and reads as a gap on a 390px screen. */
+  .card {
+    margin-bottom: var(--gl-spacing-5);
+  }
+
+  .card-header-note {
+    margin-left: 0;
+  }
+
+  /* -- Top bar -----------------------------------------------------------
+     The live clock stays visible on mobile alongside the academic year.
+     Below the small-screen breakpoint (< 576px), the academic year drops first so the
+     clock and avatar have room in both 12-hour and 24-hour formats. */
+  .gl-top-bar-context #topBarClock { display: inline-flex; }
+  /* The term's name ("· Winter") is the part that does not fit beside the
+     clock on a phone; the year stays, and its tooltip names the whole term. */
+  .gl-top-bar-context .gl-context-term { display: none; }
+
+  /* -- "Items that need your attention" --------------------------------
+     Drop the 44px severity disc. With its 16px gap it costs 60px - a sixth of a
+     390px viewport - to say something the item's own text already says, and it
+     squeezed the title into two or three lines. GitLab drops the same leading
+     icon at this width for the same reason. The severity still reads: it is the
+     badge and the wording, which survive. */
+  .gl-attention-icon { display: none; }
+  .gl-attention-item { gap: var(--gl-spacing-3); }
+
+  /* The chevron is a 16px affordance on a row that is already a link; on a
+     touch screen the whole row is the target. */
+  .gl-attention-arrow { display: none; }
+
+  body {
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* -- Dashboard layout -> stack on mobile -- */
+  .gl-home-main {
+    grid-column: span 1;
+  }
+
+  /* -- Page header h1 - allow wrapping on mobile instead of truncation -- */
+  .page-header h1 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .page-header-content {
+    overflow: visible;
+  }
+
+  /* -- Diff viewer - compact on mobile -- */
+  .diff-container {
+    padding: var(--gl-spacing-2);
+  }
+  .diff-header {
+    padding: var(--gl-spacing-2) var(--gl-spacing-3);
+    font-size: var(--font-size-xs);
+  }
+  .diff-pre {
+    font-size: var(--font-size-xs);
+    max-height: 300px;
+  }
+  .diff-line-num {
+    flex: 0 0 2.5em;
+    padding: 0 var(--gl-spacing-2);
+    font-size: var(--font-size-xs);
+  }
+  .diff-line-content {
+    padding: 0 var(--gl-spacing-2);
+  }
+
+  /* -- Form row - stack on mobile -- */
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* -- Description / prose textareas: roomier to type in on a phone, and 16px
+     font so iOS doesn't zoom the viewport on focus. -- */
+  .form-textarea {
+    min-height: 120px;
+    font-size: 16px;
+  }
+
+  /* -- Sidebar -> slide-in overlay on mobile -- */
+  .gl-sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-width) !important;
+    max-width: 86vw;
+    z-index: calc(var(--z-modal) - 1);
+    transition: transform var(--transition-slow);
+    will-change: transform;
+    box-shadow: 4px 0 24px rgb(0 0 0 / 45%);
+  }
+
+  .gl-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* When on mobile, ignore desktop collapsed state */
+  .gl-sidebar.collapsed {
+    width: var(--sidebar-width) !important;
+  }
+.gl-sidebar.collapsed .gl-sidebar-brand-text,
+.gl-sidebar.collapsed .gl-sidebar-section-label,
+.gl-sidebar.collapsed .gl-sidebar-item-text,
+.gl-sidebar.collapsed .gl-sidebar-badge {
+    opacity: 1;
+    max-width: 160px;
+    pointer-events: auto;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-header {
+    padding: 0 var(--gl-spacing-4);
+    justify-content: flex-start;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-brand {
+    justify-content: flex-start;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-item,
+  .gl-sidebar.collapsed .gl-sidebar-bottom-item {
+    justify-content: flex-start;
+    padding: 0 var(--gl-spacing-3);
+    width: 100%;
+    height: var(--sidebar-item-height);
+    margin: 0;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-section {
+    padding: 0 var(--gl-spacing-3);
+    align-items: stretch;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-list {
+    align-items: stretch;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-bottom {
+    padding: var(--gl-spacing-3);
+    align-items: stretch;
+  }
+  .gl-sidebar.collapsed .gl-sidebar-toggle-icon {
+    transform: none;
+  }
+
+  /* Page wrapper - GitLab style inset on mobile/tablet */
+  .gl-page,
+  .gl-sidebar.collapsed ~ .gl-page {
+    margin-left: 8px;
+    margin-right: 8px;
+    margin-top: var(--navbar-height);
+    height: calc(100vh - var(--navbar-height) - 8px);
+    border-radius: var(--radius-xl);
+    /* The mobile rail overlays the page; a breakpoint must not squeeze its content. */
+    transition: none;
+  }
+
+  @supports (height: 100dvh) {
+    .gl-page,
+    .gl-sidebar.collapsed ~ .gl-page {
+      height: calc(100dvh - var(--navbar-height) - 8px);
+    }
+  }
+
+  /* The top bar is full width at every size now; the mobile drawer, unlike the
+     desktop sidebar, sits over the whole viewport and carries its own brand. */
+  .gl-sidebar {
+    top: 0;
+  }
+  .gl-sidebar-header {
+    display: flex;
+  }
+  .gl-top-bar-logo-text {
+    display: none;
+  }
+
+  /* Content breadcrumb - smaller on mobile */
+  .gl-content-breadcrumb {
+    height: 40px;
+    padding: 0 var(--gl-spacing-4);
+    border-radius: 0;
+  }
+
+  /* Show mobile menu button */
+  .gl-mobile-menu-btn {
+    display: flex;
+  }
+
+  /* Hide collapse toggle on mobile - overlay closes via backdrop tap */
+  .gl-sidebar-toggle {
+    display: none;
+  }
+
+  /* Sidebar items - larger touch targets on mobile */
+  .gl-sidebar-item,
+  .gl-sidebar-bottom-item {
+    height: 40px;
+    font-size: var(--font-size-base);
+  }
+
+  /* Sidebar section labels - slightly smaller on mobile */
+  .gl-sidebar-section-label {
+    font-size: var(--font-size-sm);
+    padding: var(--gl-spacing-2) var(--gl-spacing-5);
+  }
+
+  /* Overlay z-index */
+  .gl-sidebar-overlay {
+    z-index: calc(var(--z-modal) - 2);
+  }
+
+  /* Body lock when sidebar is open */
+  body.sidebar-mobile-open {
+    overflow: hidden;
+  }
+
+  /* -- User dropdown - anchored right under avatar on mobile -- */
+  .gl-top-bar-user-wrap .gl-user-dropdown {
+    position: absolute;
+    top: calc(100% + var(--gl-spacing-2));
+    right: 0;
+    left: auto;
+    min-width: 220px;
+    max-width: min(280px, calc(100vw - var(--gl-spacing-4)));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .gl-user-dropdown-header {
+    padding: var(--gl-spacing-4);
+  }
+
+  .gl-user-dropdown-name {
+    font-size: var(--font-size-base);
+  }
+
+  .gl-user-dropdown-handle {
+    font-size: var(--font-size-sm);
+  }
+
+  /* -- Search modal - GitLab-style top dropdown on mobile --
+     NOT a full-screen black sheet. GitLab's mobile command palette is a
+     full-width panel anchored at the very top that is only as tall as its
+     content (capped so long result lists scroll inside it), leaving the dimmed
+     page visible behind/below it. So: flex-start (not stretch), auto height with
+     an 85dvh cap (not height:100dvh), full-bleed sides, rounded + bordered only
+     at the bottom edge where it meets the page. -- */
+  .gl-search-modal-backdrop {
+    padding-top: 0;
+  }
+
+  .gl-search-modal {
+    width: 100%;
+    max-width: none;
+    max-height: 85dvh;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  .gl-search-modal-body {
+    max-height: none;
+  }
+
+  .gl-search-close-btn {
+    display: inline-flex;
+  }
+
+  /* -- Toast: full-width bottom whenever the sidebar is off-canvas --
+     The base container offsets `left: calc(--sidebar-width + 1rem)` (240px) to
+     clear the sidebar. Below 768px the sidebar is hidden (translateX(-100%)),
+     so that offset has nothing to clear and shoves toasts right-of-centre
+     ("middle of the page"). Pin them to the full width at the bottom instead.
+     (A duplicate ≤480px rule in 10-tablet.css is now subsumed by this.) */
+  .toast-container,
+  #toastContainer {
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    bottom: 0.75rem !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+  .toast {
+    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* -- Support forms - prevent stretching on mobile -- */
+  .gh-form-page {
+    padding: 0 0 var(--gl-spacing-5);
+  }
+
+  .gh-md-textarea {
+    min-height: 150px;
+    font-size: 16px; /* prevent iOS zoom */
+  }
+
+
+  .gh-md-toolbar {
+    flex-wrap: wrap;
+  }
+
+  /* Category grid - ensure proper sizing */
+  .gh-products-grid {
+    gap: var(--gl-spacing-2);
+  }
+
+  .gh-product-card {
+    padding: var(--gl-spacing-3);
+  }
+
+  .gh-product-name {
+    font-size: var(--font-size-xs);
+  }
+
+  /* Situation cards - tighter on mobile */
+  .gh-situation-card {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+    gap: var(--gl-spacing-3);
+  }
+
+  .gh-thread-entry {
+    gap: var(--gl-spacing-2);
+  }
+
+  /* -- Category-specific fields - stack -- */
+  .gh-category-fields .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* -- Mobile super-nav (GitLab-style): logo - menu - search .... info + avatar.
+     Group navigation controls on the left; date context and avatar stay on the
+     far right so they never collide or overlay across all screen widths. -- */
+  .gl-top-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--gl-spacing-2);
+    padding: 0 var(--gl-spacing-5);
+  }
+  .gl-top-bar-left {
+    flex: 0 0 auto;
+    gap: var(--gl-spacing-2);
+    padding-left: var(--gl-spacing-2);
+  }
+  .gl-top-bar .gl-top-bar-search,
+  .gl-top-bar-search {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: auto;
+    margin-right: var(--gl-spacing-2);
+    justify-content: flex-end;
+  }
+  .gl-top-bar-right {
+    flex: 0 0 auto;
+    margin-left: 0;
+    min-width: 0;
+  }
+  .gl-search-btn {
+    width: 36px;
+    max-width: none;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    background-color: var(--gl-topbar-search-bg);
+    border-radius: var(--radius-full);
+    margin-right: 0;
+    border-color: transparent;
+  }
+  .gl-search-btn:hover {
+    background: var(--gl-hover-subtle);
+    border-color: transparent;
+  }
+  .gl-search-btn .icon {
+    color: var(--gl-text-color-subtle);
+  }
+  .gl-search-btn-text,
+  .gl-search-shortcut {
+    display: none;
+  }
+
+  /* Academic year / date / time stays inline (single source, no "+" dropdown). */
+  .gl-top-bar-context {
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+  }
+  .gl-top-bar-action {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* -- Layout -- */
+  /* THE page gutter on a phone. One declaration: 8px, one step down from the
+     12px it was, because the card shell (4px) and body (12px) already inset the
+     content twice more - 28px a side out of 390px before this. */
+  .main-container {
+    padding: var(--gl-spacing-3);
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Cards keep their inset, rounded, spaced appearance on mobile - the SAME as
+     the dashboard - instead of the old edge-to-edge full-bleed list pattern.
+     The dashboard's cards (.gl-home-card) are nested, not direct children of
+     .main-container, so they never got the full-bleed treatment; every other
+     page's cards ARE direct children and did, which made admin/course/etc. read
+     as "stretched, no padding, different structure" vs the dashboard. Keeping
+     the default .card styling here makes the whole app consistent. */
+
+  .page-header-back {
+    margin-bottom: var(--gl-spacing-3);
+  }
+
+  .page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--gl-spacing-3);
+    padding-bottom: var(--gl-spacing-4);
+    margin-bottom: var(--gl-spacing-4);
+  }
+
+  .page-header > div:last-child {
+    flex-wrap: wrap;
+  }
+
+  .page-header-actions {
+    gap: var(--gl-spacing-2);
+  }
+
+  .page-header-actions .btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .search-box input {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .sidebar-sticky {
+    position: static;
+  }
+
+  /* -- Cards -- */
+  /* The same rule as `.card-actions`: once the footer wraps (an indicator chip
+     pushes the buttons onto their own row) the buttons sit flush left, not
+     hanging off the right edge under a left-aligned chip. The empty
+     indicators container is always rendered, so `:has()` keys on a chip. */
+  .course-card-footer:has(.course-card-indicators > *) .course-card-actions {
+    flex-basis: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  /* Profile header - stack avatar + identity vertically */
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  /* When stacked, keep identity, GitLab link and activity date centered. */
+  .profile-header > .profile-identity {
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+  }
+  .profile-identity-meta {
+    justify-content: center;
+  }
+  .profile-gitlab-link {
+    align-self: center;
+  }
+
+  /* -- Modals -- */
+  .modal-backdrop {
+    padding: var(--gl-spacing-3);
+  }
+
+  .modal {
+    margin: 0;
+    max-height: calc(100dvh - var(--gl-spacing-3) * 2);
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .modal-body {
+    max-height: calc(100dvh - 10rem);
+    overflow-x: hidden;
+    padding: var(--gl-spacing-4);
+  }
+
+  .modal-footer {
+    padding: var(--gl-spacing-4);
+  }
+
+  .modal-body > .modal-footer,
+  .modal-body > form > .modal-footer {
+    margin-left: calc(-1 * var(--gl-spacing-4));
+    margin-right: calc(-1 * var(--gl-spacing-4));
+    margin-bottom: calc(-1 * var(--gl-spacing-4));
+    bottom: calc(-1 * var(--gl-spacing-4));
+    padding: var(--gl-spacing-4);
+  }
+
+  /* -- Tables - comprehensive mobile fix -- */
+
+  /* Content sizing is for tables without component-declared column widths. */
+  .data-table.tbl-fixed:not(.table-column-widths) {
+    table-layout: auto !important;
+  }
+  .data-table.tbl-fixed:not(.table-column-widths) colgroup {
+    display: none;
+  }
+  /* Override cell-level truncation from .tbl-fixed */
+  .data-table.tbl-fixed:not(.table-column-widths) td,
+  .data-table.tbl-fixed:not(.table-column-widths) th {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* All data tables - compact on mobile */
+  .data-table th,
+  .data-table td {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+    font-size: var(--font-size-sm);
+  }
+  .data-table th {
+    font-size: var(--font-size-xs);
+  }
+
+  /* Tables with code - allow wrapping on mobile for readability */
+  .data-table td code {
+    white-space: normal;
+    word-break: break-all;
+    font-size: var(--font-size-xs);
+  }
+
+  /* Wide/matrix tables opt into horizontal scroll explicitly. Regular
+     data tables use the card layout from tables.css on mobile. */
+  /* .tickets-table and .projects-table are excluded like the member
+     matrices: the :not() chain gives this selector (0,7,0) specificity, which
+     silently out-ranked the tickets table's own phone floor in
+     pages/support.css and the projects table's 420/300px floors in
+     pages/course.css - the latter inflated a three-column table to 540px,
+     with the slack going into a 233px name column that the pinned actions
+     then cut. */
+  .table-responsive .data-table.table-scrollable:not(.team-members-table):not(.project-members-table):not(.tickets-table):not(.projects-table):not(.table-column-widths) {
+    min-width: 540px;
+  }
+
+  /* -- Horizontal scroll indicators - fade edges -- */
+  .table-responsive {
+    position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gl-scrollbar-thumb) transparent;
+  }
+  .table-responsive::-webkit-scrollbar {
+    height: 4px;
+  }
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: var(--gl-scrollbar-thumb);
+    border-radius: 2px;
+  }
+  .table-responsive::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* -- Card body with table - remove horizontal padding for full-bleed tables -- */
+  .card-body.p-0 .table-responsive {
+    margin: 0;
+  }
+
+  /* -- Member API note - compact on mobile -- */
+  .member-api-note {
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+    font-size: var(--font-size-xs);
+    gap: var(--gl-spacing-2);
+  }
+
+  /* -- Activity tables - force horizontal scroll -- */
+  #groupActivityTable,
+  #recentMrsTable {
+    min-width: 540px;
+  }
+
+  /* -- Jobs table - force horizontal scroll -- */
+  #jobsTable {
+    min-width: 680px;
+  }
+  #jobsTable th,
+  #jobsTable td {
+    white-space: nowrap;
+  }
+  #jobsTable td code {
+    white-space: nowrap;
+  }
+  /* Result/Error column (6th cell: the select-checkbox column was added in
+     front, the old :nth-child(5) had drifted onto Duration): one line with an
+     ellipsis. Wrapping the 80-character summary in a phone-width column made
+     every row 135px tall; the full text is one tap away in the expanded
+     detail row and in the tooltip. */
+  #jobsTable td:nth-child(6) > span {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  /* -- Admin courses - auto layout for action buttons -- */
+  #adminCoursesTable {
+    min-width: 480px;
+  }
+
+  .course-name { max-width: 150px; }
+  .teacher-list { max-width: 180px; }
+
+  /* Admin courses - column-priority handled at template level
+     via .col-hide-sm / .col-hide-xs. */
+  .users-table colgroup { display: none; }
+  .tickets-table colgroup { display: none; }
+
+  /* No padding here: the room under the controls follows the card body's
+     own padding (tables.css), as the room above them does. */
+  .table-controls {
+    gap: var(--gl-spacing-2);
+    margin-bottom: var(--gl-spacing-2);
+  }
+
+  /* Cookie banner responsive moved to css/cookie-banner.css */
+
+  /* -- Pagination -- */
+
+  .pagination-controls > .gl-pagination-size {
+    display: flex;
+  }
+  .gl-pagination, .pagination { justify-content: center; flex-wrap: wrap; }
+  .pagination-pages { flex-wrap: wrap; justify-content: center; }
+
+  /* -- Global job bar -- */
+  .global-job-item { font-size: var(--font-size-xs); padding: var(--gl-spacing-2) var(--gl-spacing-4); }
+  .global-job-elapsed { display: none; }
+  .gjb-progress-pct { display: none; }
+
+  /* -- Filter pills -- */
+
+  /* -- Min-width utilities -> clamp on mobile -- */
+.min-w-100 { min-width: 0 !important; }
+  .table-toolbar input[type="search"] { min-width: 0; width: 100%; }
+
+  /* -- Team row actions - column widths and nowrap are enforced in
+     pages/course.css so action buttons stay on a single row even on
+     narrow viewports. Avoid overriding here. */
+
+  /* -- Activity page -- */
+  .team-health-bar { min-width: 60px; }
+
+  /* -- Import log overflow -- */
+  .import-log { max-height: 8rem; }
+  .import-log-entry { white-space: normal; word-break: break-word; }
+  .import-counters { flex-wrap: wrap; gap: var(--gl-spacing-3); }
+  .import-status-line { font-size: var(--font-size-sm); }
+
+  /* -- GitLab list items -- */
+  .gl-list-item { flex-wrap: wrap; gap: var(--gl-spacing-3); }
+  .gl-list-item-meta { width: 100%; justify-content: flex-start; }
+  .gl-list-item-actions { opacity: 1; }
+
+  /* -- System Actions - stack buttons -- */
+
+  /* -- DLQ table - horizontal scroll on mobile -- */
+  #dlqTable {
+    min-width: 700px;
+  }
+
+  /* -- Form groups stack properly -- */
+  .form-group {
+    margin-bottom: var(--gl-spacing-4);
+  }
+
+  /* -- Tab navigation scrollable -- */
+.nav-tabs,
+.tabs-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-tabs::-webkit-scrollbar,
+  .tabs-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* -- Code blocks -- */
+  .code-block-dark,
+  .code-viewer {
+    font-size: var(--font-size-xs);
+    max-height: 50vh;
+    overflow: auto;
+  }
+
+  /* -- Tooltip adjustments -- */
+  .tippy-box {
+    max-width: calc(100vw - 2rem) !important;
+  }
+
+  /* -- Form inputs - prevent iOS auto-zoom on focus -- */
+  .form-input,
+  .form-select,
+  .search-box input,
+  select {
+    font-size: 16px;
+  }
+
+  /* -- MR table -
+     Column-priority is now declared at the template level via
+     `.col-hide-sm` (Project, Pipeline, Updated). The fragile
+     nth-child(N) rules previously here have been removed. */
+
+  /* -- CI scenarios table -
+     Column-priority is now declared at the template level via
+     `.col-hide-sm` (File, Pipeline, Created By). The fragile
+     nth-child(N) rules previously here have been removed. */
+
+  /* -- Commits table - hide project column, compact on mobile -- */
+  /* Cols: 1=Project, 2=SHA, 3=Message, 4=Stats, 5=Date */
+  #commitsTable th:nth-child(1),
+  #commitsTable td:nth-child(1) {
+    display: none;
+  }
+  #commitsTable th:nth-child(5),
+  #commitsTable td:nth-child(5) {
+    display: none;
+  }
+  #commitsTable {
+    min-width: 460px;
+  }
+
+  /* -- Heatmap - reduce check column width on mobile -- */
+  .hm-check-col {
+    width: 100px;
+    min-width: 80px;
+    font-size: var(--font-size-xs);
+  }
+  .hm-week-col {
+    width: 40px;
+  }
+  .heatmap-table {
+    min-width: 350px;
+  }
+}
+
+/* -- Medium screens - sidebar visible but narrow content (769px - 1199px) -- */

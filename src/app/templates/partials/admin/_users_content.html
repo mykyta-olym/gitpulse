@@ -1,0 +1,35 @@
+{% from "components/buttons.html" import btn, btn_icon_only, btn_link_icon %}
+{% from "components/badges.html" import badge, role_badge %}
+{% from "components/icons.html" import icon %}
+{% from "components/forms.html" import search_input with context %}
+{% from "components/alerts.html" import success_banner, error_banner, status_indicator %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/tables.html" import data_table, pagination_controls %}
+{% from "components/table_heads.html" import users_table_head with context %}
+{% set success_msg = request.query_params.get('success', '') %}
+{% set error_msg = request.query_params.get('error', '') %}
+
+{% if success_msg %}
+{{ success_banner(message=success_msg | replace('+', ' ')) }}
+{% endif %}
+
+{% if error_msg %}
+{{ error_banner(message=error_msg | replace('+', ' ')) }}
+{% endif %}
+
+{% if users or bot_users %}
+{# ONE card holding ONE table. People and service accounts are the same entity
+   with the same eight columns - they shared `users_table_head()` while being
+   rendered as two tables in two tab panels with two paginators. Now the pill
+   row that filters by role filters by kind too, so both are searched, sorted
+   and paged together. See partials/admin/_users_table.html. #}
+{# The card is written in the partial with the table: its header carries the
+   search box and the pills, and a `{% set %}` inside an include cannot reach
+   back out to here. #}
+{% include "partials/admin/_users_table.html" %}
+{% else %}
+{% call empty_state(t('No Users Yet'), t('Users will appear here after they log in through GitLab OAuth.'), illustration='empty-user') %}
+  <p class="muted font-sm mt-3">{{ t("You are currently logged in but haven't re-authenticated since this feature was added.") }}</p>
+  {{ btn_link_icon(t('Logout & Re-login to Sync'), '/dashboard/logout', 'log-out', variant='secondary', class='mt-2') }}
+{% endcall %}
+{% endif %}

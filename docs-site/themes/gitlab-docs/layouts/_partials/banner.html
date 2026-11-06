@@ -1,0 +1,11 @@
+{{- $isPreRelease := partial "functions/is-pre-release-version.html" . -}}
+
+{{/* Grab banner.yaml from current site language, falling back to the site default. */}}
+{{- $bannerData := index .Context.Site.Data .Context.Lang "banner" -}}
+
+{{/* Only show the survey banner if this is the production (pre-release) site and show_survey_banner is true */}}
+{{- if and ($bannerData.show_survey_banner) (eq $isPreRelease "true") (eq .type "survey") -}}
+  <div data-vue-app="survey-banner" class="vue-loading">
+    {{- $bannerData.description | markdownify -}}
+  </div>
+{{- end -}}

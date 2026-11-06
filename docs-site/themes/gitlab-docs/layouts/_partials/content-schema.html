@@ -1,0 +1,62 @@
+{{/*
+  Article structured data for the current page.
+
+  https://developers.google.com/search/docs/appearance/structured-data/article
+
+  Pages are TechArticle by default. Release posts under /releases/ are
+  authored announcements rather than reference material, so they
+  should be BlogPosting type instead. The /releases/ index and the per-version
+  listings stay TechArticle: they're section pages, not posts.
+
+  Emits nothing for pages crawlers are told to skip. These pages include,
+  - home page (handled in baseof.html)
+  - `noindex` pages
+  - redirect stubs (which redirect.html also marks noindex)
+  - 404 page
+  - search results page
+
+  @param Page
+    The page object (passed as the dot context).
+*/}}
+
+{{- $isNoindex := or (eq .Params.noindex true) (ne (string .Params.redirect_to) "") -}}
+{{- $isSearchPage := eq .Layout "search-results" -}}
+{{- $isArticlePage := and (not .IsHome) (ne .Kind "404") (not $isSearchPage) (not $isNoindex) -}}
+
+{{- if $isArticlePage -}}
+
+  {{- $isReleasePath := eq (partial "functions/is-versioned-path-match" (dict "path" .RelPermalink "pattern" "/releases/")) "true" -}}
+
+  {{- $isReleasePost := and $isReleasePath (eq .Kind "page") (not .Date.IsZero) -}}
+
+  {{- /* No URL field here on purpose: Google resolves structured data to the
+         page's canonical URL. */ -}}
+  {{- $schema := dict
+    "@context" "https://schema.org"
+    "@type" (cond $isReleasePost "Article" "TechArticle")
+    "headline" .Title
+    "inLanguage" .Language.LanguageCode
+  -}}
+
+  {{- /* Omit the key entirely rather than emitting an empty description. */ -}}
+  {{- with .Params.description -}}
+    {{- $schema = merge $schema (dict "description" .) -}}
+  {{- end -}}
+
+  {{- /* A page may credit a named author in front matter; otherwise the site
+         itself is the author. This used to hardcode "GitLab" as the fallback
+         organisation, so every thesis page announced GitLab as its author in
+         schema.org data. */ -}}
+  {{- if .Params.author -}}
+    {{- $schema = merge $schema (dict "author" (dict "@type" "Person" "name" .Params.author)) -}}
+  {{- else if .Site.Title -}}
+    {{- $schema = merge $schema (dict "author" (dict "@type" "Organization" "name" .Site.Title)) -}}
+  {{- end -}}
+
+  {{- if .Site.Title -}}
+    {{- $schema = merge $schema (dict "publisher" (dict "@type" "Organization" "name" .Site.Title)) -}}
+  {{- end }}
+  <script type="application/ld+json">
+    {{ $schema | jsonify | safeJS }}
+  </script>
+{{ end -}}

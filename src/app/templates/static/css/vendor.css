@@ -1,0 +1,298 @@
+/* ============================================
+   THIRD PARTY OVERRIDES
+   ============================================ */
+
+/* Flatpickr */
+.flatpickr-calendar {
+  font-family: var(--font-family);
+  border-radius: var(--radius-lg);
+  /* Clip the header/arrows to the rounded box so the corners are clean - no
+     mismatched rounded notch where the header meets the rounded container. */
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: var(--surface-default) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* The picker opens like every other panel in the app (GP.motion.popIn). */
+.flatpickr-calendar.open {
+  animation: gp-pop-in var(--gl-anim-fast) var(--motion-ease-standard);
+  max-width: calc(100vw - var(--gl-spacing-3) * 2);
+}
+/* Keep the week column and all seven days visible on narrow screens. Limit
+   only open calendars so Flatpickr measures its normal width while building. */
+.flatpickr-calendar.open .flatpickr-rContainer {
+  min-width: 0;
+}
+.flatpickr-calendar.open .flatpickr-days {
+  max-width: 100%;
+}
+.flatpickr-calendar.open .dayContainer {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.flatpickr-months {
+  background: var(--surface-moderate) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  /* No own rounding - the calendar container (overflow:hidden) rounds the top
+     corners, so the header fills flush to the edge with no white notch. */
+  padding: 2px 4px;
+}
+
+/* Month nav arrows as soft round buttons, matching the app's icon buttons. */
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  transition: background var(--transition-normal), color var(--transition-normal) !important;
+  padding: 4px !important;
+}
+
+.flatpickr-month {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.flatpickr-weekdays {
+  background: var(--surface-moderate) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Month Dropdown */
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+  background: var(--surface-default) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 3px 20px 3px 8px !important;
+  font-family: inherit !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  /* The mode's chevron (tokens.css), not one grey for both themes. */
+  background-image: var(--gl-select-chevron) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 6px center !important;
+  background-size: 8px 5px !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+  border-color: var(--gl-control-border-hover) !important;
+  background-color: var(--surface-moderate) !important;
+}
+
+/* Year Input */
+.flatpickr-current-month .numInputWrapper {
+  width: 65px !important;
+  display: inline-block !important;
+  margin-left: 4px !important;
+}
+.flatpickr-current-month input.cur-year {
+  background: var(--surface-default) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 3px 6px !important;
+  font-family: inherit !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: 600 !important;
+  box-sizing: border-box !important;
+  height: 26px !important;
+}
+.flatpickr-current-month input.cur-year:hover,
+.flatpickr-current-month input.cur-year:focus {
+  border-color: var(--gl-control-border-hover) !important;
+}
+
+/* Static month label (monthSelectorType: 'static') - a styled text label with
+   arrow navigation instead of an unstyled native <select>, so the header reads
+   as a custom component matching the rest of the app. */
+.flatpickr-current-month span.cur-month {
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  margin-right: 2px !important;
+  padding: 2px 4px !important;
+  border-radius: var(--radius-sm) !important;
+}
+.flatpickr-current-month span.cur-month:hover {
+  background: var(--surface-default) !important;
+}
+
+span.flatpickr-weekday {
+  color: var(--gl-text-color-subtle) !important;
+}
+
+.flatpickr-day {
+  color: var(--text-primary) !important;
+}
+
+.flatpickr-day:hover,
+.flatpickr-day.prevMonthDay:hover,
+.flatpickr-day.nextMonthDay:hover {
+  background: var(--surface-moderate) !important;
+  border-color: var(--border-color) !important;
+}
+
+.flatpickr-day.today {
+  border-color: var(--primary) !important;
+  font-weight: bold !important;
+}
+
+.flatpickr-day.selected { 
+  background: var(--primary) !important; 
+  border-color: var(--primary) !important;
+  color: var(--gl-gray-0) !important;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+  color: var(--gl-text-color-subtle) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  color: var(--text-primary) !important;
+  fill: var(--text-primary) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+  /* Distinct from the .flatpickr-months header (--surface-moderate) so the hover
+     is actually visible - previously it filled with the SAME colour as the
+     header, so the arrows looked like empty rounded shapes that did nothing. */
+  background: var(--gl-action-neutral-bg-hover) !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+  fill: var(--primary) !important;
+}
+
+/* Week Column */
+.flatpickr-weekwrapper {
+  margin: 0 !important;
+}
+.flatpickr-weekwrapper .flatpickr-weeks {
+  box-shadow: 1px 0 0 var(--border-color) !important;
+  background: var(--surface-subtle) !important;
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+.flatpickr-weekwrapper span.flatpickr-day {
+  color: var(--gl-text-color-subtle) !important;
+  font-weight: 600 !important;
+  font-size: var(--font-size-sm) !important;
+  border: none !important;
+  background: transparent !important;
+}
+.flatpickr-weekwrapper .flatpickr-weekday {
+  background: var(--surface-moderate) !important;
+  color: var(--gl-text-color-subtle) !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Time selection */
+.flatpickr-time {
+  border-top: 1px solid var(--border-color) !important;
+  background: var(--surface-subtle) !important;
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+  height: 40px !important;
+  line-height: 40px !important;
+}
+.flatpickr-time input {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+.flatpickr-time input:hover,
+.flatpickr-time input:focus {
+  background: var(--surface-moderate) !important;
+}
+.flatpickr-time .flatpickr-time-separator {
+  color: var(--text-primary) !important;
+  line-height: 40px !important;
+}
+.flatpickr-time .numInputWrapper span.arrowUp::after {
+  border-bottom-color: var(--text-primary) !important;
+}
+.flatpickr-time .numInputWrapper span.arrowDown::after {
+  border-top-color: var(--text-primary) !important;
+}
+
+/* Tippy tooltips - fixed high-contrast Pajamas surface in both modes */
+.tippy-box {
+  font-size: var(--font-size-sm);
+  background: var(--gl-gray-100, #dbdbdb);
+  color: var(--gl-gray-900, #1f1e24);
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--gl-spacing-1) var(--gl-spacing-3);
+  box-shadow: var(--shadow);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  max-width: 320px;
+  /* Long unbroken strings (emails, bot logins, GitLab paths) used to run past
+     the tooltip's right edge instead of wrapping. Break them anywhere. */
+  overflow-wrap: anywhere;
+  white-space: normal;
+  animation: fadeIn 150ms linear;
+}
+/* Grow from the edge nearest the element it describes, so the tooltip expands
+   out of its anchor rather than from its own centre. */
+.tippy-box[data-placement^='top'] { transform-origin: bottom center; }
+.tippy-box[data-placement^='bottom'] { transform-origin: top center; }
+.tippy-box[data-placement^='left'] { transform-origin: right center; }
+.tippy-box[data-placement^='right'] { transform-origin: left center; }
+.tippy-box[data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: var(--gl-gray-100, #dbdbdb);
+}
+.tippy-box[data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: var(--gl-gray-100, #dbdbdb);
+}
+.tippy-box[data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: var(--gl-gray-100, #dbdbdb);
+}
+.tippy-box[data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: var(--gl-gray-100, #dbdbdb);
+}
+.tippy-content {
+  padding: 0;
+}
+
+[data-tippy-content] {
+  cursor: help;
+}
+/* Buttons with tooltips should keep their own cursor */
+button[data-tippy-content],
+a[data-tippy-content],
+.btn[data-tippy-content] {
+  cursor: pointer;
+}
+/* ...but a dead control must not borrow a live cursor. The rule above carries
+   the same specificity as `.btn:disabled` and comes later in the cascade, so
+   it won: every disabled button that also has a tooltip - which is every bulk
+   action over a selection, among others - kept the pointer of a working one
+   while its colours said disabled. */
+button[data-tippy-content]:disabled,
+.btn[data-tippy-content]:disabled,
+.btn[data-tippy-content].disabled,
+.btn[data-tippy-content].is-disabled,
+[data-tippy-content][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+/* Wrapper used to host a tooltip on a disabled control. Disabled buttons do
+   not emit pointer events, so Tippy can't fire on them directly; we wrap the
+   button and bind the tip to this inline wrapper while the button itself gets
+   pointer-events:none so hovers reach the wrapper. inline-flex keeps the
+   button's box/layout intact inside toolbars and button rows. */
+.gl-tip-wrap {
+  display: inline-flex;
+  vertical-align: middle;
+  cursor: not-allowed;
+}
+.gl-tip-wrap > * {
+  pointer-events: none;
+}

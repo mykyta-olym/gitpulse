@@ -1,0 +1,44 @@
+{% from "components/icons.html" import icon %}
+
+{% macro theme_switcher(class='', labels=true) %}
+{# The account's mode, so the chosen segment is drawn selected in the HTML the
+   server sends rather than by theme-bootstrap.js at DOMContentLoaded - which
+   painted all three unselected first. theme-bootstrap still owns the truth
+   (a browser's local choice can outrank a "system" default) and re-syncs. #}
+{% set _mode = theme_preference|default('system') %}
+<div class="theme-switcher {{ class }}"
+     data-tour="theme-switcher"
+     role="group"
+     aria-label="{{ t('Mode') if t is defined else 'Mode' }}">
+  <button type="button"
+          class="theme-switcher-button{% if _mode == 'light' %} is-selected{% endif %}"
+          data-theme-value="light"
+          data-dropdown-keep-open
+          aria-pressed="{{ 'true' if _mode == 'light' else 'false' }}"
+          aria-label="{{ t('Light') if t is defined else 'Light' }}"
+          data-tippy-content="{{ t('Light') if t is defined else 'Light' }}">
+    {{ icon('sun', size='sm') }}
+    {% if labels %}<span class="theme-switcher-button-label">{{ t('Light') if t is defined else 'Light' }}</span>{% endif %}
+  </button>
+  <button type="button"
+          class="theme-switcher-button{% if _mode == 'dark' %} is-selected{% endif %}"
+          data-theme-value="dark"
+          data-dropdown-keep-open
+          aria-pressed="{{ 'true' if _mode == 'dark' else 'false' }}"
+          aria-label="{{ t('Dark') if t is defined else 'Dark' }}"
+          data-tippy-content="{{ t('Dark') if t is defined else 'Dark' }}">
+    {{ icon('moon', size='sm') }}
+    {% if labels %}<span class="theme-switcher-button-label">{{ t('Dark') if t is defined else 'Dark' }}</span>{% endif %}
+  </button>
+  <button type="button"
+          class="theme-switcher-button{% if _mode == 'system' %} is-selected{% endif %}"
+          data-theme-value="system"
+          data-dropdown-keep-open
+          aria-pressed="{{ 'true' if _mode == 'system' else 'false' }}"
+          aria-label="{{ t('Auto') if t is defined else 'Auto' }}"
+          data-tippy-content="{{ t('Auto') if t is defined else 'Auto' }}">
+    {{ icon('monitor', size='sm') }}
+    {% if labels %}<span class="theme-switcher-button-label">{{ t('Auto') if t is defined else 'Auto' }}</span>{% endif %}
+  </button>
+</div>
+{% endmacro %}

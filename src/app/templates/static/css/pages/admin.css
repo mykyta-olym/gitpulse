@@ -1,0 +1,318 @@
+/* ============================================
+   ADMIN PAGES - Users & Courses
+   ============================================ */
+.row-inactive { opacity: 0.5; }
+
+.user-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  width: 100%;
+  min-width: 0;
+}
+.user-identity .user-username {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.user-identity > .badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+/* People wrap in their fixed columns; service-account values truncate with
+   their full value available in a tooltip. */
+.user-username,
+.users-cell-value {
+  display: inline-block;
+  vertical-align: middle;
+  min-width: 0;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-username {
+  color: var(--gl-text-color-strong);
+}
+
+.users-table tr:not(.user-row--bot) :is(.user-username, .users-cell-value) {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+/* In the narrow auto layout, cap machine names so they cannot size the
+   whole table. Fixed columns already constrain them on wider screens. */
+@media (max-width: 1180px) {
+  .users-table tr.user-row--bot .user-username {
+    max-width: 20ch;
+  }
+
+  .users-table tr.user-row--bot .users-cell-value {
+    max-width: 28ch;
+  }
+}
+.users-table td.col-role,
+.users-table td.col-status,
+.users-table td.col-created,
+.users-table td.col-actions {
+  white-space: nowrap;
+}
+.users-table td.col-role .badge {
+  white-space: nowrap;
+}
+.users-table .status-indicator,
+.users-table .status-indicator .status-label {
+  white-space: nowrap;
+}
+.users-role-filter {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 680px) {
+  .users-role-filter {
+    flex-basis: 100%;
+    width: 100%;
+  }
+}
+
+/* Preserve the existing narrow-screen column visibility and scroll model. */
+@media (max-width: 1180px) {
+  .users-table.table-scrollable { table-layout: auto; }
+}
+@media (min-width: 769px) and (max-width: 1180px) {
+  .users-table .col-gitlabid { display: none; }
+}
+@media (min-width: 769px) and (max-width: 980px) {
+  .users-table .col-created { display: none; }
+}
+
+/* -- Admin Courses table: content-sized columns, the wrapper scrolls --
+   This table used `table-layout: fixed` with six percentage columns, and the
+   percentages could not be made to fit at every width: measured at 1600x1000
+   the course name needed 283px in a 265px column while the teacher cell needed
+   326px, and moving points between them only moved which cell was cut. The
+   table is simply wider than the container at that size.
+
+   The Users table met the same wall and answered it the same way - and so does
+   the tablet rule that already existed here. It is the contract now at every
+   width: columns size to their content, and `.table-responsive` scrolls when
+   the sum does not fit. The `col-*` classes stay because the responsive rules
+   below hide the lowest-value columns by them.
+
+   Row actions stay on ONE line. They were three icon buttons and a labelled
+   "Teachers" button, and the label made the group wrap - that row then stood
+   ~40px taller than its neighbours (85px against 45px). All four are icons with
+   tooltips now, 100px of buttons and gaps in total. */
+#adminCoursesTable.tbl-fixed { table-layout: auto; min-width: 860px; }
+#adminCoursesTable colgroup { display: none; }
+
+/* Landscape / portrait tablets (769-1180px): with table-layout:fixed the 12%
+   Actions column clipped the labelled "Teachers" button (".tbl-fixed" ellipsises
+   overflow) and the 27% Teachers column squeezed the teacher badges into a tall
+   stack. Mirror the Users table: size the columns to their content and let the
+   .table-responsive wrapper scroll horizontally so nothing is clipped, and keep
+   the row-action buttons on a single line. */
+@media (max-width: 1180px) {
+  /* Content-sized + horizontally scrollable on tablets AND phones (covers the
+     old card-collapse range too) so long names / teacher badges are never
+     clipped - the .table-responsive wrapper scrolls instead. */
+  #adminCoursesTable .teacher-list { max-width: none; }
+}
+
+/* -- DLQ / Events table column widths -- */
+/* -- The two Event Pipeline tables: content-sized columns, wrapper scrolls --
+   Both were `tbl-fixed` sharing ONE set of percentage columns, and Recent
+   events borrowed them in a different order than the DLQ: "Who" was handed
+   `col-dlq-project` at 9% while "Actions" - one "Details" link - took 14% and
+   "Retries" - one digit - took 7%. At 1440px that gave a username 95px, so
+   `mykyta.olym` wrapped as "mykyta.oly / m" no matter how it was told to break.
+   Same contract as Users, Admin Courses, the group list and the member matrix:
+   columns take what their content needs, `.table-responsive` scrolls when the
+   sum does not fit. The `col-*` classes stay - the responsive rules below hide
+   the lowest-value columns by them. */
+.events-table { table-layout: auto; }
+/* A username, a timestamp and a retry count are single tokens: let them keep
+   their line rather than wrap into two. */
+.events-table td.col-dlq-time,
+.events-table td.col-dlq-retries { white-space: nowrap; }
+
+.col-dlq-select  { width:  4%; }
+.col-dlq-type    { width: 13%; }
+.col-dlq-project { width:  9%; }
+.col-dlq-reason  { width: 12%; }
+.col-dlq-retries { width:  7%; }
+.col-dlq-error   { width: 18%; }
+.col-dlq-time    { width: 12%; }
+.col-dlq-actions { width: 14%; white-space: nowrap; }
+
+/* DLQ table responsiveness - same approach as users-table: allow
+   horizontal scroll on narrow screens so the action buttons / select
+   checkbox / event-id chip never get clipped. */
+#dlqTable.tbl-fixed { table-layout: fixed; }
+#dlqTable td.col-dlq-actions,
+#dlqTable td.col-dlq-select,
+#dlqTable td.col-dlq-retries {
+  white-space: nowrap;
+  overflow: visible;
+}
+@media (max-width: 1439px) {
+  #dlqTable.tbl-fixed { table-layout: auto; min-width: 960px; }
+  #dlqTable colgroup { display: none; }
+}
+/* The JS-rendered DLQ rows put the select checkbox in a class-less first <td>,
+   so in the ≤1024px auto-layout (colgroup hidden) that cell collapsed to the
+   bare checkbox width and looked squished against the Event ID column. Give the
+   first column a tap-friendly minimum width and center it, in every layout. */
+#dlqTable th:first-child,
+#dlqTable td:first-child { min-width: 44px; text-align: center; }
+/* (course-table removed - use .data-table from tables.css) */
+
+.course-name {
+  color: var(--text-primary);
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.course-meta { color: var(--text-secondary); font-size: var(--font-size-base); }
+
+.teacher-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+  max-width: 300px;
+  align-items: center;
+}
+.teacher-overflow {
+  display: contents;
+}
+.teacher-overflow.d-none {
+  display: none;
+}
+
+.data-table .teacher-list {
+  margin-top: 0;
+}
+.no-teachers {
+  color: var(--text-disabled);
+  font-style: italic;
+  font-size: var(--font-size-base);
+  padding: var(--gl-spacing-1) 0;
+}
+
+/* -- Teacher Manager (full page) -- */
+
+/* -- GitLab-style invite bar -- */
+
+/* Typeahead dropdown */
+
+.member-role {
+  flex-shrink: 0;
+  width: 9.5rem;
+}
+
+@media (max-width: 600px) {
+  .member-role {
+    width: auto;
+  }
+}
+@media (max-width: 768px) {
+  .table-toolbar { flex-direction: column; align-items: stretch; }
+}
+
+/* ============================================
+   ADMIN EVENTS (DLQ) PAGE
+   ============================================ */
+.resurrect-btn { white-space: nowrap; }
+
+/* The `.table-loading` overlay that stood here is gone. It was a second table
+   loading treatment - opacity 0.45 + pointer-events:none - applied only on the
+   admin pages, on the same <tbody> the shared mechanic
+   (GP.tableLoading -> `.is-refreshing`, tables.css) was already dimming to 0.6
+   and making inert. `.data-table tbody.is-refreshing` outranks a bare class, so
+   it never even won the opacity it asked for; all it did was make the System
+   page look like it loaded differently from every other table in the app. */
+
+/* -- Configuration table: identifiers are not prose --
+   `.data-table td code` carries `overflow-wrap: anywhere` so a SHA or a long
+   path can break rather than blow a column out. Here every code cell is a
+   settings key - `feature_email_notifications`, `FEATURE_EMAIL_NOTIFICATIONS`
+   - and "anywhere" tells `table-layout: auto` the column's minimum width is one
+   character, so Description took 685px of 1206 and the keys came out as
+   `feature_emai / l_notificati / ons`. They declare their real width instead,
+   and the wrapper scrolls if the four columns together do not fit. */
+#systemConfigTable td code {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+/* ===============================================================
+   Column widths: the layout must not depend on which rows are showing
+   ---------------------------------------------------------------
+   Every column here was content-sized (`min-width: 0` is not a width), so with
+   `table-layout: auto` the browser re-solved the whole table whenever the set of
+   VISIBLE rows changed - and it changes twice on every load. Traced on the Users
+   page at 500 kbit:
+
+     t=3322ms  62 rows parsed, all visible   table 1187px
+     t=3374ms  68 rows parsed, all visible   table 1236px   <- one long bot name
+     t=4758ms  ClientPaginator leaves 50     table 1187px
+
+   Two relayouts of eight columns: the content slides sideways and comes back,
+   which is what a reader sees on every page with a table.
+
+   The widths below are the ones each column already settles at, measured at
+   1440px - so nothing looks different, it just stops depending on the rows.
+   `table-layout: fixed` is NOT the fix here and was tried before: see
+   #adminCoursesTable.tbl-fixed, which was put back to `auto` because fixed
+   "crams every column into an ellipsis at the narrow end".
+   =============================================================== */
+
+/* -- Users / Service accounts (users_table_head) --
+   Every column is at least as wide as its own label on one line, in both
+   languages - the table scrolls sideways rather than wrap a label (tables.css),
+   and in a fixed layout an unwrapped label wider than its column is cut. At
+   13.2% (157px) Username was not: "Používateľské meno" needs 190px, and its
+   second line made the whole header row 56px tall. Email receives the
+   remaining space. Fixed layout keeps the widths independent of filtering and
+   pagination. */
+.users-table { width: 100%; table-layout: fixed; }
+.users-table.table-scrollable { min-width: 1240px; }
+.users-table .col-username { width: 194px; }
+.users-table .col-gitlabid { width: 150px; }
+.users-table .col-fullname { width: 10.6%; }
+.users-table .col-email    { width: auto; }
+.users-table .col-role     { width: 92px; }
+.users-table .col-period   { width: 167px; }
+.users-table .col-status   { width: 100px; }
+.users-table .col-created  { width: 125px; }
+.users-table .col-actions  { width: 88px; }
+/* The terms a student is in. Its own column, with room to wrap: the badges
+   used to ride in the Role cell, which does not wrap, so "2025/2026 · Summer"
+   ran out of its 12% and printed over the Status column beside it. A student
+   in two terms gets two badges, one under the other - the row grows, nothing
+   overlaps. */
+.users-period-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+}
+.users-table td.col-period .badge {
+  white-space: nowrap;
+}
+
+/* -- Admin > Courses -- */
+#adminCoursesTable .col-course-code     { width: 140px; }
+#adminCoursesTable .col-course-name     { width: 280px; }
+#adminCoursesTable .col-course-year     { width: 160px; }
+#adminCoursesTable .col-course-status   { width: 100px; }
+#adminCoursesTable .col-course-teachers { width: 230px; }
+#adminCoursesTable .col-course-actions  { width: 120px; text-align: right; }
+#adminCoursesTable th.col-course-actions,
+#adminCoursesTable td.col-course-actions { text-align: right; }
+
+/* -- Admin > System, configuration table -- */
+#systemConfigTable .col-cfg-parameter   { width: 270px; }
+#systemConfigTable .col-cfg-value       { width: 172px; }
+#systemConfigTable .col-cfg-description { width: 338px; }
+#systemConfigTable .col-cfg-env         { width: 312px; }

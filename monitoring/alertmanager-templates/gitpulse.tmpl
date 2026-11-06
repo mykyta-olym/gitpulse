@@ -1,0 +1,182 @@
+{{/*
+  The alert email. Its chrome is the application's own mail (app/services/
+  email_notifications.py, which follows GitLab's mailer layout); the status
+  bar and the detail table are GitLab's pipeline mail
+  (app/views/notify/pipeline_failed_email.html.haml and
+  _successful_pipeline.html.haml): red #d22f57 with its x.png for a firing
+  alert, green #108548 with check.png once it is resolved.
+
+  .ExternalURL is Alertmanager's --web.external-url, <APP_BASE_URL>/alertmanager,
+  so every link below is the public address behind Caddy.
+*/}}
+
+{{ define "gitpulse.base" }}{{ reReplaceAll "/alertmanager/?$" "" .ExternalURL }}{{ end }}
+
+{{ define "gitpulse.summary" }}{{ with .Annotations.summary }}{{ . }}{{ else }}{{ .Labels.alertname }}{{ end }}{{ end }}
+
+{{/* Local: the container runs with TZ=Europe/Bratislava, the department's and the host's. */}}
+{{ define "gitpulse.when" }}{{ .Local.Format "2 Jan 2006, 15:04 MST" }}{{ end }}
+
+{{/* A label as a row heading. The scrape target's own labels (job, instance,
+     service, component) say where Prometheus looked, not what is wrong. */}}
+{{ define "gitpulse.label" }}{{ if eq . "queue_name" }}Queue{{ else if eq . "event_type" }}Event type{{ else }}{{ reReplaceAll "_" " " . | title }}{{ end }}{{ end }}
+
+{{ define "gitpulse.silence" -}}
+{{ .ExternalURL }}/#/silences/new?filter=%7B
+{{- range .CommonLabels.SortedPairs -}}
+{{- if ne .Name "alertname" }}{{ .Name }}%3D%22{{ .Value | urlquery }}%22%2C%20{{ end -}}
+{{- end -}}
+alertname%3D%22{{ .CommonLabels.alertname | urlquery }}%22%7D
+{{- end }}
+
+{{ define "gitpulse.email.subject" -}}
+{{ if eq .Status "firing" -}}
+Firing: {{ if gt (len .Alerts.Firing) 1 }}{{ .CommonLabels.alertname }} ({{ len .Alerts.Firing }} alerts){{ else }}{{ range .Alerts.Firing }}{{ template "gitpulse.summary" . }}{{ end }}{{ end }}
+{{- else -}}
+Resolved: {{ if gt (len .Alerts.Resolved) 1 }}{{ .CommonLabels.alertname }} ({{ len .Alerts.Resolved }} alerts){{ else }}{{ range .Alerts.Resolved }}{{ template "gitpulse.summary" . }}{{ end }}{{ end }}
+{{- end }} | GitPulse
+{{- end }}
+
+{{/* One alert's detail table - GitLab's tr.section, label 15px #737278, value #333333 500. */}}
+{{ define "gitpulse.section" }}
+<tr class="section"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;padding:0 15px;border:1px solid #ededed;border-radius:3px;overflow:hidden;">
+<table class="table-info" border="0" cellpadding="0" cellspacing="0" style="width:100%;"><tbody>
+{{ with .Annotations.description }}<tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;color:#737278;font-weight:400;padding:14px 0;margin:0;vertical-align:top;text-align:left;width:25%;">What happened</td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:400;padding:14px 0;margin:0;color:#333333;width:75%;padding-left:5px;text-align:left;">{{ . }}</td>
+</tr>{{ end }}
+<tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;color:#737278;font-weight:400;padding:14px 0;margin:0;border-top:1px solid #ededed;text-align:left;">Alert</td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:500;padding:14px 0;margin:0;color:#333333;width:75%;padding-left:5px;border-top:1px solid #ededed;text-align:left;">
+<a href="{{ .GeneratorURL }}" style="color:#3777b0;text-decoration:none;">{{ .Labels.alertname }}</a></td>
+</tr>
+{{ with .Labels.severity }}<tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;color:#737278;font-weight:400;padding:14px 0;margin:0;border-top:1px solid #ededed;text-align:left;">Severity</td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:500;padding:14px 0;margin:0;color:#333333;width:75%;padding-left:5px;border-top:1px solid #ededed;text-align:left;">{{ . | title }}</td>
+</tr>{{ end }}
+{{ range .Labels.SortedPairs }}{{ if not (match "^(alertname|severity|job|instance|service|component)$" .Name) }}<tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;color:#737278;font-weight:400;padding:14px 0;margin:0;border-top:1px solid #ededed;text-align:left;">{{ template "gitpulse.label" .Name }}</td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:500;padding:14px 0;margin:0;color:#333333;width:75%;padding-left:5px;border-top:1px solid #ededed;text-align:left;">{{ .Value }}</td>
+</tr>{{ end }}{{ end }}
+<tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;color:#737278;font-weight:400;padding:14px 0;margin:0;border-top:1px solid #ededed;text-align:left;">Started</td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:500;padding:14px 0;margin:0;color:#333333;width:75%;padding-left:5px;border-top:1px solid #ededed;text-align:left;">{{ template "gitpulse.when" .StartsAt }}</td>
+</tr>
+{{ if eq .Status "resolved" }}<tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;color:#737278;font-weight:400;padding:14px 0;margin:0;border-top:1px solid #ededed;text-align:left;">Resolved</td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:500;padding:14px 0;margin:0;color:#333333;width:75%;padding-left:5px;border-top:1px solid #ededed;text-align:left;">{{ template "gitpulse.when" .EndsAt }}</td>
+</tr>{{ end }}
+</tbody></table>
+</td></tr>
+<tr class="spacer"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;height:18px;font-size:18px;line-height:18px;">&nbsp;</td></tr>
+{{ end }}
+
+{{ define "gitpulse.email.html" }}{{ $base := reReplaceAll "/alertmanager/?$" "" .ExternalURL }}<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>{{ template "gitpulse.email.subject" . }}</title>
+<style>
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; }
+  @media only screen and (max-width: 639px) {
+    body, #body { min-width: 320px !important; }
+    table.wrapper { width: 100% !important; min-width: 320px !important; }
+    table.wrapper td.wrapper-cell { border-left: 0 !important; border-right: 0 !important;
+      border-radius: 0 !important; padding-left: 16px !important; padding-right: 16px !important; }
+    .table-info td { display: block !important; width: auto !important; padding: 4px 0 !important; }
+    .table-info td + td { padding-bottom: 12px !important; border-top: 0 !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#fafafa;text-align:center;width:100%;height:100%;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<table id="body" border="0" cellpadding="0" cellspacing="0" style="background-color:#fafafa;margin:0;padding:0;text-align:center;width:100%;">
+<tbody>
+<tr class="line"><td style="background-color:#6b4fbb;height:4px;font-size:4px;line-height:4px;">&nbsp;</td></tr>
+<tr class="header"><td style="padding:25px 0;font-size:13px;line-height:1.6;color:#5c5c5c;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;text-align:center;">
+<img src="{{ $base }}/static/img/email-logo.png" width="40" height="40" alt="GitPulse" style="display:block;margin:0 auto;width:40px;height:40px;border:0;">
+</td></tr>
+<tr><td>
+<table class="wrapper" border="0" cellpadding="0" cellspacing="0" style="width:640px;margin:0 auto;border-collapse:separate;border-spacing:0;">
+<tbody><tr>
+<td class="wrapper-cell" style="background-color:#ffffff;text-align:center;padding:32px 40px;border:1px solid #ededed;border-radius:4px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<table class="content" border="0" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:separate;border-spacing:0;">
+<tbody>
+{{ if .Alerts.Firing }}
+{{ $text := "" }}{{ if gt (len .Alerts.Firing) 1 }}{{ $text = printf "%d alerts are firing" (len .Alerts.Firing) }}{{ else }}{{ range .Alerts.Firing }}{{ with .Annotations.summary }}{{ $text = . }}{{ else }}{{ $text = printf "%s is firing" .Labels.alertname }}{{ end }}{{ end }}{{ end }}
+<tr class="alert"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;padding:10px;border-radius:3px;font-size:14px;line-height:1.3;text-align:center;overflow:hidden;background-color:#d22f57;color:#ffffff;">
+<table class="img" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 auto;"><tbody><tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;vertical-align:middle;color:#ffffff;text-align:center;padding-right:5px;line-height:1;"><img alt="✖" height="16" width="16" src="{{ $base }}/static/img/mail/x.png" style="display:block;"></td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;vertical-align:middle;color:#ffffff;text-align:center;">{{ $text }}</td>
+</tr></tbody></table>
+</td></tr>
+<tr class="spacer"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;height:18px;font-size:18px;line-height:18px;">&nbsp;</td></tr>
+{{ range .Alerts.Firing }}{{ template "gitpulse.section" . }}{{ end }}
+{{ end }}
+{{ if .Alerts.Resolved }}
+{{ $text := "" }}{{ if gt (len .Alerts.Resolved) 1 }}{{ $text = printf "%d alerts are resolved" (len .Alerts.Resolved) }}{{ else }}{{ range .Alerts.Resolved }}{{ $text = printf "Resolved: %s" (or .Annotations.summary .Labels.alertname) }}{{ end }}{{ end }}
+<tr class="table-success"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;padding:10px;border-radius:3px;font-size:14px;line-height:1.3;text-align:center;overflow:hidden;background-color:#108548;color:#ffffff;">
+<table class="img" border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 auto;"><tbody><tr>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;vertical-align:middle;color:#ffffff;text-align:center;padding-right:5px;line-height:1;"><img alt="✓" height="16" width="16" src="{{ $base }}/static/img/mail/check.png" style="display:block;"></td>
+<td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;vertical-align:middle;color:#ffffff;text-align:center;">{{ $text }}</td>
+</tr></tbody></table>
+</td></tr>
+<tr class="spacer"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;height:18px;font-size:18px;line-height:18px;">&nbsp;</td></tr>
+{{ range .Alerts.Resolved }}{{ template "gitpulse.section" . }}{{ end }}
+{{ end }}
+<tr class="pre-section"><td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#333333;font-size:15px;font-weight:500;line-height:1.4;padding:6px 5px 0 5px;text-align:center;">
+<a href="{{ $base }}/prometheus/alerts" style="color:#3777b0;text-decoration:none;">All alerts</a>
+<span style="color:#ededed;margin:0 6px;">|</span>
+<a href="{{ $base }}/grafana/d/gitpulse-overview" style="color:#3777b0;text-decoration:none;">Dashboard</a>
+{{ if .Alerts.Firing }}<span style="color:#ededed;margin:0 6px;">|</span>
+<a href="{{ template "gitpulse.silence" . }}" style="color:#3777b0;text-decoration:none;">Silence</a>{{ end }}
+</td></tr>
+</tbody></table>
+</td>
+</tr></tbody></table>
+</td></tr>
+<tr class="footer"><td style="padding:25px 0 8px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;text-align:center;">
+<img src="{{ $base }}/static/img/email-logo.png" width="28" height="28" alt="" style="display:block;margin:0 auto 12px;width:28px;height:28px;border:0;">
+<div style="font-size:13px;line-height:1.6;color:#5c5c5c;">
+<a href="{{ $base }}/dashboard" style="color:#3777b0;text-decoration:none;">GitPulse</a>
+<span style="color:#ededed;margin:0 6px;">|</span>
+<a href="{{ $base }}/prometheus/alerts" style="color:#3777b0;text-decoration:none;">Prometheus</a>
+<span style="color:#ededed;margin:0 6px;">|</span>
+<a href="{{ $base }}/alertmanager/" style="color:#3777b0;text-decoration:none;">Alertmanager</a>
+</div>
+</td></tr>
+<tr><td class="footer-message" style="padding:8px 0 24px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<div style="max-width:640px;margin:0 auto;text-align:center;color:#89888d;font-size:12px;line-height:1.6;">
+GitPulse monitoring &middot; {{ reReplaceAll "^https?://" "" $base }}<br>
+You are receiving this email because your address is the alert recipient (ALERT_EMAIL_TO) of this server.
+</div>
+</td></tr>
+</tbody></table>
+</body></html>
+{{ end }}
+
+{{ define "gitpulse.email.text" }}{{ $base := reReplaceAll "/alertmanager/?$" "" .ExternalURL -}}
+{{ range .Alerts.Firing }}FIRING: {{ template "gitpulse.summary" . }}
+{{ with .Annotations.description }}{{ . }}
+{{ end }}
+  Alert:     {{ .Labels.alertname }}
+{{ with .Labels.severity }}  Severity:  {{ . | title }}
+{{ end }}{{ range .Labels.SortedPairs }}{{ if not (match "^(alertname|severity|job|instance|service|component)$" .Name) }}  {{ template "gitpulse.label" .Name }}: {{ .Value }}
+{{ end }}{{ end }}  Started:   {{ template "gitpulse.when" .StartsAt }}
+  Query:     {{ .GeneratorURL }}
+
+{{ end }}{{ range .Alerts.Resolved }}RESOLVED: {{ template "gitpulse.summary" . }}
+  Alert:     {{ .Labels.alertname }}
+  Started:   {{ template "gitpulse.when" .StartsAt }}
+  Resolved:  {{ template "gitpulse.when" .EndsAt }}
+
+{{ end }}All alerts: {{ $base }}/prometheus/alerts
+Dashboard:  {{ $base }}/grafana/d/gitpulse-overview
+{{ if .Alerts.Firing }}Silence:    {{ template "gitpulse.silence" . }}
+{{ end }}
+--
+GitPulse monitoring - {{ reReplaceAll "^https?://" "" $base }}
+You are receiving this email because your address is the alert recipient (ALERT_EMAIL_TO) of this server.
+{{ end }}

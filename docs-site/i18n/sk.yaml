@@ -1,0 +1,112 @@
+# Header
+header:
+  skipToMainContent: "Preskočiť na hlavný obsah"
+  toggleMenu: "Prepnúť menu"
+  logo: "Prejsť na domovskú stránku dokumentácie GitPulse"
+
+# Meta tags
+meta:
+  siteDescription: "Dokumentácia GitPulse - hodnotenie tímovej práce študentov v GitLabe pre výučbu DevOps na KPI FEI TUKE."
+  descriptionFallback: "%s - dokumentácia GitPulse."
+
+# Breadcrumbs
+breadcrumbs:
+  home: "Dokumentácia GitPulse"
+  ariaLabel: "Navigačná cesta"
+
+# Side navigation
+navBar:
+  mainNavigation: "Hlavná navigácia"
+  main: "Hlavné"
+
+# On-page table of contents (right sidebar)
+toc:
+  tableOfContents: "Obsah stránky"
+
+# Landing page - Search
+landing-search:
+  findGLAnswers: "Dokumentácia GitPulse"
+
+# Landing page - Get started
+get-started:
+  mainTitle: "Začíname s GitPulse"
+  mainSubtitle: "Ste tu prvýkrát? Začnite tu."
+
+# Landing page - Reference Architectures
+
+# Landing page - Install GitLab Self-Managed
+
+# Landing / content page - Footer
+footer:
+  editWebIDE: "Upraviť vo Web IDE"
+  privacyStmt: "Ochrana osobných údajov"
+  suggestUpdates: "Navrhnúť úpravu"
+  termsOfUse: "Podmienky používania"
+  viewPageSrc: "Zdroj stránky"
+
+  aboutTitle: "O projekte"
+  projectTitle: "Projekt"
+  docsTitle: "Dokumentácia"
+  legalTitle: "Právne"
+  repository: "Repozitár"
+  reportIssue: "Nahlásiť chybu"
+  email: "E-mail"
+  logoAlt: "Logo dokumentácie GitPulse"
+  tagline: "Hodnotenie tímovej práce študentov v GitLabe."
+  linkIntro: "Úvod"
+  linkTeachers: "Pre učiteľov"
+  linkStudents: "Pre študentov"
+  linkApi: "API"
+  linkChangelog: "Zmeny"
+# Content pages - Title header contribute/solutions badges
+badges:
+  contribute: "pre vývojárov"
+  contributeHoverTxt: "Táto stránka sa týka vývoja systému GitPulse."
+  solutions: "riešenia"
+  solutionsHoverTxt: "Táto stránka opisuje odporúčané postupy nasadenia."
+
+# Shortcodes - Alerts
+alerts:
+  # Any changes to this text will also need to be made in https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/help/hugo_transformer.rb for /help.
+  disclaimerTxt: "Táto stránka opisuje pripravovanú funkcionalitu. Obsah aj termíny sa môžu zmeniť."
+
+# Shortcodes - Feature flags
+  # Product names
+  # Available feature flags table column names
+  # Ownership by groups table data
+  # Count by milestone table data
+  # Fields shared by both ownership by groups and count by milestone tables
+
+# Shortcodes - History and Details
+history:
+  title: "História"
+
+# Shortcodes - Collapsible
+collapsible:
+  toggleAriaLabel: "Rozbaliť alebo zbaliť sekciu"
+
+# Shortcodes - Maintained versions
+
+# Shortcodes - Yes/No
+yesNo:
+  "no": "Nie"
+  "yes": "Áno"
+
+# 404
+pageNotFound:
+  pageDoesNotExist: "Ľutujeme, na tejto adrese sa nenachádza žiadna stránka."
+  searchSite: "Hľadať na tejto stránke"
+  browseLatestDocs: "Prehliadať dokumentáciu"
+  accessOlderDocs: "Staršie verzie dokumentácie"
+
+# Elastic search results page
+
+# Release posts
+
+about:
+  workLabel: "Práca"
+  work: "Diplomová práca · Informatika"
+  departmentLabel: "Katedra"
+  department: "Katedra počítačov a informatiky"
+  supervisorLabel: "Vedúci práce"
+  copyright: "© 2026 Technická univerzita v Košiciach"

@@ -1,0 +1,3 @@
+{% from "components/layout.html" import json_island with context %}
+{% include "partials/course_settings/_check_rows.html" %}
+{{ json_island(checks_first_json, csp_nonce, id='gp-checks-refresh') }}

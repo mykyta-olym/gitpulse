@@ -1,0 +1,185 @@
+/* ============================================
+   HEALTH CHECK & TOP STATUS BANNERS
+   Covers: global sticky health banner and
+   unified top broadcast banners (.gp-top-banner).
+   ============================================ */
+
+/* -- Design Tokens (scoped) -- */
+:root {
+  --health-degraded: var(--gl-feedback-warning-icon);
+  --health-down: var(--gl-feedback-danger-icon);
+  --health-transition: var(--transition-slow);
+}
+
+/* ============================================
+   GLOBAL STICKY STATUS BANNER
+   Sits at the very top of the page content.
+   Only visible when status != ok.
+   ============================================ */
+.health-global-banner {
+  position: relative;
+  /* Below the dropdown tier: this is an in-flow status strip (it pushes content
+     down, never overlaps), so it must NOT paint over the top-bar's open dropdown
+     menu (the "banner overlaps the menu" bug). It stays above page content. */
+  z-index: calc(var(--z-dropdown) - 1);
+  width: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
+  transform-origin: top center;
+  transition: transform var(--health-transition),
+              opacity var(--health-transition),
+              background var(--health-transition);
+}
+
+.health-global-banner[hidden] {
+  display: none;
+}
+
+.health-global-banner-inner {
+  max-width: var(--content-width-lg);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+}
+
+.health-global-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.health-global-banner-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.health-global-banner-text {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  min-width: 0;
+}
+
+.health-global-banner-meta {
+  font-size: var(--font-size-xs);
+  opacity: 0.75;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-global-banner-dismiss {
+  flex-shrink: 0;
+}
+
+/* Banner color states */
+.health-global-banner--degraded {
+  background: var(--health-degraded);
+  color: var(--gl-gray-0);
+}
+
+.health-global-banner--down {
+  background: var(--health-down);
+  color: var(--gl-gray-0);
+}
+
+.health-global-banner--offline {
+  background: var(--gl-gray-700);
+  color: var(--gl-gray-0);
+}
+
+.health-global-banner--offline .health-global-banner-icon,
+.health-global-banner--down .health-global-banner-icon {
+  animation: pulse var(--gl-anim-loop) var(--motion-ease-loop) infinite;
+}
+
+/* ============================================
+   UNIFIED TOP STATUS BANNERS (GitLab broadcast style)
+   ============================================ */
+.gp-top-banner {
+  width: 100%;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  border-bottom: 1px solid transparent;
+}
+.gp-top-banner[hidden] {
+  display: none;
+}
+.gp-top-banner-inner {
+  max-width: var(--content-width-lg);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-2) var(--gl-spacing-4);
+}
+.gp-top-banner-icon { flex-shrink: 0; display: inline-flex; align-items: center; }
+.gp-top-banner-msg { flex: 1; min-width: 0; }
+.gp-banner-stat { white-space: nowrap; }
+.gp-top-banner-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gp-top-banner-action[hidden] { display: none; }
+.gp-top-banner-action:hover { text-decoration: underline; }
+.gp-top-banner-dismiss { flex-shrink: 0; }
+.gp-top-banner--warning {
+  background: var(--gl-feedback-warning-bg);
+  color: var(--gl-feedback-warning-text, var(--text-primary));
+  border-bottom-color: var(--gl-alert-warning-border, var(--border-color));
+}
+.gp-top-banner--warning .gp-top-banner-icon { color: var(--gl-feedback-warning-icon); }
+.gp-top-banner--info {
+  background: var(--gl-feedback-info-bg);
+  color: var(--gl-feedback-info-text, var(--text-primary));
+  border-bottom-color: var(--gl-alert-info-border, var(--border-color));
+}
+.gp-top-banner--info .gp-top-banner-icon { color: var(--gl-feedback-info-icon); }
+.gp-top-banner--danger {
+  background: var(--gl-feedback-danger-bg);
+  color: var(--gl-feedback-danger-text, var(--text-primary));
+  border-bottom-color: var(--gl-alert-danger-border, var(--border-color));
+}
+.gp-top-banner--danger .gp-top-banner-icon { color: var(--gl-feedback-danger-icon); }
+.gp-top-banner--success {
+  background: var(--gl-feedback-success-bg);
+  color: var(--gl-feedback-success-text, var(--text-primary));
+  border-bottom-color: var(--gl-alert-success-border, var(--border-color));
+}
+.gp-top-banner--success .gp-top-banner-icon { color: var(--gl-feedback-success-icon); }
+
+.js-top-banner:not(#globalBannerSlot *) { display: none; }
+#globalBannerSlot {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+#globalBannerSlot > *:last-child { border-bottom: 0; }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .health-global-banner-inner {
+    padding: var(--gl-spacing-2) var(--gl-spacing-4);
+    gap: var(--gl-spacing-3);
+  }
+
+  .health-global-banner-meta {
+    display: none;
+  }
+}

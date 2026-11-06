@@ -1,0 +1,13 @@
+{{/* Headers inside tabs break the TOC (duplicate anchor IDs), so fail the build. */}}
+{{- $headers := findRE `(?s)<h[1-6][^>]*>.*?</h[1-6]>` .Inner -}}
+{{- with $headers -}}
+  {{- $names := slice -}}
+  {{- range . -}}
+    {{- $names = $names | append (printf "%q" (plainify .)) -}}
+  {{- end -}}
+  {{- errorf "Build failed: Markdown headers are not allowed inside the %q shortcode at %s (found: %s). To describe alternative procedures, use separate topic sections outside the shortcode." $.Name $.Position (delimit $names ", ") -}}
+{{- end -}}
+
+<div data-vue-app="docs-tabs">
+  {{- .Inner -}}
+</div>

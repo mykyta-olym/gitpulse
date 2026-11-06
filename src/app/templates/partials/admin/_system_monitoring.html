@@ -1,0 +1,30 @@
+{% from "components/alerts.html" import alert %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import stat_card %}
+{% if monitoring.configured %}
+  {% if not monitoring.reachable %}
+    {{ alert(t('Monitoring is unavailable. Service status cannot be confirmed.'), variant='warning', role='status') }}
+  {% else %}
+    {% for item in monitoring.alerts %}
+      {% set message %}{{ item.summary or item.name }} {{ badge(t('Firing') if item.state == 'firing' else t('Pending'), 'danger' if item.state == 'firing' else 'warning') }}{% endset %}
+      {{ alert(message, title=item.name, variant='danger' if item.state == 'firing' else 'warning', role='status') }}
+    {% endfor %}
+    <p class="muted text-sm mb-3">{{ t('Rates and latency cover five minutes. Execution errors cover one hour; retained failures are historical records.') }}</p>
+    <div class="stats-grid">
+      {% for row in series %}
+        {{ stat_card(
+          t(row.label),
+          row.value,
+          icon_name=row.icon,
+          state=row.state,
+          href=row.href if monitoring_enabled else '',
+          target='_blank' if monitoring_enabled else '',
+          tooltip='Grafana' if monitoring_enabled else ''
+        ) }}
+      {% endfor %}
+    </div>
+  {% endif %}
+  <p class="muted text-sm mt-3 mb-0">{{ t('Last checked') }}: {{ local_time(monitoring.observed_at) }}. {{ t('Monitoring results are cached for up to 20 seconds.') }}</p>
+{% elif monitoring_enabled %}
+  <p class="muted text-sm mb-0">{{ t('Prometheus metrics are not configured for this environment.') }}</p>
+{% endif %}

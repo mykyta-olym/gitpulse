@@ -1,0 +1,81 @@
+/* Footnote popover container */
+.footnote-popover-container {
+  display: inline-flex;
+  height: 1rem;
+  position: relative;
+  width: 1rem;
+
+  button[data-target] {
+    box-sizing: content-box;
+    padding: .25rem;
+    pointer-events: auto !important;
+    position: relative;
+  }
+
+  /* increases clickable area */
+  button[data-target]::before {
+    content: "";
+    position: absolute;
+    left: -0.5rem;
+    top: -0.5rem;
+    right: -0.5rem;
+    bottom: -0.5rem;
+    z-index: -1;
+  }
+
+  .popover {
+    background-color: var(--gl-background-color-overlap);
+    display: none;
+    opacity: 0;
+    overflow: visible;
+    position: absolute;
+  }
+
+  .popover .arrow {
+    background-color: var(--gl-background-color-overlap);
+    height: 0.5rem;
+    position: absolute;
+    transform: rotate(45deg);
+    width: 0.5rem;
+  }
+
+  .popover.active {
+    color: var(--gl-text-color-default);
+    display: block;
+    font-size: 0.75rem;
+    left: 0;
+    opacity: 1;
+    padding: 0.5rem 0.75rem;
+    position: absolute;
+    top: 0;
+    transition: opacity 0.5s ease-in-out;
+    width: max-content;
+  }
+}
+  .footnote-table + p {
+    margin-top: 0;
+  }
+
+.footnote-list {
+
+  .footnote-list-items li {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+    padding: 0;
+  }
+
+  .footnote-list-items li:last-child {
+    margin-bottom: 0;
+  }
+
+  .footnote-list-items li strong {
+    color: var(--gl-text-color-link);
+  }
+
+  /* Dark mode adjustments for footnote list */
+  .gl-dark .footnote-list {
+    background-color: var(--gl-background-color-subtle);
+    border-color: var(--gl-border-color-default);
+  }
+}

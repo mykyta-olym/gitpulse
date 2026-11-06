@@ -1,0 +1,81 @@
+{#
+  Dropdown parts - the ONE menu item, label, check, chevron, divider and header.
+
+  Usage:
+    {% from "components/dropdown.html" import dropdown_item, dropdown_divider,
+       dropdown_header, dropdown_label, dropdown_check, dropdown_chevron with context %}
+
+    {{ dropdown_item(t('Preferences'), 'settings', href='/dashboard/preferences') }}
+    {{ dropdown_divider() }}
+    {{ dropdown_item(t('Sign out'), 'log-out', href='/dashboard/logout', danger=true) }}
+
+  There was no dropdown component at all, so `gl-dropdown-item` was written out
+  by hand in four files: the nested
+  `<span class="gl-dropdown-item-content"><span class="gl-dropdown-item-title">`
+  wrapper appeared 25 times, the tick glyph was inlined twice, the divider four
+  times, and the chevron six - as TWO different glyphs at two sizes under one
+  class name. `dropdown_label` and `dropdown_check` exist so the option-shaped
+  menus (the select field, the language switcher) can share those pieces
+  without giving up their own Alpine bindings.
+#}
+{% from "components/icons.html" import icon %}
+
+{# The item's caption. Two nested spans because `.gl-dropdown-item-content`
+   owns the ellipsis and `-title` the weight; both are load-bearing in
+   dropdowns.css. `x_text` is for Alpine-driven menus whose caption is
+   computed on the client. #}
+{% macro dropdown_label(text='', x_text='') %}
+<span class="gl-dropdown-item-content"><span class="gl-dropdown-item-title"{% if x_text %} x-text="{{ x_text }}"{% endif %}>{{ text }}</span></span>
+{%- endmacro %}
+
+{# The tick on the selected option: Pajamas `check`, the icon GlListboxItem
+   draws. Emitting it from here is what stops a third one appearing. #}
+{% macro dropdown_check() %}
+{{ icon('check', size='sm', class='gl-dropdown-item-check') }}
+{%- endmacro %}
+
+{# The toggle's chevron. `.gl-dropdown-chevron` carries the rotation and the
+   transition; the glyph comes from the app's one icon set rather than a sixth
+   hand-inlined copy. #}
+{% macro dropdown_chevron(size='xs') %}
+{{ icon('chevron-down', size=size, class='gl-dropdown-chevron') }}
+{%- endmacro %}
+
+{% macro dropdown_divider() %}
+<div class="gl-dropdown-divider"></div>
+{%- endmacro %}
+
+{# A menu's header or a group's label - GitLab's listbox header-text and
+   GlDisclosureDropdownGroup name. #}
+{% macro dropdown_header(text, id='') %}
+<div class="gl-dropdown-header"{% if id %} id="{{ id }}"{% endif %}>{{ text }}</div>
+{%- endmacro %}
+
+{#
+  An action or link inside a menu. `href` makes it an anchor, otherwise it is a
+  button. `external` adds the target/rel pair a new-tab link needs; `danger`
+  paints the destructive variant. `shortcut` is the key that does the same
+  thing, drawn after the label the way GitLab's listbox items carry a `<kbd>`.
+  Every item closes the menu, which is what `data-dropdown-close` means - an
+  item that did not was the odd one out.
+#}
+{% macro dropdown_item(label, icon_name='', href='', danger=false, id='', external=false, data_attrs={}, shortcut='') %}
+{%- set item_class = 'gl-dropdown-item gl-dropdown-item-danger' if danger else 'gl-dropdown-item' -%}
+{% if href %}
+<a href="{{ href }}" class="{{ item_class }}"{% if id %} id="{{ id }}"{% endif %}
+   {%- if external %} target="_blank" rel="noopener noreferrer"{% endif %}
+   {%- for k, v in data_attrs.items() %} data-{{ k }}="{{ v }}"{% endfor %} data-dropdown-close>
+  {%- if icon_name %}{{ icon(icon_name, size='sm') }}{% endif %}
+  {{- dropdown_label(label) }}
+  {%- if shortcut %}<kbd>{{ shortcut }}</kbd>{% endif %}
+</a>
+{% else %}
+<button type="button" class="{{ item_class }}"{% if id %} id="{{ id }}"{% endif %}
+        {%- for k, v in data_attrs.items() %} data-{{ k }}="{{ v }}"{% endfor %} data-dropdown-close>
+  {%- if icon_name %}{{ icon(icon_name, size='sm') }}{% endif %}
+  {{- dropdown_label(label) }}
+  {%- if shortcut %}<kbd>{{ shortcut }}</kbd>{% endif %}
+</button>
+{% endif %}
+{%- endmacro %}
+

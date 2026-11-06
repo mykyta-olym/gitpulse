@@ -1,0 +1,115 @@
+/* To keep the footer at the bottom of the page */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  main {
+    flex: 1;
+  }
+}
+
+/* Default page layout */
+.template-single {
+  margin: 0 auto;
+  max-width: var(--max-width);
+  gap: 3.75rem;
+  box-sizing: content-box;
+
+  @media (min-width: 1376px) {
+    padding: 0 2.5rem;
+  }
+}
+
+.fluid .template-single {
+  max-width: 100%;
+}
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 3 0px;
+  justify-content: space-between;
+  max-width: var(--column-center-max);
+  min-height: calc(100vh - var(--header-height) - var(--footer-height));
+  min-width: var(--column-center-min);
+  order: 2;
+  padding-bottom: 2.5rem;
+}
+.fluid .main-content {
+  max-width: calc(100% - var(--column-left-wide-width) - var(--column-right-wide-width) - 5rem);
+  min-width: auto;
+}
+.sidebar-right {
+  order: 3;
+  position: sticky;
+  width: var(--column-right-wide-width);
+  height: calc(100vh - var(--header-height-lg));
+  top: var(--header-height-lg);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.sidebar-right [data-vue-app="toc"]:not(:has(.toc-list li)) {
+  display: none;
+}
+.sidebar-right:not(:has([data-vue-app="toc"] .toc-list li)) .copy-for-llm {
+  border-bottom: 0 !important;
+}
+.fluid .sidebar-right {
+  min-width: var(--column-right-wide-width);
+}
+footer {
+  width: 100%;
+}
+
+/* Scroll permalinks past the navbar */
+h2,
+h3,
+h4,
+h5,
+h6,
+:target {
+  scroll-margin-top: var(--banner-scroll-offset, var(--header-offset));
+}
+
+/* Big */
+@media (min-width: 991px) and (max-width: 1376px) {
+  .template-single {
+    padding-right: 2.5rem;
+  }
+}
+
+/* Medium */
+@media (max-width: 1200px) {
+  .sidebar-right {
+    display: none;
+  }
+  .fluid .main-content {
+    max-width: calc(100% - var(--column-left-wide-width) - 2rem );
+  }
+}
+
+/* Small */
+@media (max-width: 991px) {
+  .template-single {
+    display: block;
+    overflow-x: clip;
+  }
+  .global-nav-wrapper {
+    display: none;
+  }
+  .main-content {
+    padding: 0 1rem 2.5rem;
+    max-width: 991px;
+    min-width: auto;
+    overflow-x: clip;
+  }
+  .fluid .main-content {
+    max-width: 100%;
+  }
+}
+
+/* Pages without a left nav */
+.no-left-nav .sidebar-container {
+  width: 0;
+  padding: 0;
+  margin: 0;
+}

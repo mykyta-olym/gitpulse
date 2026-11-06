@@ -1,0 +1,36 @@
+{{/*
+  Add the clipboard copy toolbar to code samples.
+  Changes to the wrapper divs here should also be made in
+  themes/gitlab-docs/layouts/_partials/archiveItem.html.
+
+  A fenced code block with an `editable="true"` attribute renders as an
+  editable code block:
+
+      ```yaml {editable="true"}
+      project: <PROJECT_ID>
+      ```
+
+  Any <PLACEHOLDER> token (name matching [A-Za-z0-9_.-]+) becomes an inline,
+  editable field the reader can fill in before copying. See
+  themes/gitlab-docs/src/utils/editable_code.js for the interactive behaviour.
+  These blocks are intentionally not syntax highlighted, so the placeholder
+  spans can be emitted without fighting Chroma's tokenizer. All other code
+  blocks are highlighted as usual.
+*/}}
+{{- if eq (.Attributes.editable | default "") "true" -}}
+  {{- $code := trim .Inner "\n" -}}
+  {{- $escaped := $code | htmlEscape -}}
+  {{- $iconsSVG := "gitlab_ui/svgs-latest/icons.svg" | relURL -}}
+  {{- $replacement := printf `<span class="editable-var gl-cursor-text gl-italic gl-text-link gl-rounded-sm gl-outline-none hover:gl-bg-strong focus:gl-bg-strong focus:gl-not-italic" data-var="${1}">&lt;${1}&gt;</span><svg aria-hidden="true" class="editable-var-icon gl-icon s12 gl-text-link gl-align-middle gl-ml-1"><use href="%s#pencil"/></svg>` $iconsSVG -}}
+  {{- $withVars := replaceRE `&lt;([A-Za-z0-9_.-]+)&gt;` $replacement $escaped -}}
+  <div class="codeblock-wrapper editable-codeblock-wrapper" data-elastic-exclude>
+    <div data-vue-app="editable-codeblock-toolbar" data-code-language="{{ .Type }}" class="codeblock-toolbar"></div>
+    <div class="highlight"><pre class="chroma"><code class="language-{{ .Type }}" data-lang="{{ .Type }}">{{ $withVars | safeHTML }}</code></pre></div>
+  </div>
+{{- else -}}
+  <div class="codeblock-wrapper" data-elastic-exclude>
+    <div data-vue-app="codeblock-toolbar" data-code-language="{{ .Type }}" class="codeblock-toolbar"></div>
+    {{- $result := transform.HighlightCodeBlock . -}}
+    {{- $result.Wrapped -}}
+  </div>
+{{- end -}}

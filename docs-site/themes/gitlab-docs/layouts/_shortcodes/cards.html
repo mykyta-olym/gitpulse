@@ -1,0 +1,65 @@
+{{ $content := .Inner }}
+{{ $lines := split $content "\n" }}
+
+{{/*
+  Regex to breakdown card list item.
+
+  Title: First capture group
+  Content link: Second capture group
+  Description: Third capture group (allows for single/double quotes)
+*/}}
+{{ $linkPattern := "\\[([^\\]]+)\\]\\(([^\\)\\s]+)(?:\\s+[\"']([^\"']*)[\"'])?\\)" }}
+
+<!-- Process items into a slice -->
+{{ $items := slice }}
+{{ range $lines }}
+  {{ if hasPrefix (trim . " ") "-" }}
+    {{ $cleanLine := trim (strings.TrimPrefix "-" (trim . " ")) " " }}
+    {{ if findRE $linkPattern $cleanLine }}
+      <!-- Extract title and link -->
+      {{ $title := replaceRE $linkPattern "$1" $cleanLine }}
+      {{ $rawLink := replaceRE $linkPattern "$2" $cleanLine }}
+      {{ $isExternal := or (hasPrefix $rawLink "http") (hasPrefix $rawLink "https") }}
+      {{ $href := $rawLink }}
+      {{ $description := "" }}
+      {{ $skipItem := false }}
+
+      <!-- For external links, grab description provided -->
+      {{ if $isExternal }}
+        {{ $capturedDesc := replaceRE $linkPattern "$3" $cleanLine }}
+        {{ if ne $capturedDesc "" }}
+          {{ $description = $capturedDesc }}
+        {{ end }}
+      {{ else }}
+      <!-- For internal links, find the page and get its properties -->
+        {{ $relDir := path.Dir $.Page.File.Path }}
+        {{ $targetPath := path.Clean (path.Join $relDir $rawLink) | replaceRE "\\.md$" "" }}
+        {{ if $page := $.Site.GetPage $targetPath }}
+          {{ if or (eq $page.Title "") ($page.Params.redirect_to) }}
+            {{ $skipItem = true }}
+          {{ else }}
+            {{ $description = $page.Description }}
+            {{ $href = $page.RelPermalink }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <!-- Add item to slice -->
+      {{ if not $skipItem }}
+        {{ $items = $items | append (dict "title" $title "href" $href "description" $description) }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
+
+<!-- Dynamic grid columns based on count -->
+<div class="cards gl-grid gl-gap-5 gl-py-6 xl:gl-grid-cols-3 md:gl-grid-cols-2 sm:gl-grid-cols-1">
+  {{ range $items }}
+    <a href="{{ .href }}" class="card-body card gl-rounded-lg gl-h-full">
+      <div class="card-title gl-my-0 gl-pb-2 gl-max-w-none gl-text-gray-900 gl-font-bold">{{ .title }}</div>
+      {{ if ne .description "" }}
+        <div class="card-text">{{ .description }}</div>
+      {{ end }}
+    </a>
+  {{ end }}
+</div>

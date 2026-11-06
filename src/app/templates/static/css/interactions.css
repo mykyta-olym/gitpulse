@@ -1,0 +1,135 @@
+/* ============================================
+   INTERACTION STATES - the expressive motion layer
+   ============================================
+
+   Every control answers the pointer, and only in colour - hover and press
+   alike.
+
+   That split is measured, not chosen. @gitlab/ui 136.2.0's entire transition
+   inventory for a control is `color, background-color, border-color, box-shadow`
+   at 0.2s cubic-bezier(.22,.61,.36,1) (dist/index.css: `.gl-button.gl-button`,
+   `.gl-badge`), and nothing in the library transitions `transform` outside
+   `.gl-animated-icon`.
+
+   What used to be here - a 1px hover lift on every button, a 6% hover scale on
+   every icon button, a 12% scale on the glyph inside sidebar items, a 2px lift on
+   every card - had three problems:
+
+   1. It contradicted this app's own written rules. buttons.css calls a
+      scale-on-press "the clearest 'not GitLab' tell in motion", and
+      animations.css says of `.motion-card-interactive`: "the old translateY/scale
+      lift was removed app-wide (it read as jumpy and strained the eye) - don't
+      re-add hover transforms". This file re-added it two stylesheets later.
+   2. It is why `transform` had to sit in the app-wide transition list, which put
+      transitions on 807 spans and 278 table cells - measured 10 004 transition
+      properties on the course-settings page, 1 153 of them `transform`.
+   3. Scaling text re-rasterises it. 6% on a 24px control resamples the glyph and
+      the label for every frame the pointer is over it, which is the "hover feels
+      laggy" half of the report.
+
+   The PRESS does not move either. A GlButton's :active is a colour
+   (--gl-action-*-background-color-active) and nothing else; ours scaled by
+   0.97 on a button, 0.94 on a close button, 0.995 on a card, 0.98 on a tile,
+   0.95 on a badge, 0.92 on an info tip and 0.88 on the exclusion toggle -
+   seven different presses for one gesture.
+
+   Timings come from the same `--motion-*` tokens as GP.motion, so the CSS layer
+   and the JS layer are on one clock. */
+
+/* A KPI tile is a readout, not a target: nothing in it moves under the cursor
+   either - the 4% scale on its number was the last hover transform left. */
+
+/* ------------------------------------------------------------------
+   Table rows
+   ------------------------------------------------------------------
+   Nothing moves. A row is a grid the eye scans line by line, and anything that
+   travels inside one - the row, a cell, or a control in the Actions column -
+   reads as the table twitching under the cursor. The row hover is the colour
+   change in tables.css and nothing else. */
+
+/* No focus-ring animation. It expanded a 6px transparent shadow into the ring,
+   and in dark mode `--focus-ring` starts with a 1px WHITE inset - so clicking a
+   <summary> flashed a white halo across the whole control before settling.
+   The ring appears instantly, which is also what a focus indicator is for. */
+
+/* ------------------------------------------------------------------
+   Touch
+   ------------------------------------------------------------------
+   A phone paints its own translucent blue rectangle over whatever is being
+   tapped. On a round control - the avatar, an icon button, a chip - that
+   rectangle is visibly square around the circle, which is what "the highlight
+   on a round element is square" describes. It is also redundant: every one of
+   these already has an :active state of its own.
+
+   Suppressed app-wide rather than per component, because the next round control
+   somebody adds would have the same problem and nobody would think to look. */
+:where(a, button, summary, label, input, select, textarea, [role="button"], [tabindex]) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* With the platform's own feedback gone, the press has to be visible on touch
+   too - :hover never fires there, so without this a tap would show nothing at
+   all until the action completed. */
+@media (hover: none) {
+  :where(.btn, .gl-top-bar-action, .gl-dropdown-toggle, .gl-sidebar-item, .gl-attention-item, .course-card, .gl-home-stat):active {
+    background-color: var(--gl-action-neutral-bg-hover);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Disclosure chevrons
+   ------------------------------------------------------------------ */
+
+:where(.card-details-chevron, .card-collapse-icon, .chevron) {
+  transition: transform var(--motion-duration-normal) var(--motion-ease-standard);
+}
+
+/* ------------------------------------------------------------------
+   Tab ink bar
+   ------------------------------------------------------------------
+   Created by GP.motion.inkTo on first activation. 1px wide at rest and scaled
+   to the active tab's width, so its travel is pure transform and never touches
+   layout. Its bottom edge matches the server-rendered tab indicator. */
+
+.gp-tab-ink {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 2px;
+  background: var(--gl-tab-selected-indicator, var(--primary));
+  transform-origin: left center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* With a travelling bar the per-tab border would draw a second underline that
+   the first one slides over. The active tab keeps its weight change; the line
+   is now the strip's job. */
+.tabs-nav:has(.gp-tab-ink) .tab-btn.active::before {
+  border-bottom-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-tab-ink { transition: none; }
+}
+
+/* ------------------------------------------------------------------
+   Touch devices drop the hover-driven motion
+   ------------------------------------------------------------------
+   GitLab does the same, and the reason is mechanical rather than aesthetic: a
+   touch screen has no hover. What it has is a "sticky" hover that latches after
+   a tap and stays until you tap elsewhere - so a lift or a scale meant as a
+   pointer affordance becomes a control stuck in a raised state, which reads as
+   a rendering fault.
+
+   Colour still changes on :active (above), because a press does need an answer.
+   Only the MOVEMENT goes. */
+@media (hover: none) {
+  :where(.btn, .btn-icon, .btn-icon-only, .course-card, .motion-card-interactive, .gl-home-stat, .gl-attention-item, .btn-toggle-exclusion):hover {
+    transform: none;
+  }
+  :where(.course-card, .motion-card-interactive):hover {
+    box-shadow: none;
+  }
+}

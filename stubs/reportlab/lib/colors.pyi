@@ -1,0 +1,6 @@
+class Color: ...
+
+gray: Color
+white: Color
+
+def HexColor(value: str) -> Color: ...

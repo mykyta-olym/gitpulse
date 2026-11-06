@@ -1,0 +1,114 @@
+# Global navigation for the GitPulse documentation.
+# GENERATED per language from that language's content by scripts/gen_docs_nav.py
+# NOTE: no commas in these comments - Hugo unmarshal guesses the format
+# from the content and a comma makes it read this YAML as CSV.
+
+- title: Introduction
+  url: 'uvod/'
+  submenu:
+    - title: System architecture
+      url: 'uvod/architektura/'
+    - title: Thesis goals
+      url: 'uvod/ciele/'
+    - title: Personal preferences
+      url: 'uvod/predvolby/'
+    - title: Project overview
+      url: 'uvod/prehlad/'
+- title: Teachers
+  url: 'ucitelia/'
+  submenu:
+    - title: Classroom assistant
+      url: 'ucitelia/asistent/'
+    - title: Dashboard and Metrics
+      url: 'ucitelia/dashboard/'
+    - title: Frequently Asked Questions
+      url: 'ucitelia/faq/'
+    - title: Interpretation of results
+      url: 'ucitelia/interpretacia/'
+    - title: Evaluation in teaching
+      url: 'ucitelia/pilot/'
+    - title: Getting Started
+      url: 'ucitelia/zaciname/'
+- title: Students
+  url: 'studenti/'
+  submenu:
+    - title: Student FAQ
+      url: 'studenti/faq/'
+    - title: Understanding Metrics
+      url: 'studenti/metriky/'
+    - title: Getting Started
+      url: 'studenti/zaciname/'
+- title: Developers
+  url: 'vyvojari/'
+  submenu:
+    - title: Database migrations
+      url: 'vyvojari/migracie/'
+    - title: Contributing
+      url: 'vyvojari/prispievanie/'
+    - title: Local environment
+      url: 'vyvojari/prostredie/'
+    - title: Project structure
+      url: 'vyvojari/struktura/'
+    - title: Testing
+      url: 'vyvojari/testovanie/'
+- title: Operations
+  url: 'operatori/'
+  submenu:
+    - title: Updates
+      url: 'operatori/aktualizacie/'
+    - title: Monitoring
+      url: 'operatori/monitoring/'
+    - title: Deployment
+      url: 'operatori/nasadenie/'
+    - title: Troubleshooting
+      url: 'operatori/troubleshooting/'
+    - title: Backup
+      url: 'operatori/zalohovanie/'
+- title: GitLab
+  url: 'gitlab/'
+  submenu:
+    - title: CI/CD integration
+      url: 'gitlab/cicd/'
+    - title: Access Tokens
+      url: 'gitlab/tokeny/'
+    - title: Webhooks
+      url: 'gitlab/webhooky/'
+- title: API
+  url: 'api/'
+- title: Security
+  url: 'bezpecnost/'
+  submenu:
+    - title: Hardening
+      url: 'bezpecnost/hardening/'
+    - title: Threat model
+      url: 'bezpecnost/hrozby/'
+    - title: Security model
+      url: 'bezpecnost/model/'
+- title: Thesis
+  url: 'diplomovka/'
+  submenu:
+    - title: 1. Introduction
+      url: 'diplomovka/uvod/'
+    - title: 2. Analysis of the team assignments
+      url: 'diplomovka/analyza/'
+    - title: 3. Existing tools
+      url: 'diplomovka/nastroje/'
+    - title: 4. Getting data from GitLab
+      url: 'diplomovka/preskumanie/'
+    - title: 5. Design of the GitPulse platform
+      url: 'diplomovka/navrh/'
+    - title: 6. Implementation
+      url: 'diplomovka/realizacia/'
+    - title: 7. Evaluation methods
+      url: 'diplomovka/vyhodnotenie/'
+    - title: 8. Conclusion
+      url: 'diplomovka/zaver/'
+- title: Changelog
+  url: 'changelog/'
+- title: Legal
+  url: 'pravne/'
+  submenu:
+    - title: Privacy Statement
+      url: 'pravne/ochrana-udajov/'
+    - title: Terms of Service
+      url: 'pravne/podmienky/'

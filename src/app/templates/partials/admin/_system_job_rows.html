@@ -1,0 +1,21 @@
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn_icon_only %}
+{% from "components/forms.html" import disabled_control %}
+{% from "components/tables.html" import table_detail_row, table_empty %}
+{% for job in jobs %}
+{% set detail_id = 'jobDetail-' ~ job.id %}
+<tr class="job-row" data-job-id="{{ job.id }}">
+  {% set reason = t('Use Purge Old to remove retained RQ failures by age.') if job.read_only else (t('Active jobs cannot be deleted. Cancel the job first.') if job.active else '') %}
+  <td>{% call disabled_control(reason) %}<input type="checkbox" id="job-select-{{ job.id }}" aria-label="{{ t('Select') }}" class="form-check-input{% if not job.read_only and not job.active %} job-select{% endif %}"{% if reason %} disabled data-disabled-reason="{{ reason }}"{% else %} data-job-id="{{ job.id }}"{% endif %}>{% endcall %}</td>
+  <td data-label="{{ t('Type') }}"><span{% if job.description %} data-tippy-content="{{ job.description }}"{% endif %}>{{ job.type_label }}</span>{% if job.team_id %}<br><a class="text-xs" href="/dashboard/teams/{{ job.team_id }}">{{ job.team_name or job.team_id }}</a>{% elif job.course_id %}<br><a class="text-xs" href="/dashboard/courses/{{ job.course_id }}">{{ job.course_name or job.course_id }}</a>{% endif %}</td>
+  <td data-label="{{ t('Status') }}">{{ badge(t(job.status), job.status_variant) }}</td>
+  <td class="text-sm muted" data-label="{{ t('Last activity') }}">{{ local_time(job.times.last_activity or job.times.enqueued_at, 'relative') }}</td>
+  <td class="text-sm" data-label="{{ t('Duration') }}">{% if job.duration_ms is none %}-{% elif job.duration_ms < 1000 %}{{ job.duration_ms }} ms{% else %}{{ '%.1f' | format(job.duration_ms / 1000) }} s{% endif %}</td>
+  <td class="text-sm col-prose" data-label="{{ t('Result / Error') }}"><span class="{{ 'text-danger' if job.error_message else 'muted' }}"{% if job.message %} data-tippy-content="{{ job.message }}"{% endif %}>{{ job.message | truncate(180, true) if job.message else '-' }}</span></td>
+  <td class="text-right" data-label="{{ t('Actions') }}"><div class="gl-row-actions">
+    {% if job.facts %}{{ btn_icon_only('chevron-down', size='sm', aria_label=t('Job details'), aria_expanded=false, aria_controls=detail_id, data_attrs={'table-detail-toggle': '', 'tippy-content': t('Job details')}) }}{% endif %}
+    {% if job.active and not job.read_only %}{{ btn_icon_only('x-circle', variant='danger', size='sm', class='btn-cancel-job', aria_label=t('Cancel process'), data_attrs={'job-id': job.id, 'tippy-content': t('Cancel process')}) }}{% endif %}
+  </div></td>
+</tr>
+{% if job.facts %}{{ table_detail_row(detail_id, 7, job.facts) }}{% endif %}
+{% else %}{{ table_empty(t('No background jobs found'), colspan=7) }}{% endfor %}

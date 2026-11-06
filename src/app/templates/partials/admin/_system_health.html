@@ -1,0 +1,37 @@
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import stat_card %}
+{% from "components/icons.html" import icon %}
+{% from "components/tables.html" import data_table %}
+<div id="systemHealthContent" data-health-sig="{{ health.signature }}">
+  <div class="stats-grid mb-4">
+    {{ stat_card(t('Components'), health.healthy_ratio, icon_name=health.status_icon, desc=health.status_desc, state=health.status_state) }}
+    {{ stat_card(t('Uptime'), health.uptime_human, icon_name='clock', desc=health.environment_label) }}
+    {{ stat_card(t('Version'), health.version, icon_name='tag', desc=health.python_label) }}
+  </div>
+  {% call data_table(headers=[], id='healthComponentsTable', class='table-scrollable', column_widths=['20%', '140px', '120px', 'auto']) %}
+    <thead>
+      <tr>
+        <th>{{ t('Component') }}</th>
+        <th>{{ t('Status') }}</th>
+        <th>{{ t('Latency') }}</th>
+        <th>{{ t('Details') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for comp in health.components %}
+      <tr>
+        <td data-label="{{ t('Component') }}"><span class="inline-flex items-center gap-2 fw-500">{{ icon(comp.icon, size='sm', class='muted') }}<span>{{ comp.label }}</span></span></td>
+        <td data-label="{{ t('Status') }}">{{ badge(comp.status_label, comp.badge_variant) }}</td>
+        <td class="text-sm" data-label="{{ t('Latency') }}">{{ comp.latency_label }}</td>
+        <td class="text-sm col-prose" data-label="{{ t('Details') }}">
+          {%- if comp.details_text %}<span class="muted">{{ comp.details_text }}</span>{% endif -%}
+          {%- if comp.error %}{% if comp.details_text %}<br>{% endif %}<span class="text-danger">{{ comp.error }}</span>{% endif -%}
+          {%- if not comp.details_text and not comp.error %}<span class="muted">-</span>{% endif -%}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  {% endcall %}
+  <p class="muted text-sm mt-3 mb-0">{{ t('Last checked') }}: {{ local_time(health.timestamp) }}.</p>
+</div>
+

@@ -1,0 +1,9 @@
+<div class="collapsible-section gl-pl-4 gl-pr-4">
+    {{- $collapsibleID := .id -}}
+    <button class="gl-font-bold gl-align-middle gl-text-left gl-border-0 gl-pl-0" type="button" aria-expanded="false" aria-controls="collapsible-{{- $collapsibleID -}}" aria-label="{{- T "collapsible.toggleAriaLabel" -}}" data-toggle="collapse" data-target="#collapsible-{{- $collapsibleID -}}">
+      {{- .title -}}<span class="gl-ml-2 icon"></span>
+    </button>
+    <div id="collapsible-{{- $collapsibleID -}}" class="collapsible-list collapse" aria-hidden="true">
+        {{- .content -}}
+    </div>
+</div>

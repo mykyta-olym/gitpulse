@@ -1,0 +1,100 @@
+/* Availability details and collapsible shortcodes */
+
+/* clear general list styles */
+.docs-content {
+  .availability ul,
+  .availability ol {
+    padding-inline-start: 0;
+    margin: 0;
+  }
+  .availability, .collapsible-section {
+    background-color: var(--gl-background-color-subtle);
+    border-radius: 0.5rem;
+    border: 1px solid var(--gl-border-color-default);
+    color: var(--gl-button-default-primary-foreground-color-default);
+    font-size: var(--gl-font-size-md);
+    button {
+      color: var(--gl-button-default-primary-foreground-color-default);
+      padding: 0;
+    }
+  }
+  .availability li, .collapsible-section button {
+    margin-top: 0.5rem;
+  }
+
+  .availability:has(+ .collapsible-section) {
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+  }
+
+  .collapsible-section:has(+ .collapsible-section) {
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .availability + .collapsible-section,
+  .collapsible-section + .collapsible-section {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .availability:not(:has(+ .collapsible-section)),
+  .collapsible-section:not(:has(+ .collapsible-section)) {
+    padding-bottom: 0.5rem;
+  }
+
+  .availability + .collapsible-section:not(:has(+ .collapsible-section)),
+  .collapsible-section + .collapsible-section:not(:has(+ .collapsible-section)) {
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Add spacing between availability/collapsible-section blocks and immediately following alerts to prevent visual cramping */
+  .availability:has(+ .alert),
+  .collapsible-section:has(+ .alert) {
+    margin-bottom: 1rem;
+  }
+
+  .collapsible-list ul {
+    margin-bottom: 0;
+  }
+  .collapsible-section button {
+    background-color: var(--gl-background-color-subtle);
+    border-radius: 0.5rem;
+    width: 100%;
+
+    .icon {
+      background-color: var(
+        --gl-button-default-primary-foreground-color-default
+      );
+      mask-image: url("../gitlab_ui/svgs/chevron-lg-right.svg");
+      mask-repeat: no-repeat;
+      display: inline-block;
+      mask-size: contain;
+      width: 0.75rem;
+      height: 0.75rem;
+      vertical-align: middle;
+    }
+
+    &[aria-expanded="true"] .icon {
+      mask-image: url("../gitlab_ui/svgs/chevron-lg-down.svg");
+    }
+  }
+
+  /*
+    * Avoid double-bold labels for feature details
+    * on the GraphQL reference page, which includes
+    * markdown bold tags in its labels.
+    *
+    * See https://gitlab.com/gitlab-org/technical-writing/docs-gitlab-com/-/issues/194
+  */
+  .availability .gl-font-bold strong {
+    font-weight: 600;
+  }
+
+}

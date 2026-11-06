@@ -1,0 +1,166 @@
+/* ============================================
+   LOADERS - GitLab Pajamas Design System
+   ============================================ */
+
+/* -- Progress bar - GitLab style -- */
+.progress {
+  height: 8px;
+  background: var(--surface-strong);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--primary);
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress);
+}
+.progress-bar.is-indeterminate {
+  width: 30%;
+  animation: progress-indeterminate var(--gl-anim-loop) var(--motion-ease-loop) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar.is-indeterminate { animation: none; width: 100%; }
+}
+
+/* -- Tooltip - GitLab style -- */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+html:not(.js-tooltips) [data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  background: var(--gl-feedback-strong-bg);
+  color: var(--gl-feedback-strong-text);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  border-radius: var(--radius);
+  margin-bottom: var(--gl-spacing-3);
+  z-index: var(--z-tooltip);
+  animation: fadeIn 150ms linear;
+  box-shadow: var(--shadow-md);
+}
+html:not(.js-tooltips) [data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--gl-feedback-strong-bg);
+  margin-bottom: -5px;
+  z-index: var(--z-tooltip);
+}
+
+/* Real content fades in as it replaces the loading state (added by the
+   htmx:afterSwap handler), so the swap is a smooth appearance not a snap.
+   OPACITY ONLY, one short duration: the old rise+scale settle, the block
+   stagger (.gp-stagger/--gp-i) and the item cascade (.gp-cascade/--gp-ci)
+   were deliberately removed - sequenced/transformed entrances on a data
+   product read as showy noise (GitLab/Linear: content just fades in as one
+   unit). Don't re-add them. */
+/* The lazy-content reveal is GP.motion.panelIn. As a class it needed an
+   `animationend` listener to take itself off again, and a separate
+   reduced-motion check at the call site. */
+
+/* NOTE: `.main-container` intentionally has NO page-enter animation. It used to
+   (fade + translateY on every navigation), but that made the whole page - and
+   the small cards inside it - blink / double-expose on every nav and reload
+   ("everything flickers after navigation"). Pages now render instantly; only
+   the single login card keeps a gentle entrance (it never flickers - one block,
+   no lazy children). See the matching note at the top of animations.css. */
+.login-card {
+  animation: fadeIn var(--motion-duration-slow) var(--motion-ease-emphasized) both;
+}
+/* Programmatic in-place reloads (theme-bootstrap sets .gp-no-enter before paint)
+   skip the entrance so the restored scroll position doesn't visibly translate. */
+html.gp-no-enter .login-card { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .login-card { animation: none; }
+}
+
+/* Chart loading<->canvas hand-off: stack the block loader and the loaded chart
+   in the SAME grid cell so they overlap during the cross-fade instead of
+   stacking in normal flow. A d-none child drops out of the grid, so the resting
+   height is exactly one chart - no transient double-height where the chart looks
+   pushed to the bottom with a ghost loader above it. */
+.gl-chart-swap { display: grid; }
+.gl-chart-swap > * { grid-area: 1 / 1; min-width: 0; }
+
+/* ============================================
+   BLOCK LOADING - the one waiting state for a region
+   ============================================
+   The tanuki, a label, and the height the content will occupy, so the block is
+   the right size from the first frame and nothing below it moves when the data
+   lands. */
+.gp-block-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gl-spacing-4);
+  width: 100%;
+  min-height: 120px;
+}
+.gp-block-loading-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+}
+
+/* -- Refreshing: the content stays, dims, and the tanuki turns over it --------
+   The combination asked for: System Health's contract (keep what is on screen,
+   swap it at the same size) plus the app's one loading mark, so a refresh is
+   visibly the same event everywhere and is never mistaken for a frozen page.
+   The mark is a pseudo-element on a wrapper that already exists, so no markup
+   changes and nothing to clean up afterwards. */
+/* NOT `:where()`. That has zero specificity, so this `position: relative` lost
+   to any other rule on the same element and the ring below - absolutely placed
+   with `inset: 0` - resolved against some distant positioned ancestor instead,
+   landing in a corner of the page rather than over the block it belongs to. */
+.is-refreshing {
+  position: relative;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast) linear;
+  pointer-events: none;
+}
+/* ONE ring, two hosts. The block below was written out twice - identically,
+   thirteen declarations each - once for any `.is-refreshing` element and once
+   for a table whose tbody is refreshing, because a `<tbody>` cannot host the
+   pseudo-element itself and the ring has to hang off the scroll wrapper. Two
+   copies of a conic gradient, a mask and a keyframe drift apart the moment one
+   is touched; the selector list carries the difference instead. */
+.is-refreshing::after,
+.table-responsive:has(tbody.is-refreshing)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    rgba(252, 109, 38, 0) 0 55%,
+    var(--primary, #fc6d26) 90%,
+    var(--primary-hover, #e24329) 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  animation: spin var(--gl-anim-spin) linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+tbody.is-refreshing::after { content: none; }
+/* Preserve the empty state's box without stacking its illustration and the loader. */
+.is-refreshing .table-empty-icon { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .is-refreshing { transition: none; }
+  .is-refreshing::after,
+  .table-responsive:has(tbody.is-refreshing)::after { animation-duration: 2.4s; }
+}

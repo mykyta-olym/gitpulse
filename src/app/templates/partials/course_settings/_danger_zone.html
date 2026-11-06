@@ -1,0 +1,70 @@
+{# -- Danger Zone -- #}
+{% from "components/cards.html" import card %}
+{% from "components/buttons.html" import btn_icon %}
+{% from "components/academic_period.html" import period_label with context %}
+
+{% set ct %}{{ t('Danger Zone') }}{% endset %}
+{# id: the archived-course banner's "Reactivate" action links to
+   .../settings#danger-zone. Without this the anchor resolved to nothing and the
+   link dropped the reader at the top of a long settings page. #}
+{% call card(title=ct, icon_name='alert-triangle', id='danger-zone', class='mt-lg danger-zone') %}
+    {# Archive / Activate #}
+    <div class="danger-zone-item">
+      <div>
+        <strong>{% if course.is_active %}{{ t('Archive this course') }}{% else %}{{ t('Reactivate this course') }}{% endif %}</strong>
+        <p class="muted danger-zone-description">
+          {% if course.is_active %}
+            {{ t('Archiving hides the course from active lists. Students and data are preserved.') }}
+          {% else %}
+            {{ t('Reactivating restores the course to active status.') }}
+          {% endif %}
+        </p>
+      </div>
+      <div>
+        {% if course.is_active %}
+        {{ btn_icon(t('Archive'), 'archive', variant='warning', id='btnArchiveCourse', data_attrs={'course-id': course.id|string, 'course-period': period_label(course.academic_year, course.semester), 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Hide from active lists - data is preserved')}) }}
+        {% else %}
+        {# `readonly-ok`: this is the way OUT of the archived state. The read-only
+           guard locks every process-guarded button on an archived course, which
+           disabled the one action the server explicitly still allows (see
+           _archived_block: "Reactivation is a separate endpoint") - the course
+           could be archived but never brought back from its own settings page. #}
+        {{ btn_icon(t('Activate'), 'check-circle', variant='success', id='btnActivateCourse', data_attrs={'course-id': course.id|string, 'course-period': period_label(course.academic_year, course.semester), 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'readonly-ok': '', 'tippy-content': t('Restore to active status')}) }}
+        {% endif %}
+      </div>
+    </div>
+
+    {# Transfer to new semester #}
+    {% if multi_tenant_enabled %}
+    <div class="danger-zone-item" id="transfer">
+      <div>
+        <strong>{{ t('Transfer to new semester') }}</strong>
+        <p class="muted danger-zone-description">{{ t('Carry this course into a new semester: settings, checks and deadlines auto-retune; choose to keep all groups, a subset, or start clean; webhooks keep working without touching GitLab.') }}</p>
+      </div>
+      {# `readonly-ok`: the transfer endpoint accepts an archived source on
+         purpose - carrying last term's course into the new one is precisely what
+         you do with an archived course. It creates a NEW course; the source is
+         only read. #}
+      {{ btn_icon(t('Transfer'), 'copy', variant='secondary', id='btnTransferCourse', data_attrs={'course-id': course.id|string, 'process-lock-when': 'import', 'process-lock-scope': 'course:' ~ course.id, 'readonly-ok': '', 'tippy-content': t('Carry settings, groups and webhooks over to a new semester')}) }}
+    </div>
+    {% endif %}
+
+    {# Permanent Delete (admin only) #}
+    {% if is_admin %}
+    <div class="danger-zone-item">
+      <div>
+        <strong class="danger-zone-label-danger">{{ t('Permanently delete this course') }}</strong>
+        <p class="muted danger-zone-description">{{ t('This action cannot be undone. All groups, students, projects, and their compliance history will be permanently removed.') }}</p>
+        {% if course.is_active %}<p class="muted danger-zone-description"><em>{{ t('The course must be archived before it can be permanently deleted.') }}</em></p>{% endif %}
+      </div>
+      {% if course.is_active %}
+      {{ btn_icon(t('Delete Forever'), 'trash', variant='danger', id='btnDeleteCoursePermanent', disabled=true, data_attrs={'course-id': course.id|string, 'disabled-reason': t('Archive the course first')}) }}
+      {% else %}
+      {# `readonly-ok`: permanent deletion REQUIRES the course to be archived
+         (the active branch above renders it disabled), so locking it while
+         archived left it permanently unreachable. #}
+      {{ btn_icon(t('Delete Forever'), 'trash', variant='danger', id='btnDeleteCoursePermanent', data_attrs={'course-id': course.id|string, 'course-code': course.code, 'course-period': period_label(course.academic_year, course.semester), 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'readonly-ok': '', 'tippy-content': t('Permanently delete this course and all its data - cannot be undone')}) }}
+      {% endif %}
+    </div>
+    {% endif %}
+{% endcall %}

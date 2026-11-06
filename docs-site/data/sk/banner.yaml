@@ -1,0 +1,6 @@
+---
+# Their version linked to a GitLab survey. This is the feedback form this
+# project keeps for documentation feedback (one of the per-role surveys).
+show_survey_banner: true
+description: |
+  Pomôžte nám zlepšiť dokumentáciu GitPulse. [Vyplniť dotazník](https://forms.gle/yp5BibuoeH2pRD7J7).

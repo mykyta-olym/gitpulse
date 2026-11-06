@@ -1,0 +1,99 @@
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import card, stat_card %}
+
+{# -- Communication indicators - component stat cards (consistent with the rest
+   of the app). Non-scoring signals on teamwork quality. Each card only
+   appears when the snapshot carries that metric; if none are present we show a
+   single explanatory line instead of silently dropping the whole card. -- #}
+{% set ct %}{% if is_own_profile %}{{ t('Your Communication Indicators') }}{% else %}{{ t('Communication Indicators') }}{% endif %}{% endset %}
+
+{# Map quality -> the stat tile's state #}
+{% macro _q(quality) %}{{ 'success' if quality == 'good' else 'warning' if quality == 'fair' else 'danger' }}{% endmacro %}
+
+{# Build list: (icon, label, value, quality, tooltip) #}
+{% set indicators = [] %}
+
+{# -- 1. First response time -- #}
+{% if snapshot.median_first_response_hours is not none and snapshot.median_first_response_hours > 0 %}
+  {% if snapshot.median_first_response_hours < 1 %}{% set _val = "< 1 " ~ t('h') %}
+  {% elif snapshot.median_first_response_hours < 24 %}{% set _val = "%.1f"|format(snapshot.median_first_response_hours) ~ ' ' ~ t('h') %}
+  {% else %}{% set _val = "%.1f"|format(snapshot.median_first_response_hours / 24) ~ ' ' ~ t('d') %}{% endif %}
+  {% if snapshot.median_first_response_hours < 4 %}{% set _q_ = 'good' %}{% elif snapshot.median_first_response_hours < 24 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('clock', t('First Response'), _val, _q_, t('Median time to first review response'))) %}
+{% endif %}
+
+{# -- 2. Review rounds -- #}
+{% if snapshot.median_review_rounds is not none and snapshot.median_review_rounds > 0 %}
+  {% if snapshot.median_review_rounds <= 2 %}{% set _q_ = 'good' %}{% elif snapshot.median_review_rounds <= 4 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('repeat', t('Review Rounds'), "%.1f"|format(snapshot.median_review_rounds), _q_, t('Median review iterations per MR'))) %}
+{% endif %}
+
+{# -- 3. Discussion resolution -- #}
+{% if snapshot.discussion_resolution_pct is not none %}
+  {% if snapshot.discussion_resolution_pct >= 80 %}{% set _q_ = 'good' %}{% elif snapshot.discussion_resolution_pct >= 50 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('check-circle', t('Resolution'), "%.0f"|format(snapshot.discussion_resolution_pct) ~ '%', _q_, t('Percentage of discussions marked as resolved'))) %}
+{% endif %}
+
+{# -- 4. Review depth -- #}
+{% if snapshot.review_word_depth is not none and snapshot.review_word_depth > 0 %}
+  {% if snapshot.review_word_depth >= 30 %}{% set _q_ = 'good' %}{% elif snapshot.review_word_depth >= 10 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('file-text', t('Review Depth'), "%.0f"|format(snapshot.review_word_depth) ~ ' ' ~ t('words'), _q_, t('Average word count per review comment'))) %}
+{% endif %}
+
+{# -- 5. Response depth -- #}
+{% if snapshot.author_response_word_depth is not none and snapshot.author_response_word_depth > 0 %}
+  {% if snapshot.author_response_word_depth >= 20 %}{% set _q_ = 'good' %}{% elif snapshot.author_response_word_depth >= 8 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('message-square', t('Response Depth'), "%.0f"|format(snapshot.author_response_word_depth) ~ ' ' ~ t('words'), _q_, t('Average word count per author response'))) %}
+{% endif %}
+
+{# -- 6. Time to merge -- #}
+{% if snapshot.median_time_to_merge_hours is not none and snapshot.median_time_to_merge_hours > 0 %}
+  {% if snapshot.median_time_to_merge_hours < 1 %}{% set _val = "< 1 " ~ t('h') %}
+  {% elif snapshot.median_time_to_merge_hours < 24 %}{% set _val = "%.1f"|format(snapshot.median_time_to_merge_hours) ~ ' ' ~ t('h') %}
+  {% else %}{% set _val = "%.1f"|format(snapshot.median_time_to_merge_hours / 24) ~ ' ' ~ t('d') %}{% endif %}
+  {% if snapshot.median_time_to_merge_hours < 24 %}{% set _q_ = 'good' %}{% elif snapshot.median_time_to_merge_hours < 72 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('git-merge', t('Time to Merge'), _val, _q_, t('Median elapsed time from MR creation to merge'))) %}
+{% endif %}
+
+{# -- 7. MRs reviewed (peer reviews) -- #}
+{% if snapshot.distinct_mrs_reviewed is not none and snapshot.distinct_mrs_reviewed > 0 %}
+  {% if snapshot.distinct_mrs_reviewed >= 3 %}{% set _q_ = 'good' %}{% elif snapshot.distinct_mrs_reviewed >= 1 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('eye', t('MRs Reviewed'), snapshot.distinct_mrs_reviewed, _q_, t('Distinct merge requests reviewed as a peer'))) %}
+{% endif %}
+
+{# -- 8. Meaningful reviews given -- #}
+{% if snapshot.meaningful_reviews_given is not none and snapshot.meaningful_reviews_given > 0 %}
+  {% if snapshot.meaningful_reviews_given >= 5 %}{% set _q_ = 'good' %}{% elif snapshot.meaningful_reviews_given >= 2 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('award', t('Quality Reviews'), snapshot.meaningful_reviews_given, _q_, t('Reviews with substantive feedback'))) %}
+{% endif %}
+
+{# -- 9. Pipeline success rate -- #}
+{% if snapshot.pipeline_total_count is not none and snapshot.pipeline_total_count > 0 %}
+  {% set _pct = (snapshot.pipeline_success_count or 0) / snapshot.pipeline_total_count * 100 %}
+  {% if _pct >= 80 %}{% set _q_ = 'good' %}{% elif _pct >= 50 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('cpu', t('Pipeline Success'), "%.0f"|format(_pct) ~ '%', _q_, t('CI/CD pipeline success rate') ~ ' (' ~ (snapshot.pipeline_success_count or 0) ~ '/' ~ snapshot.pipeline_total_count ~ ')')) %}
+{% endif %}
+
+{# -- 10. Branch naming compliance -- #}
+{% if snapshot.branches_total is not none and snapshot.branches_total > 0 %}
+  {% set _bpct = (snapshot.branches_correctly_named or 0) / snapshot.branches_total * 100 %}
+  {% if _bpct >= 90 %}{% set _q_ = 'good' %}{% elif _bpct >= 60 %}{% set _q_ = 'fair' %}{% else %}{% set _q_ = 'slow' %}{% endif %}
+  {% set _ = indicators.append(('git-branch', t('Branch Naming'), "%.0f"|format(_bpct) ~ '%', _q_, t('Branches following naming convention') ~ ' (' ~ (snapshot.branches_correctly_named or 0) ~ '/' ~ snapshot.branches_total ~ ')')) %}
+{% endif %}
+
+{% call card(title=ct, icon_name='message-square') %}
+    {# The explanatory line sits in the body, first, the way every other card
+       carries one (User Role Breakdown, Score Trend). This was the only card
+       that put it in the header, through a `subtitle=` parameter no other
+       caller used - so the header laid out differently from the rest. #}
+    <p class="muted text-sm">{{ t('Non-scoring diagnostic metrics on teamwork quality') }}</p>
+    {% if indicators %}
+    <div class="stats-grid">
+      {% for icon_name, label, value, quality, tooltip in indicators %}
+        {{ stat_card(label, value, icon_name=icon_name, state=_q(quality)|trim, tooltip=tooltip) }}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted mb-0">{{ icon('info', size='sm') }} {{ t('Teamwork diagnostics will appear once this member has review activity (comments, responses, resolved discussions).') }}</p>
+    {% endif %}
+{% endcall %}

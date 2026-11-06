@@ -1,0 +1,77 @@
+{
+  "event": "Note Hook",
+  "payload": {
+    "user": {
+      "id": 8,
+      "name": "Asistent cvičení",
+      "email": "[REDACTED]",
+      "username": "group_3_bot_596ca9c752b0b40b0190223f3496802d",
+      "avatar_url": "https://www.gravatar.com/avatar/fb0fba3dd1e88ad36dfce89f3da99428ec945c0bac1aa039f89b207beb330093?s=80&d=identicon"
+    },
+    "commit": {
+      "id": "164f4129d556d291c66658ef055c890f92d11e1f",
+      "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/commit/164f4129d556d291c66658ef055c890f92d11e1f",
+      "title": "Vyplniť súbor úlohy Cyrila",
+      "author": {
+        "name": "Cyril Horváth",
+        "email": "cyril.horvath@e2e.example.edu"
+      },
+      "message": "Vyplniť súbor úlohy Cyrila",
+      "timestamp": "2026-10-19T13:19:32+00:00"
+    },
+    "project": {
+      "id": 1,
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "namespace": "TIM-01",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-01/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-01/projekt"
+    },
+    "event_type": "note",
+    "project_id": 1,
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-01/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-01/projekt",
+      "description": null
+    },
+    "object_kind": "note",
+    "object_attributes": {
+      "id": 90,
+      "url": "http://localhost:8929/zsi-e2e/tim-01/projekt/-/commit/164f4129d556d291c66658ef055c890f92d11e1f#note_90",
+      "note": "Push do vetvy `10-cyril-konflikt`:\n\n- Dobrý začiatok: vetva `10-cyril-konflikt` je vytvorená.\n- Správy commitov hovoria, čo sa zmenilo. Dobrá práca.",
+      "type": null,
+      "action": "create",
+      "system": false,
+      "st_diff": null,
+      "internal": false,
+      "position": null,
+      "author_id": 8,
+      "commit_id": "164f4129d556d291c66658ef055c890f92d11e1f",
+      "line_code": null,
+      "created_at": "2026-10-19T13:19:39.614Z",
+      "project_id": 1,
+      "updated_at": "2026-10-19T13:19:39.614Z",
+      "description": "Push do vetvy `10-cyril-konflikt`:\n\n- Dobrý začiatok: vetva `10-cyril-konflikt` je vytvorená.\n- Správy commitov hovoria, čo sa zmenilo. Dobrá práca.",
+      "noteable_id": null,
+      "resolved_at": null,
+      "discussion_id": "59ce30177ff1f9bed05765fd3a36492a7575ca89",
+      "noteable_type": "Commit",
+      "updated_by_id": null,
+      "resolved_by_id": null,
+      "change_position": null,
+      "resolved_by_push": null,
+      "original_position": null
+    }
+  }
+}

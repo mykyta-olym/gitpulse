@@ -1,0 +1,40 @@
+{#
+  Shared import-from-GitLab markup - included by dashboard and course detail
+  fragments. Runtime import logic lives in static/js/import-stream.js.
+  
+  Requires the including page to define:
+    - csrfToken
+#}
+{% from "components/buttons.html" import btn %}
+{% from "components/spinner.html" import spinner %}
+
+{# -- Import Status Box HTML (place inside the import modal form) -- #}
+{% macro import_status_box() %}
+<div id="importStatusBox" class="import-status" hidden>
+  <div class="import-status-line">
+    {{ spinner(size='sm', tag='span', id='importStatusSpinner', class='mr-2') }}
+    <span id="importStatusText">{{ t('Starting import...') }}</span>
+  </div>
+  <div id="importCounters" class="import-counters" hidden>
+    <span class="import-counter">{{ t('Groups:') }} <strong id="importCntTeams">0</strong></span>
+    <span class="import-counter">{{ t('Students:') }} <strong id="importCntStudents">0</strong></span>
+    <span class="import-counter">{{ t('Teachers:') }} <strong id="importCntTeachers">0</strong></span>
+    <span class="import-counter">{{ t('Projects:') }} <strong id="importCntProjects">0</strong></span>
+  </div>
+  <div id="importLog" class="import-log" hidden></div>
+  <div id="importStatusMeta" class="import-status-meta"></div>
+</div>
+{% endmacro %}
+
+{# -- Import Modal Footer (Cancel + Import buttons) -- #}
+{% macro import_modal_footer(process_lock_when='import', process_lock_scope='') %}
+{% set _import_btn_attrs = {'process-lock-when': process_lock_when} %}
+{% if process_lock_scope %}
+  {% set _ = _import_btn_attrs.update({'process-lock-scope': process_lock_scope}) %}
+{% endif %}
+<div class="modal-footer">
+  {{ btn(t('Cancel'), variant='secondary', id='importGitlabCourseCancelBtn', data_attrs={'modal-close': 'importGitlabCourseModal'}) }}
+  {{ btn(t('Import'), type='submit', id='importGitlabCourseBtn', data_attrs=_import_btn_attrs) }}
+</div>
+{% endmacro %}
+

@@ -1,0 +1,68 @@
+{#
+  Member display components - shared macros for rendering student/member
+  name cells with role badges, annotations and member category logic.
+
+  Used by: team_detail.html, partials/project/_members_table.html
+#}
+
+{% from "components/badges.html" import badge with context %}
+
+{#
+  Renders role badges for a member next to their name.
+  Only shows course-level distinctions that are not already represented in
+  the dedicated Role column. GitLab/global access roles (Admin, Teacher,
+  Maintainer, Developer...) are shown in the Role column, NOT duplicated here.
+
+  Args:
+    u_role        - global User.role (admin / teacher / student)
+    is_teacher - boolean, whether member is flagged as team teacher
+    gl_role       - GitLab access role string (unused - shown in Role column)
+    m_source      - membership source string (e.g. 'inherited')
+    course_role   - course-level role string (owner / teacher) or empty
+#}
+{% macro member_role_badges(u_role, is_teacher, gl_role, m_source, course_role='') %}
+  {# -- Per-course role (Owner only - access role already lives in Role column) -- #}
+  {% if course_role == 'owner' %}
+    {{ badge(t('Owner'), variant='teal', size='sm', class='ml-2') }}
+  {% endif %}
+{% endmacro %}
+
+
+
+{#
+  Renders the full member name cell content: name, role badges,
+  "not in team score" annotation, and @username.
+
+  Args:
+    student       - Student model instance
+    u_role        - global User.role (admin / teacher / student)
+    is_teacher - boolean
+    gl_role       - GitLab access role string
+    m_source      - membership source string
+    snap          - StudentSnapshot or None
+    course_role   - course-level role string (owner / teacher) or empty
+    is_excluded   - boolean, excluded from scoring by admin/teacher
+#}
+{% macro member_name_cell(student, u_role, is_teacher, gl_role, m_source, snap, course_role='', is_excluded=false, is_mentor=false, detail_url='') %}
+  {% if detail_url %}
+  <a href="{{ detail_url }}" class="member-name-link"><strong>{{ student.full_name or student.gitlab_username or '-' }}</strong></a>
+  {% else %}
+  <strong>{{ student.full_name or student.gitlab_username or '-' }}</strong>
+  {% endif %}
+  {{ member_role_badges(u_role, is_teacher, gl_role, m_source, course_role) }}
+  {% if is_excluded %}
+    {{ badge(t('Excluded'), variant='danger', size='sm', class='ml-2') }}
+    <br><span class="muted font-07">({{ t('not in group score') }})</span>
+  {% elif is_teacher %}
+    <br><span class="muted font-07">({{ t('not in group score') }})</span>
+  {% elif is_mentor %}
+    <br><span class="muted font-07">({{ t('not in group score') }})</span>
+  {% elif gl_role in ('guest', 'reporter') and snap and snap.mrs_created == 0 and snap.issues_assigned == 0 %}
+    <br><span class="muted font-07">({{ t('not in group score') }})</span>
+  {% elif m_source == 'inherited' and snap and snap.mrs_created == 0 and snap.issues_assigned == 0 %}
+    <br><span class="muted font-07">({{ t('not in group score') }})</span>
+  {% endif %}
+  {% if student.gitlab_username and student.gitlab_username != (student.full_name or '') %}
+  <br><span class="muted font-08">@{{ student.gitlab_username }}</span>
+  {% endif %}
+{% endmacro %}

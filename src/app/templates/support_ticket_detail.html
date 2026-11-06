@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.title or t('Untitled') }} · #{{ ticket.id }}{% endblock %}
+
+{# The page shell only. Its body used to be a 311-line COPY of
+   partials/support/_ticket_detail_content.html, which it now includes. The
+   copy had fallen behind: it was missing all four
+   `data-tour` anchors, still title-cased raw response keys instead of reading
+   the form's question labels, and carried a `gh-reply-options` wrapper no CSS
+   rule defines. Opening a ticket by direct link therefore rendered a worse page
+   than reaching it by navigation. Same pattern as support_tickets.html. #}
+
+{% set nav_active = 'support_tickets' %}
+
+{% block top_banners %}{% with archived_note = t('support requests still reach its teachers') %}{% include "partials/course/_archived_banner.html" %}{% endwith %}{% endblock %}
+
+{% block content %}
+{% include "partials/support/_ticket_detail_content.html" %}
+{% endblock %}

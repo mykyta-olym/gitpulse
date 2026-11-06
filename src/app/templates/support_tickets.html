@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Support Tickets') }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/cards.html" import empty_state %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% from "partials/support/_course_table.html" import support_course_table with context %}
+
+{% set nav_active = 'support_tickets' %}
+
+{% block top_banners %}{% with course = selected_course, archived_note = t('support requests still reach its teachers') %}{% include "partials/course/_archived_banner.html" %}{% endwith %}{% endblock %}
+
+{% block content %}
+
+  {% if not selected_course %}
+  {#
+    Step 1: which course's tickets - the reader's courses as a table (the
+    component Support's first step uses too), each row saying how many tickets
+    wait for an answer, how many there are and when the last came in. It used
+    to be the Support form's card picker, archived courses in a collapsible
+    card whose animation stalled at the height of its own padding.
+  #}
+  {{ page_header(t('Support Tickets'), t('Choose a course to view support tickets')) }}
+
+  {% if user_courses %}
+  {{ support_course_table('ticketCoursesTable', ticket_courses if ticket_courses is defined else user_courses, ticket_stats, period_scope, '/dashboard/support/tickets') }}
+  {% else %}
+    {{ empty_state(
+         title=t('No courses found.'),
+         illustration='empty-issues',
+         action_text=t('Back to Dashboard'),
+         action_href='/dashboard/'
+    ) }}
+  {% endif %}
+
+  {% else %}
+
+  {{ page_header(
+       t('Support Tickets') ~ ' - ' ~ selected_course.code,
+       t('Manage support tickets for') ~ ' ' ~ selected_course.name,
+       back_link='/dashboard/support/tickets',
+       back_text=t('Back to Courses'),
+       badge=period_badge(selected_course.academic_year, selected_course.semester, current=is_current_period(selected_course.academic_year, selected_course.semester))
+  ) }}
+
+  {% include "partials/support/_tickets_content.html" %}
+  {% endif %}
+
+{% endblock %}

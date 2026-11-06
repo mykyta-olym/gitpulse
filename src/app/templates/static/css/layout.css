@@ -1,0 +1,445 @@
+/* ============================================
+   LAYOUT - GitLab Pajamas Design System
+   ============================================ */
+
+/* -- Page header - GitLab exact -- */
+.page-header {
+  margin-top: var(--gl-spacing-4);
+  margin-bottom: var(--gl-spacing-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-5);
+  padding-bottom: var(--gl-spacing-5);
+  border-bottom: 1px solid var(--border-color);
+}
+.page-header h1 {
+  /* GitLab's gl-heading-1 renders at 30px; ours sat a step down at 24px. */
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--gl-text-color-heading);
+  margin: 0;
+  line-height: var(--line-height-tight);
+  /* Wraps, never truncates. This is the page's identity: a group project is
+     named after its members, so "Butenko Voroniuk Hushchyn Didkivskyi
+     Havryliuk - Miny" came out as "Butenko Voroniuk Hushchyn Didkivskyi
+     Havryliu..." and the reader could not tell whose project they had opened.
+     A heading is not a table cell - there is a whole line free to its right and
+     nothing below it that a second line would disturb.
+     `anywhere` is the guard the ellipsis used to be: one unbroken 80-character
+     token (a path, a URL) still cannot push the header wider than its column. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.page-header p {
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+  margin: var(--gl-spacing-2) 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.page-header-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin-bottom: var(--gl-spacing-3);
+  padding-bottom: var(--gl-spacing-3);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+.page-header-nav-sep {
+  color: var(--gl-text-color-subtle);
+  font-size: var(--font-size-sm);
+  user-select: none;
+}
+.page-header-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    color var(--transition-normal),
+    background-color var(--transition-normal),
+    transform var(--transition-normal);
+  will-change: transform;
+}
+.page-header-back .icon {
+  transition: transform var(--transition-fast);
+}
+.page-header-back:hover {
+  color: var(--primary);
+  text-decoration: none;
+  /* Colour only on hover - GitLab's whole transition inventory carries no
+     transform outside animated icons (@gitlab/ui 136.3.0). The lift was
+     already removed from the course cards once; it survived here. */
+}
+.page-header-back:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-header-back,
+  .page-header-back .icon {
+    transition: none;
+  }
+  .page-header-back:hover,
+  .page-header-back:hover .icon {
+    transform: none;
+  }
+}
+
+.page-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-1);
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+.page-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+}
+.page-header-actions {
+  display: flex;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* -- Breadcrumbs - GitLab style -- */
+.breadcrumbs {
+  margin-bottom: var(--gl-spacing-5);
+  /* Inside the fixed topbar, allow the whole breadcrumb strip to shrink and
+     clip so long page titles can't push the search bar off-screen. */
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* -- Section -- */
+.content-section {
+  margin-bottom: var(--gl-spacing-7);
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--gl-spacing-5);
+  margin-top: var(--gl-spacing-6);
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-3);
+}
+.section-header h2 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-default);
+  margin: 0;
+}
+/* A column: heading, then its description. The row version put the sentence
+   beside the heading on one line, so a long description squeezed the title and
+   neither read as belonging to the other. */
+.section-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+}
+/* The disclosure chevron belongs beside the title, not above it. */
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+}
+.section-toggle {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+}
+/* Animated disclosure chevron: points right when collapsed, rotates down when
+   open. Replaces the old ▼/▶ text-glyph swap so the state change is a smooth
+   transform rather than a character jump. */
+.section-toggle-chevron {
+  transition: transform var(--transition-normal);
+  transform: rotate(0deg);
+}
+.section-toggle-chevron.is-open {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-toggle-chevron { transition: none; }
+}
+.section-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-subtle);
+  margin: 0;
+}
+.section-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+.section-actions {
+  display: flex;
+  gap: var(--gl-spacing-3);
+}
+
+/* -- Grid -- */
+/* -- Flex row -- */
+.flex-row {
+  display: flex;
+  justify-content: var(--flex-justify, flex-start);
+  align-items: var(--flex-align, center);
+  gap: var(--flex-gap, 1rem);
+}
+.nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+/* -- Member name link -- */
+.member-name-link {
+  color: inherit;
+  text-decoration: none;
+}
+.member-name-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* -- Tabs - GitLab Pajamas exact tab style -- */
+.tabs-container {
+  width: 100%;
+}
+.tabs-nav {
+  display: flex;
+  gap: 0;
+  box-shadow: inset 0 -1px var(--gl-border-color-default);
+  margin-bottom: var(--gl-spacing-5);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+.tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+/* The same right-edge fade a scrolling table has (tables.css), for the same
+   reason: on a phone the strip runs past the edge and the last tab was simply
+   cut, with nothing to say more follow. The strip is its own scroll viewport,
+   so the fade is a sticky last flex child rather than an absolute overlay;
+   table-scroll.js toggles the two classes. The gradient ends in the surface
+   the strip sits on: the card body, or the card shell for a header strip. */
+.tabs-nav::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  flex: 0 0 28px;
+  margin-left: -28px;
+  align-self: stretch;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  background: linear-gradient(to left, var(--_strip-fade-bg, var(--gl-background-color-default)), transparent);
+}
+.tabs-nav.is-scrollable-x:not(.at-scroll-end)::after {
+  opacity: 1;
+}
+.card-header .tabs-nav {
+  --_strip-fade-bg: var(--gl-background-color-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tabs-nav::after { transition: none; }
+}
+/* Pajamas tabs: 16px/12px padding and a 2px indicator on the shared baseline. */
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  padding: var(--gl-spacing-5) var(--gl-spacing-4);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--gl-text-color-default);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1rem;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background: transparent;
+  position: relative;
+  outline: none;
+  /* Same clock as every other button. A tab IS a .btn in the markup, and this
+     shorthand replaced the button contract with a shorter, two-property one, so
+     these two tabs eased at half the speed of the buttons beside them. */
+  transition: color var(--transition-normal),
+              border-color var(--transition-normal);
+}
+/* The moving part of the underline. The tab keeps its own 2px transparent
+   bottom border - that border is what reserves the height - and this pseudo
+   element paints exactly over it, so nothing shifts when it appears. */
+.tab-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  border-bottom: 2px solid transparent;
+  /* COLOUR only. The indicator used to rest 2px lower and slide up as it faded
+     in, so hovering a tab made the underline hop - and both the hover and the
+     active rule then had to undo the offset with `translate: 0`. GitLab
+     animates colour and never transform on its tab strip (@gitlab/ui 136.3.0
+     carries no transform transition outside animated icons), so the indicator
+     now simply appears where it belongs. */
+  transition: border-bottom var(--transition-normal);
+  pointer-events: none;
+}
+/* Hovering an unselected tab previews the indicator in the neutral border
+   colour. Ours showed nothing on hover, so a tab row gave no feedback at all
+   until the click landed. */
+.tab-btn:hover:not(.active)::before {
+  border-bottom-color: var(--gl-border-color-strong);
+}
+.tab-btn .tab-label {
+  pointer-events: none;
+}
+/* Reserve the selected label's width before selection. A weight change must
+   not resize the tab strip, the search beside it or the neighbouring tabs. */
+.tab-btn .tab-label[data-label]::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: var(--font-weight-bold);
+}
+.tab-btn svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity var(--transition-normal);
+}
+.tab-btn:hover svg,
+.tab-btn.active svg {
+  opacity: 1;
+}
+.tab-btn:hover {
+  color: var(--gl-text-color-default);
+  text-decoration: none;
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+/* Inset, like GitLab's tab: the row has no room outside the tab for a ring. */
+.tab-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-inset);
+  border-radius: var(--radius-sm);
+}
+.tab-btn.active {
+  color: var(--gl-text-color-strong);
+  font-weight: var(--font-weight-bold);
+}
+.tab-btn.active::before {
+  border-bottom-color: var(--gl-tab-selected-indicator);
+}
+/* Tab badge - counter pill */
+.tab-badge {
+  /* The shared count badge (GlBadge muted, as GitLab's tab counter): 20px on
+     the tab's 16px line, so it overhangs by 2px each way rather than making
+     its tab 4px taller than the tabs beside it in the strip. */
+  margin-block: -2px;
+}
+/* Tab content area - smooth entrance for HTMX loaded content */
+.gl-tab-content {
+  min-height: 200px;
+}
+/* Course actions bar - action buttons loaded via HTMX below tabs */
+.course-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--gl-spacing-5);
+}
+
+/* -- Divider -- */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: var(--gl-spacing-6) 0;
+}
+
+.sidebar-sticky {
+  position: sticky;
+  top: 80px;
+}
+
+/* ============================================
+   ICONS - GitLab icon sizes
+   ============================================ */
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  vertical-align: middle;
+  width: 16px;
+  height: 16px;
+  /* Pajamas glyphs are FILLED shapes with no fill attribute of their own, so
+     they inherit this and follow the text colour - the same way the previous,
+     stroked Feather set followed `stroke: currentColor`. Without it every icon
+     renders solid black and ignores the theme. */
+  fill: currentColor;
+}
+.icon-xs { width: 12px; height: 12px; }
+.icon-sm { width: 16px; height: 16px; }
+.icon-md { width: 20px; height: 20px; }
+.icon-lg { width: 24px; height: 24px; }
+.icon-xl { width: 32px; height: 32px; }
+
+/* 16px at every button size, as GlButton draws it (@gitlab/ui button.vue:
+   `<gl-icon :size="16">` with no size prop of its own) - a small button is a
+   shorter box around the same glyph, not a smaller glyph. The 14px step this
+   file had for .btn-sm read as "icons too small" in card headers and made a
+   small button change width while loading (the spinner is 16px). */
+.btn .icon {
+  width: 16px;
+  height: 16px;
+}
+.btn-icon-only .icon {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* A view that is a different KIND of row, not another value of the same field -
+   service accounts against Admin / Teacher / Student. The divider says they are
+   not a fourth role, which is also why "All" does not include them.
+   The divider sits centered in the margin gap between the roles and this view,
+   isolated from the button content so the active underline covers only the
+   button itself and the divider never cuts into the bottom baseline border. */
+/* A tab with nothing behind it yet (a week with no data): still selectable,
+   its label in the disabled text colour until it is the open one. */
+.tab-btn--muted:not(.active) .tab-label {
+  color: var(--gl-text-color-disabled);
+}
+.tab-btn--apart {
+  margin-left: var(--gl-spacing-5);
+  position: relative;
+}
+.tab-btn--apart::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--gl-spacing-3) - 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 16px;
+  border-left: 1px solid var(--border-color);
+  pointer-events: none;
+}

@@ -1,0 +1,31 @@
+{{/*
+  BreadcrumbList structured data for the current page.
+
+  https://developers.google.com/search/docs/appearance/structured-data/breadcrumb
+
+  Called from the document head for every page, but only emits markup for pages
+  that actually have breadcrumbs: `functions/breadcrumbs` returns just the
+  "GitLab Docs" root crumb for pages outside the global navigation (the home
+  page, 404, search results, and any content page not in navigation.yaml), and a
+  one-item trail isn't a breadcrumb. The rendered nav lives in breadcrumbs.html.
+
+  @param Page
+    The page object (passed as the dot context).
+*/}}
+
+{{- $crumbs := partialCached "functions/breadcrumbs" . .RelPermalink -}}
+
+{{- if gt (len $crumbs) 1 -}}
+  {{- $items := slice -}}
+  {{- range $i, $crumb := $crumbs -}}
+    {{- $items = $items | append (dict
+      "@type" "ListItem"
+      "position" (add $i 1)
+      "name" $crumb.full
+      "item" ($crumb.href | absURL)
+    ) -}}
+  {{- end }}
+<script type="application/ld+json">
+  {{ (dict "@context" "https://schema.org" "@type" "BreadcrumbList" "itemListElement" $items) | jsonify | safeJS }}
+</script>
+{{ end -}}

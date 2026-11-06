@@ -1,0 +1,24 @@
+{{/*
+  Determine if this instance of the site is a review app OR if a given segment is a review app prefix
+
+  @param dict (optional)
+    $segment string - A path segment to check (if not provided, checks current site instance)
+
+  @return string
+    "true" if this is a review app or review app prefix, "false" if not
+*/}}
+{{- if .segment -}}
+  {{- /* Check if the provided segment is a review app prefix */ -}}
+  {{- if or (hasPrefix .segment "review-mr-") (hasPrefix .segment "upstream-review-mr-") (eq .segment "review-mr") (eq .segment "upstream-review-mr") -}}
+    {{- "true" -}}
+  {{- else -}}
+    {{- "false" -}}
+  {{- end -}}
+{{- else -}}
+  {{- /* Original behavior: check if current site is a review app */ -}}
+  {{- if or (hasPrefix (relURL "") "/review-mr") (hasPrefix (relURL "") "/upstream-review-mr") -}}
+    {{- "true" -}}
+  {{- else -}}
+    {{- "false" -}}
+  {{- end -}}
+{{- end -}}

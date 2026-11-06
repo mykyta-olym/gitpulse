@@ -1,0 +1,162 @@
+{# Support Form Step 3 - Full ticket form content partial (loaded via HTMX) #}
+{% from "components/layout.html" import page_header %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% from "components/icons.html" import icon %}
+{% from "components/forms.html" import textarea, text_input, select_field with context %}
+{% from "components/buttons.html" import btn %}
+{% from "components/cards.html" import empty_state %}
+{% from "components/alerts.html" import top_banner %}
+{% from "components/markdown_editor.html" import md_editor with context %}
+
+{# -- Category definitions (GitHub-style) -- #}
+{% set all_category_labels = {
+  'dashboard': t('Dashboard Issue'), 'cicd': t('CI/CD Pipeline'), 'code_review': t('Code Reviews'),
+  'evaluation': t('Evaluations'), 'repositories': t('Repositories'),
+  'bug': t('Bug Report'), 'feature_request': t('Feature Request'), 'account': t('Account Issues'),
+  'grade': t('Grade Inquiry'), 'general': t('General Request'), 'question': t('Question')
+} %}
+
+<div class="gh-form-page" x-data="supportFormEditor()">
+
+  {{ page_header(all_category_labels.get(selected_category, t('Support Request')), selected_course.code ~ ' - ' ~ selected_course.name, back_link='/dashboard/support?course_id=' ~ course_id, back_text=t('Back to Categories'), badge=period_badge(selected_course.academic_year, selected_course.semester, current=is_current_period(selected_course.academic_year, selected_course.semester))) }}
+
+  {# Portaled to the global top strip (#globalBannerSlot) via .js-top-banner, like
+     the archived / data-outdated banners - consistent placement everywhere. #}
+  {% call top_banner(dismiss_key='support-logged-in', variant='info', icon_name='user', dismissible=true) %}
+    <strong>{{ t('Logged in as') }} @{{ (gitlab_username or username)|e }}</strong> - {{ t('your username will be attached to this ticket so the team can follow up with you.') }}
+  {% endcall %}
+
+  <div id="successMessage" hidden role="status" tabindex="-1">
+    {{ empty_state(t('Thank You!'), t('Your support request has been submitted successfully.'),
+         illustration='empty-todos-all-done',
+         action_text=t('Back to Dashboard') if user_role else '', action_href='/dashboard/') }}
+  </div>
+
+  <form id="supportForm" class="gh-form-body" action="/api/v1/support/{{ token }}" method="POST" data-no-boundary="1" data-tour="support-form">
+    <p class="gh-required-notice"><span class="required">*</span> {{ t('Required fields') }}</p>
+
+    {# -- Subject -- #}
+    <div class="form-group" data-tour="support-subject">
+      <label class="gh-form-label" for="title">{{ t('Subject') }} <span class="required">*</span></label>
+      <div class="gh-input-with-counter">
+        <input type="text" id="title" name="title" class="form-input" maxlength="80"
+               placeholder="{{ t('Briefly describe your issue or request...') }}" required
+               x-model="subjectText">
+        <span class="gh-char-counter" x-text="(subjectText || '').length + '/80'">0/80</span>
+      </div>
+    </div>
+
+    {# -- Description with Write/Preview tabs and Markdown toolbar -- #}
+    <div class="form-group" data-tour="support-description">
+      <label class="gh-form-label" for="description">{{ t('Description') }} <span class="required">*</span></label>
+      {{ md_editor(
+        name='description',
+        id='description',
+        ref='mdTextarea',
+        tab_var='mdTab',
+        rows=10,
+        required=true,
+        placeholder=t('Describe in detail what happened, what you expected, and any steps to reproduce the issue...'),
+        show_paste_hint=true,
+      ) }}
+    </div>
+
+    <div class="gh-form-divider"></div>
+
+    {# -- Dynamic category-specific fields -- #}
+    {% if support_form and support_form.questions %}
+    {% set category_icons = {
+      'bug': 'alert-circle', 'feature_request': 'zap', 'account': 'user', 'grade': 'award',
+      'cicd': 'git-branch', 'code_review': 'git-pull-request', 'repositories': 'folder',
+      'dashboard': 'bar-chart-2', 'evaluation': 'check-square',
+      'question': 'help-circle', 'general': 'clipboard'
+    } %}
+    <div class="gh-category-fields">
+      <h3 class="gh-fields-title">
+        {{ icon(category_icons.get(selected_category, 'edit-3'), size='sm') }}
+        {{ all_category_labels.get(selected_category, t('Support Details')) }}
+      </h3>
+
+      {% for q in support_form.questions %}
+        {% if q.id not in ['title', 'description'] %}
+          {% if q.type == 'text' %}
+            {{ text_input(q.id, label=t(q.label), required=q.required, placeholder=(t(q.config.placeholder) if q.config and q.config.placeholder else '')) }}
+          
+          {% elif q.type == 'textarea' %}
+            <div class="form-group">
+              <label class="gh-form-label" for="{{ q.id }}">{{ t(q.label) }}{% if q.required %} <span class="required">*</span>{% endif %}</label>
+              <textarea id="{{ q.id }}" name="{{ q.id }}" class="form-input" rows="4" placeholder="{{ t(q.config.placeholder) if q.config and q.config.placeholder else '' }}"{% if q.required %} required{% endif %}></textarea>
+            </div>
+
+          {% elif q.type == 'select' %}
+            {% set select_options = [] %}
+            {% if q.config and q.config.options %}
+              {% for opt in q.config.options %}
+                {% set _ = select_options.append((opt, t(opt.replace('_', ' ').title()))) %}
+              {% endfor %}
+            {% endif %}
+            {{ select_field(q.id, label=t(q.label), options=select_options, value=(q.config.default or ''), required=q.required) }}
+
+          {% elif q.type == 'boolean' %}
+            <div class="form-group">
+              <label class="form-check">
+                <input type="checkbox" name="{{ q.id }}" id="{{ q.id }}" class="form-check-input" value="true" {% if q.config and q.config.default %}checked{% endif %}>
+                <span class="form-check-label">{{ t(q.label) }}{% if q.required %} <span class="required">*</span>{% endif %}</span>
+              </label>
+            </div>
+
+          {% elif q.type in ['rating', 'scale', 'nps'] %}
+            {# Declarative [data-choice-group] controller (core/39-tabs-and-toggles.js): the
+                 production @alpinejs/csp build cannot evaluate the old x-data
+                 object literal, the ``selectedVal = 'N'`` click assignment or the
+                 :class ternary - so the rating buttons never highlighted and the
+                 hidden input stayed empty, making a required rating unanswerable. #}
+            {# `field_group` -> <fieldset><legend>: the caption names the row of
+               rating buttons instead of being a <label> with no field, which is
+               what Chrome reports as "A <label> isn't associated with a form
+               field". The value itself lives in the hidden input below. #}
+            <fieldset class="form-group form-fieldset" data-choice-group>
+              <legend class="gh-form-label">{{ t(q.label) }}{% if q.required %} <span class="required">*</span>{% endif %}</legend>
+              <input type="hidden" name="{{ q.id }}" data-choice-input value="{{ q.config.default or '' }}" {% if q.required %}required{% endif %}>
+              <div class="flex-row gap-2 mt-5">
+                {% set min_val = q.config.min|default(1, true) %}
+                {% set max_val = q.config.max|default(5, true) %}
+                {% for val in range(min_val, max_val + 1) %}
+                  <button type="button"
+                          class="btn btn-sm {% if (q.config.default or '')|string == val|string %}btn-confirm{% else %}btn-secondary{% endif %}"
+                          data-choice-value="{{ val }}"
+                          aria-pressed="{{ 'true' if (q.config.default or '')|string == val|string else 'false' }}">
+                    {{ val }}
+                  </button>
+                {% endfor %}
+              </div>
+              {% if q.config and (q.config.min_label or q.config.max_label) %}
+                <div class="flex-row justify-between mt-5 text-muted small max-w-300">
+                  <span>{{ t(q.config.min_label or '') }}</span>
+                  <span>{{ t(q.config.max_label or '') }}</span>
+                </div>
+              {% endif %}
+            </fieldset>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="gh-form-divider"></div>
+    {% endif %}
+
+    {# -- Priority (animated select) -- #}
+    <div data-tour="support-priority">
+    {{ select_field('priority', label=t('Priority'), options=[('low', t('Low')), ('medium', t('Medium')), ('high', t('High')), ('critical', t('Critical'))], value='medium') }}
+    </div>
+
+    {# -- Hidden fields -- #}
+    <input type="hidden" name="context_type" value="{{ context_type }}">
+    <input type="hidden" name="course_id" value="{{ course_id }}">
+    {% if support_form %}
+    <input type="hidden" name="form_id" value="{{ support_form.id }}">
+    {% endif %}
+
+    {{ btn(t('Continue'), variant='confirm', type='submit', class='btn-block gh-submit-btn',
+         data_attrs={'tour': 'support-submit'}) }}
+  </form>
+</div>

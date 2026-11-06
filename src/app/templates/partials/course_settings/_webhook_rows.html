@@ -1,0 +1,25 @@
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn_icon_only %}
+{% from "components/time.html" import localized_time %}
+{% set archived = not course.is_active %}
+{% set archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if archived else '' %}
+{% set scope_labels = {'group': t('Group'), 'subgroup': t('Sub-group'), 'projects': t('Projects'), 'course': t('Course')} %}
+{% for cfg in webhook_configs %}
+{% set scope_path = cfg.gitlab_group_path or '' if cfg.scope_type in ['group', 'subgroup'] else (cfg.gitlab_project_ids|join(',') if cfg.scope_type == 'projects' else 'course') %}
+<tr data-config-id="{{ cfg.id }}" data-config-name="{{ cfg.name }}">
+  <td data-sort-value="{{ cfg.name|lower }}"><strong>{{ cfg.name }}</strong>{% if cfg.description %}<br><span class="muted small">{{ cfg.description }}</span>{% endif %}</td>
+  <td data-sort-value="{{ cfg.scope_type }}:{{ scope_path }}">{{ badge(scope_labels[cfg.scope_type], 'info' if cfg.scope_type in ['group', 'subgroup'] else ('success' if cfg.scope_type == 'projects' else 'gray')) }} <span class="muted small">{{ cfg.scope_summary }}</span></td>
+  <td data-sort-value="{{ 'active' if cfg.is_active else 'inactive' }}">
+    {% if not cfg.is_active %}{{ badge(t('Inactive'), 'muted') }}
+    {% elif not cfg.has_secret %}{{ badge(t('No secret'), 'warning') }}
+    {% else %}{{ badge(t('Active'), 'success') }}{% if cfg.has_previous_secret and cfg.previous_expires_at %} {{ badge(t('Grace until') ~ ' ' ~ localized_time(cfg.previous_expires_at), 'warning', data_attrs={'tippy-content': t('Previous secret still accepted until rotation grace ends')}) }}{% endif %}{% endif %}
+  </td>
+  <td data-sort-value="{{ cfg.last_used_at.isoformat() if cfg.last_used_at else '' }}">{{ localized_time(cfg.last_used_at) }}</td>
+  <td data-sort-value="{{ cfg.created_at.isoformat() }}">{{ localized_time(cfg.created_at) }}</td>
+  <td class="text-right actions-cell"><div class="gl-row-actions">
+    {{ btn_icon_only('refresh', size='sm', aria_label=t('Rotate'), disabled=archived, disabled_reason=archived_reason, data_attrs={'action': 'rotateWebhookConfig', 'config-id': cfg.id|string, 'archived-locked': '1'} if archived else {'action': 'rotateWebhookConfig', 'config-id': cfg.id|string, 'tippy-content': t('Rotate secret - generate a new one with 24 h grace')}) }}
+    {{ btn_icon_only('edit', size='sm', aria_label=t('Edit'), disabled=archived, disabled_reason=archived_reason, data_attrs={'action': 'editWebhookConfig', 'config-id': cfg.id|string, 'archived-locked': '1'} if archived else {'action': 'editWebhookConfig', 'config-id': cfg.id|string, 'tippy-content': t('Edit name, scope payload, active flag')}) }}
+    {{ btn_icon_only('trash-2', variant='danger', size='sm', aria_label=t('Revoke'), disabled=archived, disabled_reason=archived_reason, data_attrs={'action': 'requestRevokeWebhookConfig', 'config-id': cfg.id|string, 'config-name': cfg.name, 'archived-locked': '1'} if archived else {'action': 'requestRevokeWebhookConfig', 'config-id': cfg.id|string, 'config-name': cfg.name, 'tippy-content': t('Revoke - invalidate this secret immediately')}) }}
+  </div></td>
+</tr>
+{% endfor %}

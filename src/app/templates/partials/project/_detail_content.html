@@ -1,0 +1,157 @@
+{# Project detail content fragment - loaded via HTMX on page load #}
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import btn, close_button %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, block_empty %}
+{% from "components/modals.html" import modal %}
+{% from "components/alerts.html" import alert, top_banner %}
+{% from "components/spinner.html" import spinner %}
+{% from "components/lifecycle.html" import restore_actions with context %}
+{% from "components/layout.html" import page_config with context %}
+
+{% if repo_empty is defined and repo_empty %}
+{% call top_banner(dismiss_key='repo-empty:' ~ project.id, variant='warning', icon_name='alert-triangle', dismissible=false) %}
+  {{ t('GitLab repository is empty or unavailable. No commits have been detected on the default branch - checks, snapshots and Issues to Address will stay blank, and this project is not counted toward the group average or rankings until the team pushes code (or you reconnect the repository).') }}
+{% endcall %}
+{% endif %}
+
+{% if not project.is_active %}
+{% call alert(variant='warning', icon_name='archive', dismissible=false, class='mb-4') %}
+  {% if team and not team.is_active %}
+  {# The project is inactive because its whole GROUP was deleted - not an
+     individual unlink. Restoring just this project would orphan it under a
+     deleted group, so point the teacher at the group restore instead. #}
+  {% if can_edit %}
+  <strong>{{ t("This project's group is deleted.") }}</strong>
+  {{ t('It was deactivated together with its group and is hidden from students and excluded from rankings, syncs and checks. Restore the group to bring this project back.') }}
+  <div class="gp-alert-actions">
+    <a class="btn btn-sm btn-success" href="/dashboard/teams/{{ team.id }}">
+      {{ icon('refresh-cw', size='sm') }} {{ t('Go to group') }}
+    </a>
+  </div>
+  {% else %}
+  <strong>{{ t("This project's group has been archived.") }}</strong>
+  {{ t('The data below is shown for reference. New activity is no longer being tracked - contact your teacher if this is unexpected.') }}
+  {% endif %}
+  {% elif can_edit and team %}
+  <strong>{{ t('This project is unlinked.') }}</strong>
+  {{ t('It is hidden from students and excluded from rankings, syncs and checks until it is restored.') }}
+  <div class="gp-alert-actions">
+    {{ restore_actions('project', project.id,
+                       lock_scope='course:' ~ team.course_id ~ ' team:' ~ team.id ~ ' project:' ~ project.id) }}
+  </div>
+  {% else %}
+  <strong>{{ t('This project has been archived.') }}</strong>
+  {{ t('The data below is shown for reference. New activity is no longer being tracked - contact your teacher if this is unexpected.') }}
+  {% endif %}
+{% endcall %}
+{% endif %}
+
+{# When the data was last fetched - a meta line, not a panel. It used to be a
+   full-width bordered box (`gl-intelligence-grid--info`) holding one label and
+   one date: a card's worth of chrome around a timestamp. GitLab writes "last
+   updated" beside the thing it describes and moves on. It stays in the content
+   fragment rather than the page header so a sync's live refresh still updates
+   it. #}
+<p class="muted font-sm project-last-synced" data-tippy-content="{{ t('When data was last fetched from GitLab') }}">
+  {{ icon('clock', size='sm') }}
+  {{ t('Last Synced') }}: <strong>{{ local_time(project.last_synced_at, fallback=t('Never')) }}</strong>
+</p>
+
+{# -- GitLab Intelligence Panel -- #}
+{% if can_edit %}
+<div class="gl-intelligence-grid gl-intelligence-grid--panel" id="glIntelligenceGrid">
+  <div class="gl-intelligence-card" id="glProtectedBranches">
+    <div class="gl-intelligence-header">
+      {{ icon('shield', size='sm') }}
+      <h4>{{ t('Protected Branches') }}</h4>
+    </div>
+    <div class="gl-intelligence-body">
+      {% if gl_intel_view and gl_intel_view.protected %}
+        {% for name in gl_intel_view.protected %}{{ badge(name, variant='success', icon_name='lock') }} {% endfor %}
+      {% else %}
+        {{ block_empty(t('No protected branches')) }}
+      {% endif %}
+    </div>
+  </div>
+  <div class="gl-intelligence-card" id="glContributors">
+    <div class="gl-intelligence-header">
+      {{ icon('users', size='sm') }}
+      <h4>{{ t('Contributors') }}</h4>
+    </div>
+    <div class="gl-intelligence-body">
+      {% if gl_intel_view and gl_intel_view.contributors %}
+        {% for c in gl_intel_view.contributors %}
+        <div class="gl-stat-row">
+          <div><strong>{{ c.name }}</strong><br><span class="gl-stat-label">{{ c.commits }} {{ t('commits') }}</span></div>
+          <div class="gl-contrib-bar-wrap"><div class="gl-contrib-bar" data-progress="{{ c.pct }}"></div></div>
+        </div>
+        {% endfor %}
+      {% elif template_fork is defined and template_fork %}
+        {{ block_empty(t('Only template authors so far - no student commits yet')) }}
+      {% else %}
+        {{ block_empty(t('No contributors yet')) }}
+      {% endif %}
+    </div>
+  </div>
+  <div class="gl-intelligence-card" id="glStatistics">
+    <div class="gl-intelligence-header">
+      {{ icon('bar-chart', size='sm') }}
+      <h4>{{ t('Repository Stats') }}</h4>
+    </div>
+    <div class="gl-intelligence-body">
+      {% if gl_intel_view and gl_intel_view.stats %}
+        <div class="gl-stat-row"><span>{{ t('Commits') }}</span><strong>{% if template_fork is defined and template_fork %}<span class="gl-stat-dash" data-tippy-content="{{ t('No student commits yet - only the template history') }}">—</span>{% else %}{{ gl_intel_view.stats.commit_count }}{% endif %}</strong></div>
+        <div class="gl-stat-row"><span>{{ t('Repo Size') }}</span><strong>{{ gl_intel_view.stats.repo_size }}</strong></div>
+        <div class="gl-stat-row"><span>{{ t('Open Issues') }}</span><strong>{{ gl_intel_view.stats.open_issues_count }}</strong></div>
+        <div class="gl-stat-row"><span>{{ t('Last Activity') }}</span><strong>{{ local_time(gl_intel_view.stats.last_activity_dt, fallback='-') }}</strong></div>
+      {% else %}
+        {{ block_empty(t('None found')) }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% include "partials/project/_members_table.html" %}
+
+{% include "partials/project/_issues_to_address.html" %}
+
+
+{% include "partials/project/_ai_analysis.html" %}
+
+{# -- Modals -- #}
+{% set btn_data_attrs = {'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id ~ ' project:' ~ project.id} %}
+{% include "partials/_run_checks_modal.html" %}
+
+{% include "partials/project/_modals.html" %}
+
+{# -- Icon templates for JS (no inline SVGs) -- #}
+<template id="tplMrHistoryModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="mrHistoryTitle"></h2>
+      {{ close_button(class='modal-close', data_attrs={'modal-close': ''}) }}
+    </div>
+    <div class="modal-body modal-body--scrollable" id="mrHistoryBody">
+      {{ spinner() }}
+    </div>
+  </div>
+</template>
+
+{# -- Page scripts (executed after HTMX swap) -- #}
+{% set _check_codes = [] %}{% for _, code, _ in checks %}{% set _ = _check_codes.append(code) %}{% endfor %}
+{{ page_config({
+  'projectId': project.id | string,
+  'teamId': team.id | string,
+  'courseId': team.course_id | string,
+  'checkCodes': _check_codes,
+  'projectName': project.gitlab_project_name or project.gitlab_project_path or 'project',
+  'gitlabUrl': gitlab_url or '',
+  'projectPath': project.gitlab_project_path or '',
+  'analysisStarted': true if analysis_started else false,
+  'llmEnabled': feature_llm_suggestions|default(false),
+  'greenPct': green_pct|default(DEFAULT_GREEN_PCT),
+  'yellowPct': yellow_pct|default(DEFAULT_YELLOW_PCT),
+}, csp_nonce, id='gp-project-detail-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/project-detail.js') }}"></script>

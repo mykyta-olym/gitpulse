@@ -1,0 +1,65 @@
+{{- /*
+One sitemap for the whole documentation site, in both languages.
+
+Hugo's own multilingual output cannot work here. Slovak is the default language
+and `defaultContentLanguageInSubdir` is false, so Hugo wants to write the Slovak
+sitemap to /docs/sitemap.xml - exactly where the sitemap INDEX goes. The index
+won, the Slovak sitemap was never written, and the index pointed at
+/docs/sk/sitemap.xml, which Caddy 301s back to the index itself. Measured
+2026-09-08: a loop for the crawler, and all 49 Slovak pages - the default
+language, the primary content - in no sitemap at all. The 49 URLs that WERE
+listed were English only, and 20 of them answered 302.
+
+Replacing the index with a single urlset sidesteps that entirely: one file, one
+request, both languages, and this template decides what goes in it.
+
+Excluded, and why:
+  * `params.gatedSections` - a session is required, so a crawler gets a login
+    redirect. Also Disallowed in the application's robots.txt.
+  * `params.noindexSections` - generated listings, served `noindex, follow`.
+  * `noindex: true` / `redirect_to` front matter - the page asked to be left out.
+  * `_build.list: never` / headless pages - Hugo already hides them.
+
+Each entry carries xhtml:link alternates for every translation, so the two
+languages are read as one page in two languages rather than as duplicates.
+*/ -}}
+{{- /* The dot here IS the list of sites (one per language), not an object that
+       has one: `.Sites` fails to build with "can't evaluate field Sites in type
+       []*hugolib.Site". Params come from the site being ranged over. */ -}}
+{{- $gated := site.Params.gatedSections | default slice -}}
+{{- $noindex := site.Params.noindexSections | default slice -}}
+{{- $skip := "" -}}
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+{{- range $s := . -}}
+  {{- range $p := $s.Pages -}}
+    {{- $skip = false -}}
+    {{- if or (eq $p.Params.noindex true) (isset $p.Params "redirect_to") -}}
+      {{- $skip = true -}}
+    {{- end -}}
+    {{- /* Matched on the URL, not on `.Section`: `tags` and `search` are
+           top-level PAGES, whose Section is the empty string, so a Section test
+           let both of them into the sitemap while nginx served them noindex -
+           the "Submitted URL marked noindex" this change exists to remove. The
+           path segment is the same in both languages. */ -}}
+    {{- range $noindex -}}
+      {{- if in $p.RelPermalink (printf "/%s/" .) -}}{{- $skip = true -}}{{- end -}}
+    {{- end -}}
+    {{- range $gated -}}
+      {{- if in $p.RelPermalink (printf "/%s/" .) -}}{{- $skip = true -}}{{- end -}}
+    {{- end -}}
+    {{- if not $skip }}
+  <url>
+    <loc>{{ $p.Permalink }}</loc>
+    {{- with $p.Lastmod }}
+    <lastmod>{{ .Format "2006-01-02" }}</lastmod>
+    {{- end }}
+    {{- range $p.AllTranslations }}
+    <xhtml:link rel="alternate" hreflang="{{ .Language.Lang }}" href="{{ .Permalink }}"/>
+    {{- end }}
+  </url>
+    {{- end -}}
+  {{- end -}}
+{{- end }}
+</urlset>

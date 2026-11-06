@@ -1,0 +1,15 @@
+{{ define "main" }}
+
+<div class="template-search-results gl-container gl-m-auto gl-px-7">
+  <div class="content-body">
+    <div class="docs-content gl-pb-7 gl-min-h-75">
+      {{/* Pagefind only. The Elasticsearch branch loaded vite/elastic_results.js,
+           which no longer exists: search here is served by a static index, and
+           the cluster the other branch needs does not. */}}
+      <div class="js-pagefind-search-results"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="{{ relURL "" }}vite/pagefind_results.js"></script>
+{{ end }}

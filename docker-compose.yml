@@ -1,0 +1,465 @@
+x-common-env: &common-env
+  APP_ENV: ${APP_ENV:-production}
+  APP_BASE_URL: ${APP_BASE_URL:?Set APP_BASE_URL=https://your-domain}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Set ALLOWED_HOSTS as a JSON array containing your public domain}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-gitpulse}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gitpulse}
+  REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
+  SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+  TEACHER_API_TOKEN: ${TEACHER_API_TOKEN:?Set TEACHER_API_TOKEN}
+  PERSISTENT_SESSIONS: ${PERSISTENT_SESSIONS:-true}
+  SESSION_MAX_AGE_SECONDS: ${SESSION_MAX_AGE_SECONDS:-2592000}
+  SESSION_ABSOLUTE_MAX_AGE_SECONDS: ${SESSION_ABSOLUTE_MAX_AGE_SECONDS:-7776000}
+  GITLAB_URL: ${GITLAB_URL:-https://gitlab.com}
+  GITLAB_API_TOKEN: ${GITLAB_API_TOKEN:-}
+  GITLAB_TOKEN: ${GITLAB_TOKEN:-}
+  LOG_FORMAT: json
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  OTLP_ENDPOINT: ${OTLP_ENDPOINT:-}
+  PROXY_HEADERS: "true"
+  # The API port is bound to 127.0.0.1 on the host and is reached by users
+  # through Caddy. Keep "*" only while that remains true; if the API is ever
+  # exposed directly, replace it with explicit proxy IPs.
+  PROXY_TRUSTED_HOSTS: ${PROXY_TRUSTED_HOSTS:-["*"]}
+  DEBUG: ${DEBUG:-false}
+  # GitLab OAuth Configuration
+  GITLAB_OAUTH_ENABLED: ${GITLAB_OAUTH_ENABLED:-true}
+  GITLAB_OAUTH_CLIENT_ID: ${GITLAB_OAUTH_CLIENT_ID:-}
+  GITLAB_OAUTH_CLIENT_SECRET: ${GITLAB_OAUTH_CLIENT_SECRET:-}
+  GITLAB_ADMIN_USERNAMES: ${GITLAB_ADMIN_USERNAMES:-[]}
+  GITLAB_TEACHER_USERNAMES: ${GITLAB_TEACHER_USERNAMES:-[]}
+  GITLAB_TEACHER_GROUP_IDS: ${GITLAB_TEACHER_GROUP_IDS:-[]}
+  GITLAB_TEACHER_GROUP_PATHS: ${GITLAB_TEACHER_GROUP_PATHS:-[]}
+  EXCLUDED_CONTRIBUTOR_NAMES: ${EXCLUDED_CONTRIBUTOR_NAMES:-[]}
+  # Feature flags
+  FEATURE_RBAC: ${FEATURE_RBAC:-true}
+  FEATURE_MULTI_TENANT: ${FEATURE_MULTI_TENANT:-false}
+  FEATURE_EVENT_PIPELINE: ${FEATURE_EVENT_PIPELINE:-true}
+  FEATURE_SECURITY_HARDENING: ${FEATURE_SECURITY_HARDENING:-true}
+  FEATURE_SUPPORT_FORMS: ${FEATURE_SUPPORT_FORMS:-false}
+  SUPPORT_ANONYMIZE_FREE_TEXT: ${SUPPORT_ANONYMIZE_FREE_TEXT:-true}
+  COMPLIANCE_AUTO_SNAPSHOT: ${COMPLIANCE_AUTO_SNAPSHOT:-true}
+  # In-app observability: Prometheus's API on the backend network.
+  PROMETHEUS_URL: ${PROMETHEUS_URL:-}
+  MONITORING_ENABLED: ${MONITORING_ENABLED:-false}
+  GRAFANA_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+  FEATURE_CLASSROOM_ASSISTANT: ${FEATURE_CLASSROOM_ASSISTANT:-false}
+  # SEC #6: Redis-backed server-side sessions
+  FEATURE_REDIS_SESSIONS: ${FEATURE_REDIS_SESSIONS:-true}
+  SESSION_REDIS_KEY_PREFIX: ${SESSION_REDIS_KEY_PREFIX:-session:}
+  SESSION_REDIS_IDLE_REFRESH_SECONDS: ${SESSION_REDIS_IDLE_REFRESH_SECONDS:-300}
+  # Scale optimizations
+  FEATURE_GITLAB_CACHE: ${FEATURE_GITLAB_CACHE:-true}
+  FEATURE_BACKPRESSURE: ${FEATURE_BACKPRESSURE:-true}
+  # LLM Feature
+  FEATURE_LLM_SUGGESTIONS: ${FEATURE_LLM_SUGGESTIONS:-false}
+  LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+  DLQ_MAX_RETRIES: ${DLQ_MAX_RETRIES:-5}
+  GIT_SHA: ${GIT_SHA:-}
+  # Email notifications (SMTP)
+  FEATURE_EMAIL_NOTIFICATIONS: ${FEATURE_EMAIL_NOTIFICATIONS:-true}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+  SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-support@gitpulse.dev}
+  SMTP_FROM_NAME: ${SMTP_FROM_NAME:-GitPulse Support}
+
+# INFRA-04: cap container log size so a runaway service cannot fill the
+# host disk. Anchor merged into every service's `logging:` key.
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+  data:
+    driver: bridge
+    internal: true  # no internet access
+
+services:
+  # -- PostgreSQL --
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gitpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-gitpulse}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/pg-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    # Postgres is intentionally NOT published on the host in default
+    # production deployments - only services on the `data` network can
+    # reach it.  For ad-hoc debugging, run with the `debug` profile to
+    # bind it to 127.0.0.1:5433.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gitpulse}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+    networks:
+      - data
+
+  # -- Redis --
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 200mb --maxmemory-policy allkeys-lru --appendonly yes
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    # Redis is reachable only on the `backend` network.  Use the
+    # `debug` profile and `redis-debug` companion service (or
+    # `docker compose exec redis redis-cli`) for local inspection.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping'
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    # maxmemory stays under this limit, so Redis evicts (allkeys-lru) before
+    # the kernel kills it - at 512mb the limit came first and eviction never.
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - backend
+
+  # -- API server --
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      # The four uvicorn processes add up their metrics here (metrics.py);
+      # /tmp is a tmpfs, so it starts empty with the container.
+      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - reports:/app/reports
+      - ./src/app/templates:/app/src/app/templates:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+      start_interval: 1s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    read_only: true
+    tmpfs:
+      - /tmp
+    logging: *default-logging
+    networks:
+      - frontend
+      - backend
+      - data
+
+  # -- Background worker (processes high, default, low queues) --
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    restart: unless-stopped
+    # Give RQ worker enough time to finish an in-flight job on SIGTERM.
+    # Default (10 s) is too short and caused "Worker died - job
+    # interrupted." failures every deploy. Sync jobs can take 1-2 min.
+    stop_grace_period: 180s
+    environment:
+      <<: *common-env
+    # Defence-in-depth: only /tmp and the reports volume are writable.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+      - /home/app/.cache:size=64M
+    volumes:
+      - reports:/app/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # Let the API finish importing and warming before four RQ processes
+      # compete for CPU on the same host. This gates startup only.
+      api:
+        condition: service_healthy
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          memory: 768M
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  # -- Run migrations on deploy --
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      <<: *common-env
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - migrate
+    networks:
+      - data
+
+  # -- Documentation site (served by Caddy under /docs/) --
+  gitpulse-docs:
+    build:
+      context: ./docs-site
+      dockerfile: Dockerfile
+      target: production
+      args:
+        DOCS_SITE_URL: ${DOCS_SITE_URL:-https://${DOMAIN:-localhost}/docs/}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - frontend
+
+  # -- Caddy reverse proxy --
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:-${DOMAIN:-localhost}}
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Served by handle_errors when the api container is unreachable.
+      - ./deploy/errors:/srv/errors:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    # INFRA-02: validate caddy config is parseable; with restart:
+    # unless-stopped this surfaces the failure to the orchestrator
+    # rather than letting caddy hang silently.
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+    depends_on:
+      - api
+      - gitpulse-docs
+    networks:
+      - frontend
+
+  # -- Grafana (monitoring) --
+  grafana:
+    image: grafana/grafana:11.1.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Signed in by GitPulse: Caddy lets only an administrator's session
+      # through to /grafana/ and names the login (api/monitoring_authz.py).
+      # Each GitPulse admin becomes a Grafana Admin of the main org on first
+      # visit; the local `admin` and its password remain for 127.0.0.1:3000.
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: X-Grafana-User
+      GF_AUTH_PROXY_HEADER_PROPERTY: username
+      GF_AUTH_PROXY_HEADERS: "Email:X-Grafana-Email"
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Admin
+      GF_SERVER_DOMAIN: ${DOMAIN:-localhost}
+      GF_SERVER_ROOT_URL: "https://${DOMAIN:-localhost}/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_PLUGINS_ANGULAR_SUPPORT_ENABLED: "true"
+      GF_METRICS_ENABLED: "true"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_LOG_MODE: "console"
+      GF_LOG_LEVEL: "warn"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - backend
+      - frontend
+
+  # -- Postgres exporter (DB metrics for Grafana / Prometheus) --
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gitpulse}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gitpulse}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    # Joins both the data network (to reach postgres) and the backend
+    # network (so prometheus can scrape /metrics).
+    networks:
+      - backend
+      - data
+
+  # -- Prometheus (monitoring) --
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+      # Absolute, because an alert carries it: the link in an alert email
+      # pointed at the container's own hostname.
+      - --web.external-url=${APP_BASE_URL}/prometheus/
+      - --web.route-prefix=/
+    profiles:
+      - monitoring
+    networks:
+      - backend
+      - frontend
+
+  # -- Jaeger (tracing) --
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      QUERY_BASE_PATH: "/jaeger"
+      # Bound retained traces and leave headroom below the container's 512M.
+      MEMORY_MAX_TRACES: "10000"
+      GOMEMLIMIT: "384MiB"
+    ports:
+      - "127.0.0.1:16686:16686"   # Jaeger UI
+      - "127.0.0.1:4317:4317"     # OTLP gRPC
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - monitoring
+    networks:
+      - backend
+      - frontend
+
+  # -- Alertmanager (alert delivery) --
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      # A directory, so a pulled template is seen; read at start (redeploy
+      # restarts Alertmanager when it changed).
+      - ./monitoring/alertmanager-templates:/etc/alertmanager/templates:ro
+      - alertmanager_data:/alertmanager
+    # Alertmanager reads no environment, so the committed config carries
+    # placeholders that are filled here, at start. The password loses its
+    # whitespace as in config.py: Google shows an app password in groups of
+    # four, and Gmail answers the spaced form with a bare 535.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        tr -d "[:space:]" < /run/secrets/smtp_password > /tmp/smtp_password
+        && sed -e "s|@SMTP_HOST@|$$SMTP_HOST|g" -e "s|@SMTP_PORT@|$$SMTP_PORT|g"
+        -e "s|@SMTP_USERNAME@|$$SMTP_USERNAME|g" -e "s|@SMTP_FROM_EMAIL@|$$SMTP_FROM_EMAIL|g"
+        -e "s|@ALERT_EMAIL_TO@|$$ALERT_EMAIL_TO|g"
+        /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.yml
+        && exec /bin/alertmanager --config.file=/tmp/alertmanager.yml
+        --storage.path=/alertmanager --web.external-url=${APP_BASE_URL}/alertmanager/
+        --web.route-prefix=/
+    environment:
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      # The times in an alert email; the image carries the zoneinfo.
+      TZ: Europe/Bratislava
+    secrets:
+      - smtp_password
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - backend
+      - frontend  # Caddy serves its UI at /alertmanager/
+
+volumes:
+  pgdata:
+  redisdata:
+  reports:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+secrets:
+  # Mounted at /run/secrets/smtp_password, from .env.production - so the SMTP
+  # password is never in a file in the checkout.
+  smtp_password:
+    environment: SMTP_PASSWORD

@@ -1,0 +1,122 @@
+{
+  "event": "Issue Hook",
+  "payload": {
+    "user": {
+      "id": 8,
+      "name": "Asistent cvičení",
+      "email": "[REDACTED]",
+      "username": "group_3_bot_596ca9c752b0b40b0190223f3496802d",
+      "avatar_url": "https://www.gravatar.com/avatar/fb0fba3dd1e88ad36dfce89f3da99428ec945c0bac1aa039f89b207beb330093?s=80&d=identicon"
+    },
+    "labels": [],
+    "changes": {
+      "id": {
+        "current": 13,
+        "previous": null
+      },
+      "iid": {
+        "current": 3,
+        "previous": null
+      },
+      "title": {
+        "current": "Doplň súbor ulohy-1792415905/dana.mala.txt",
+        "previous": null
+      },
+      "author_id": {
+        "current": 8,
+        "previous": null
+      },
+      "created_at": {
+        "current": "2026-10-19T13:18:39.916Z",
+        "previous": null
+      },
+      "project_id": {
+        "current": 2,
+        "previous": null
+      },
+      "updated_at": {
+        "current": "2026-10-19T13:18:39.916Z",
+        "previous": null
+      },
+      "description": {
+        "current": "Tvoja úloha, krok za krokom:\n\n1. Vytvor si vlastnú vetvu z `main`. Jej názov musí zodpovedať pravidlu kurzu `^[0-9]+-`.\n2. V súbore `ulohy-1792415905/dana.mala.txt` nahraď každé `???` svojou odpoveďou.\n3. Zmenu commitni so správou, ktorá hovorí, čo sa zmenilo, a vetvu pushni.\n4. Otvor merge request do `main` a do jeho popisu napíš `Closes #N`, kde N je číslo tohto tiketu. Popis musí mať aj sekcie `## Description`, `## Testing`.\n5. Merge request skontrolujem, a keď bude v poriadku, schválim ho. Zlúčiš ho potom ty.\n\n<!-- gitpulse-assistant:c290c125-c6e9-4635-994e-d4d9c931e023 -->",
+        "previous": null
+      }
+    },
+    "project": {
+      "id": 2,
+      "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "namespace": "TIM-02",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-02/projekt"
+    },
+    "assignees": [
+      {
+        "id": 6,
+        "name": "Dana Malá",
+        "email": "[REDACTED]",
+        "username": "dana.mala",
+        "avatar_url": "https://www.gravatar.com/avatar/0340e64b463b0636b5aca3fad15e5cd860c6955cb44fece0ba06f5b0c38b1b29?s=80&d=identicon"
+      }
+    ],
+    "event_type": "issue",
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "description": null
+    },
+    "object_kind": "issue",
+    "object_attributes": {
+      "id": 13,
+      "iid": 3,
+      "url": "http://localhost:8929/zsi-e2e/tim-02/projekt/-/work_items/3",
+      "type": "Issue",
+      "state": "opened",
+      "title": "Doplň súbor ulohy-1792415905/dana.mala.txt",
+      "action": "open",
+      "labels": [],
+      "due_date": null,
+      "severity": "unknown",
+      "state_id": 1,
+      "author_id": 8,
+      "closed_at": null,
+      "created_at": "2026-10-19T13:18:39.916Z",
+      "project_id": 2,
+      "start_date": null,
+      "updated_at": "2026-10-19T13:18:39.916Z",
+      "assignee_id": 6,
+      "description": "Tvoja úloha, krok za krokom:\n\n1. Vytvor si vlastnú vetvu z `main`. Jej názov musí zodpovedať pravidlu kurzu `^[0-9]+-`.\n2. V súbore `ulohy-1792415905/dana.mala.txt` nahraď každé `???` svojou odpoveďou.\n3. Zmenu commitni so správou, ktorá hovorí, čo sa zmenilo, a vetvu pushni.\n4. Otvor merge request do `main` a do jeho popisu napíš `Closes #N`, kde N je číslo tohto tiketu. Popis musí mať aj sekcie `## Description`, `## Testing`.\n5. Merge request skontrolujem, a keď bude v poriadku, schválim ho. Zlúčiš ho potom ty.\n\n<!-- gitpulse-assistant:c290c125-c6e9-4635-994e-d4d9c931e023 -->",
+      "moved_to_id": null,
+      "time_change": 0,
+      "assignee_ids": [
+        6
+      ],
+      "confidential": false,
+      "milestone_id": null,
+      "time_estimate": 0,
+      "updated_by_id": null,
+      "last_edited_at": null,
+      "duplicated_to_id": null,
+      "total_time_spent": 0,
+      "discussion_locked": null,
+      "human_time_change": null,
+      "last_edited_by_id": null,
+      "relative_position": null,
+      "human_time_estimate": null,
+      "human_total_time_spent": null,
+      "customer_relations_contacts": []
+    }
+  }
+}

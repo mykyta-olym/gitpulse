@@ -1,0 +1,180 @@
+
+.text-nowrap { white-space: nowrap; }
+
+/* -- Check labels -- */
+.check-code { font-weight: var(--font-weight-semibold); font-size: var(--font-size-sm); min-width: 2.2rem; }
+.check-name { font-size: var(--font-size-sm); flex: 1; }
+
+/* -- Run Compliance Checks modal (rcm) -- */
+.rcm { display: flex; flex-direction: column; gap: .85rem; }
+.rcm-scope {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .55rem .75rem;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: var(--radius);
+  font-size: var(--font-size-sm);
+}
+.rcm-scope-label { color: var(--text-secondary); margin-right: .15rem; font-weight: var(--font-weight-medium); }
+.rcm-scope-kind  { color: var(--text-secondary); }
+.rcm-scope-name  { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.rcm-scope-muted { color: var(--text-secondary); margin-left: .25rem; }
+.rcm-help { margin: 0; }
+.rcm-toolbar {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}
+.rcm-toolbar-search { flex: 1 1 220px; min-width: 180px; }
+.rcm-toolbar-search .search-box,
+.rcm-toolbar-search .search-input { width: 100%; }
+.rcm-toolbar-actions { display: flex; gap: .25rem; flex-wrap: wrap; margin-left: auto; }
+.rcm-grid {
+  display: flex; flex-direction: column; gap: .25rem;
+  max-height: min(52vh, 430px);
+  overflow-y: auto;
+  margin: 0;
+  /* overflow-y:auto also clips the x axis, and .rcm-item's focus ring reaches
+     3px past its border box (2px outline + 1px offset). Anything under 3px of
+     inline padding shaves that ring off the first and last column. */
+  padding: var(--gl-spacing-2) var(--gl-spacing-2) var(--gl-spacing-3);
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+.rcm-group {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  padding-bottom: .35rem;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+.rcm-group.is-empty { display: none; }
+.rcm-group-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .35rem .15rem .25rem;
+  background: transparent;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: .35rem;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase; letter-spacing: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.rcm-group-label {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-weight: var(--font-weight-semibold);
+}
+.rcm-group-label > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.rcm-group-count { font-variant-numeric: tabular-nums; }
+.rcm-group-items {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: .35rem; padding: 0;
+}
+.rcm-item {
+  display: grid;
+  grid-template-columns: 18px minmax(2.4rem, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .65rem;
+  padding: .5rem .65rem;
+  background: var(--surface-default);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              opacity var(--transition-normal),
+              transform var(--transition-normal);
+  opacity: 1;
+  transform: translateY(0);
+}
+.rcm-item:hover {
+  background: var(--surface-moderate);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border-color));
+}
+.rcm-item:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  outline-offset: 1px;
+}
+/* Keep shared checkbox appearance; only its grid position belongs here. */
+.rcm-item input[type=checkbox] {
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+}
+.rcm-item:has(input:checked) {
+  border-color: color-mix(in srgb, var(--primary) 70%, transparent);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface-default));
+}
+.rcm-item:has(input:checked) .rcm-code,
+.rcm-item:has(input:checked) .rcm-name { color: var(--text-primary); }
+.rcm-item.is-hidden {
+  /* `display: none` makes the opacity and the transform unreachable - they
+     never animate anything, because the box is gone in the same frame. */
+  display: none;
+}
+.rcm-code {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  min-width: 2.4rem;
+  font-family: var(--font-mono);
+}
+.rcm-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rcm-stat {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  padding: .1rem .35rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.rcm-stat--good { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
+.rcm-stat--warn { background: color-mix(in srgb, var(--warning) 22%, transparent); color: var(--warning); }
+.rcm-stat--bad  { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+.rcm-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem;
+  padding-top: .65rem;
+}
+.rcm-counter { font-size: var(--font-size-sm); }
+.rcm-counter strong { font-variant-numeric: tabular-nums; color: var(--text-primary); font-size: var(--font-size-md); }
+
+/* Sticky footer keeps the Run button visible while scrolling the grid.
+   Aligns with .modal-body padding (var(--gl-spacing-3) var(--gl-spacing-5))
+   so it visually merges with the modal frame instead of leaving a gap. */
+.rcm-footer {
+  position: sticky;
+  bottom: 0;
+  margin: var(--gl-spacing-2) 0 0;
+  padding: var(--gl-spacing-3) 0 0;
+  background: var(--gl-background-color-overlap);
+  border-top: 1px solid var(--border-color);
+  box-shadow: none;
+  z-index: 1;
+}
+
+@media (max-width: 640px) {
+  .rcm { gap: .55rem; }
+  .rcm-scope { padding: .45rem .55rem; font-size: var(--font-size-xs); }
+  .rcm-help { display: none; }
+  .rcm-toolbar { flex-direction: column; align-items: stretch; gap: .4rem; }
+  .rcm-toolbar-search { flex: 1 1 auto; min-width: 0; }
+  .rcm-toolbar-actions { justify-content: flex-start; }
+  .rcm-toolbar-actions .btn { flex: 1 1 auto; min-width: 0; }
+  /* Keep >=3px inline padding: the focus ring is clipped otherwise. */
+  .rcm-grid { max-height: 42vh; }
+  .rcm-group-items { grid-template-columns: 1fr; }
+  .rcm-item { grid-template-columns: 22px minmax(2rem, auto) minmax(0, 1fr) auto; gap: .75rem; padding: .55rem .65rem; min-height: 40px; }
+  .rcm-item input[type=checkbox] { width: 20px; height: 20px; min-width: 20px; min-height: 20px; }
+  .rcm-code { min-width: 2rem; font-size: var(--font-size-xs); }
+  .rcm-footer { flex-direction: column; align-items: stretch; gap: .4rem; }
+  .rcm-footer .btn { width: 100%; }
+}

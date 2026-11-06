@@ -1,0 +1,26 @@
+{% from "components/alerts.html" import alert %}
+
+{% macro settings_callout(title, variant='info', icon_name='info', class='') %}
+{%- set body = caller() -%}
+{{ alert(body, variant=variant, title=title, icon_name=icon_name, class=class, role='note') }}
+{% endmacro %}
+
+{% macro semester_status_display(status) %}
+{% if status %}
+<div class="form-group">
+  <span class="form-label" aria-hidden="true">{{ t('Current Status') }}</span>
+  <div class="semester-status-display" data-semester-state="{{ status.state }}">
+    <span class="badge {{ status.badge_class }}">
+      {{ t(status.badge_label) }}{% if status.badge_value %} {{ status.badge_value }}{% endif %}
+    </span>
+    <span class="muted">{{ t(status.start_label) }} {{ status.start_display }}</span>
+    {% if status.end_display %}
+    <span class="muted">{{ t(status.end_label) }} {{ status.end_display }}</span>
+    {% endif %}
+    {% if status.archive_display %}
+    <span class="muted">{{ t(status.archive_label) }} {{ status.archive_display }}</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}

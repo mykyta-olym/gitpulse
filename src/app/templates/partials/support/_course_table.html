@@ -1,0 +1,107 @@
+{#
+  The reader's courses as ONE table. Support's first step (the course a request
+  is about) and Support Tickets' overview (the course whose tickets to read) are
+  the same list, so they are the same component: each course with its term,
+  whether it still runs and its tickets, filtered by the period selector every
+  list of courses has and by status. Active courses first, archived after them -
+  an open ticket on last summer's course is still open, so nothing is hidden
+  behind a disclosure. Every column sorts; search narrows by code, name or term.
+
+  mine=true (Support): the counts are the READER's own requests, and the row's
+  action starts a new one. Otherwise (Support Tickets) they are every ticket of
+  the course, and the action opens them.
+
+  Usage:
+    {% from "partials/support/_course_table.html" import support_course_table with context %}
+    {{ support_course_table('ticketCoursesTable', courses, stats, period_scope,
+                            '/dashboard/support/tickets') }}
+#}
+{% from "components/cards.html" import card %}
+{% from "components/tables.html" import table_controls, data_table, sortable_header, table_empty, pagination_controls %}
+{% from "components/forms.html" import search_input, select_field with context %}
+{% from "components/alerts.html" import status_indicator %}
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn_link_icon_only %}
+{% from "components/time.html" import localized_time %}
+{% from "components/academic_period.html" import period_badge, period_label, period_selector with context %}
+
+{% macro support_course_table(table_id, courses, stats, period_scope, href_base, mine=false) %}
+{%- set _rows = (courses | selectattr('is_active') | list) + (courses | rejectattr('is_active') | list) %}
+{% set _search %}{{ search_input(id=table_id ~ 'Search', placeholder=t('Search courses...'), data_attrs={'filter': table_id, 'filter-dropdowns': 'status:#' ~ table_id ~ 'Status@data-status'}) }}{% endset %}
+{% set _filters %}
+<div class="d-flex gap-2 items-center flex-wrap">
+  {{ select_field(table_id ~ 'Status', options=[('', t('All Statuses')), ('active', t('Active')), ('archived', t('Archived'))], value=request.query_params.get('status', ''), placeholder='', class='gl-form-dropdown-sm') }}
+  {{ period_selector(period_scope) }}
+</div>
+{% endset %}
+<div data-paginator="{{ table_id }}" data-controls="#paginationControls" data-page-size="50">
+{% call card(title=t('Courses'), icon_name='book', data_attrs={'data-tour': 'support-course-picker'}) %}
+  {{ table_controls(search=_search, filters=_filters) }}
+  {% call data_table(headers=[], sortable=true, class='ticket-courses-table table-scrollable table-sticky-actions', id=table_id) %}
+    <colgroup>
+      <col class="col-tc-course">
+      <col class="col-tc-period">
+      <col class="col-tc-status">
+      <col class="col-tc-open">
+      <col class="col-tc-total">
+      <col class="col-tc-last">
+      <col class="col-tc-actions">
+    </colgroup>
+    <thead>
+      <tr>
+        {{ sortable_header(t('Course'), 'course') }}
+        {{ sortable_header(t('Period'), 'period', tooltip=t('The academic term the course belongs to. Highlighted when it is the one running.')) }}
+        {{ sortable_header(t('Status'), 'status') }}
+        {{ sortable_header(t('Open'), 'open', sort_type='number', tooltip=(t('Your requests still waiting for an answer: open or in progress.') if mine else t('Tickets still waiting for an answer: open or in progress.'))) }}
+        {{ sortable_header(t('Total'), 'total', sort_type='number', tooltip=(t('Your requests for this course, answered or not.') if mine else '')) }}
+        {{ sortable_header(t('Last request') if mine else t('Last ticket'), 'last', sort_type='date') }}
+        <th class="text-right">{{ t('Actions') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for course in _rows %}
+      {%- set _s = (stats or {}).get(course.id | string, {}) %}
+      {%- set _href = href_base ~ '?course_id=' ~ course.id %}
+      <tr data-status="{{ 'active' if course.is_active else 'archived' }}" data-search="{{ course.code | lower }} {{ course.name | lower }} {{ course.academic_year }} {{ t('Winter') | lower if course.semester == 'winter' else t('Summer') | lower }}">
+        <td data-label="{{ t('Course') }}" data-sort-value="{{ course.code }}">
+          <a href="{{ _href }}" class="ticket-course-link">{{ course.code }}</a>
+          <div class="ticket-course-name muted font-sm text-truncate">{{ course.name }}</div>
+        </td>
+        <td data-label="{{ t('Period') }}" data-sort-value="{{ course.academic_year }}-{{ '0' if course.semester == 'winter' else '1' }}">
+          {{ period_badge(course.academic_year, course.semester, current=is_current_period(course.academic_year, course.semester)) }}
+        </td>
+        <td data-label="{{ t('Status') }}" data-sort-value="{{ '0' if course.is_active else '1' }}">
+          {% if course.is_active %}{{ status_indicator('success', t('Active')) }}{% else %}{{ status_indicator('muted', t('Archived')) }}{% endif %}
+        </td>
+        <td data-label="{{ t('Open') }}" data-sort-value="{{ _s.open | default(0) }}">
+          {% if _s.open %}{{ badge(_s.open | string, variant='warning', size='sm') }}{% else %}<span class="muted">0</span>{% endif %}
+        </td>
+        <td data-label="{{ t('Total') }}" data-sort-value="{{ _s.total | default(0) }}">{{ _s.total | default(0) }}</td>
+        <td data-label="{{ t('Last request') if mine else t('Last ticket') }}" data-sort-value="{{ _s.last.isoformat() if _s.last else '' }}">
+          {% if _s.last %}{{ localized_time(_s.last, date_only=true) }}{% else %}<span class="muted">-</span>{% endif %}
+        </td>
+        <td class="text-right">
+          {#- An icon with its tooltip, as every row action in the app: a
+              labelled button made the column too wide to stay pinned on a
+              phone (table-scroll.js lets it go), and it scrolled out of reach. -#}
+          {% if mine %}
+          {{ btn_link_icon_only('plus', _href, t('Write a support request for this course'), size='sm') }}
+          {% else %}
+          {{ btn_link_icon_only('eye', _href, t('Open the tickets of this course'), size='sm') }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not _rows %}
+      {% if period_scope and period_scope.selected %}
+      {{ table_empty(t('No courses in {period}.', period=period_label(period_scope.selected.academic_year, period_scope.selected.semester)), colspan=7) }}
+      {% else %}
+      {{ table_empty(t('No courses found.'), colspan=7) }}
+      {% endif %}
+      {% endif %}
+    </tbody>
+  {% endcall %}
+  {{ pagination_controls(total=_rows | length, page_size=default_page_size | default('50')) }}
+{% endcall %}
+</div>
+{% endmacro %}

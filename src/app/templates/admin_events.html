@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}{{ t('Event Pipeline') }}{% endblock %}
+
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import card, stat_card %}
+{% from "components/layout.html" import page_header, tabs, page_config with context %}
+{% from "components/forms.html" import select_field with context %}
+{% from "components/tables.html" import table_controls, data_table, sortable_header, pagination_controls %}
+{% from "components/modals.html" import modal %}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/dropdown.html" import dropdown_item, dropdown_divider %}
+{% from "components/bulk_actions.html" import bulk_action %}
+{% from "components/layout.html" import json_island with context %}
+{% from "components/loaders.html" import sk_table_loading %}
+{% from "components/academic_period.html" import period_label with context %}
+
+{% set nav_active = 'events' %}
+
+{% block extra_head %}{% endblock %}
+
+{% block content %}
+{% call page_header(t('Event Pipeline'), t('Everything GitLab sends this course platform - what arrived, what was processed, and what needs attention.')) %}
+  {# Clearing the pipeline is an ADMIN action, the same way Job History's is:
+     a teacher reads this page, an admin maintains it. Job History has had this
+     since it was built and the Event Pipeline collects the same kind of rows,
+     so the table here only ever grew. #}
+  {% if is_admin %}
+  <div class="gl-dropdown" data-dropdown>
+    {{ btn_icon(t('Purge Old'), 'trash', variant='secondary', id='btnPurgeEvents',
+         data_attrs={'dropdown-toggle': '', 'tippy-content': t('Clear handled events by age. Pending events are never removed.')}) }}
+    <div class="gl-dropdown-menu gl-dropdown-right" data-dropdown-menu>
+      {{ dropdown_item(t('Older than 24 hours'), data_attrs={'purge-events-hours': '24'}) }}
+      {{ dropdown_item(t('Older than 7 days'), data_attrs={'purge-events-hours': '168'}) }}
+      {{ dropdown_item(t('Older than 30 days'), data_attrs={'purge-events-hours': '720'}) }}
+      {{ dropdown_divider() }}
+      {{ dropdown_item(t('Everything handled'), danger=true, data_attrs={'purge-events-hours': '87600'}) }}
+    </div>
+  </div>
+  {% endif %}
+  {{ btn_icon(t('Refresh'), 'refresh-cw', variant='secondary', id='btnRefreshDLQ') }}
+{% endcall %}
+
+{# Live pipeline health - one strip. The normal flow first (processed / pending
+   / failed), the dead-letter queue second. #}
+<div id="eventPipelineRegion">
+<div class="stats-grid stats-grid-5">
+  {{ stat_card(t('Processed'), '-', icon_name='check-circle', state='success', value_id='recentProcessed',
+      tooltip=t('Events handled successfully out of the most recent ones. This is the pipeline working normally.')) }}
+  {{ stat_card(t('Pending'), '-', icon_name='clock', state='info', value_id='recentPending',
+      tooltip=t('Received but not processed yet. A small number here is normal; a growing one means the workers are behind.')) }}
+  {{ stat_card(t('Failed'), '-', icon_name='x-circle', state='danger', value_id='recentFailed',
+      tooltip=t('Events that could not be processed. Their reason is shown in the table below.')) }}
+  {{ stat_card(t('DLQ Events'), '-', icon_name='alert-triangle', state='danger', value_id='dlqCount',
+      tooltip=t('Events that failed every retry and are now parked. They are not lost - resurrect one to put it back in the queue.')) }}
+  {{ stat_card(t('Oldest Event'), '-', icon_name='clock', state='warning', value_id='dlqOldest',
+      tooltip=t('How long the oldest parked event has been waiting. The longer it sits, the more likely the data behind it is stale.')) }}
+  {{ stat_card(t('Avg Retries'), '-', icon_name='repeat', state='info', value_id='dlqAvgRetries',
+      tooltip=t('Average number of attempts made before these events were parked.')) }}
+</div>
+
+{# One card, one table: the live feed and the failures are the same stream at
+   different stages, and Status = Failed is what the second tab used to be. #}
+{% set events_title %}{{ t('Events') }}{% endset %}
+{# The bulk actions belong in the card HEADER, on the right, which is where Job
+   History puts the identical trio and where a reader looking at a table looks
+   for what acts on it. They used to sit in the body under the paragraph, so the
+   same control was in a different place on every page. #}
+{% set events_actions %}
+{% if is_admin %}
+<div class="d-flex gap-2 items-center">
+  {# Replay acts on the rows you ticked. It used to be a modal asking for a
+     start and an end date, which named the events only indirectly and swept in
+     everything else in that window. #}
+  {{ bulk_action(t('Replay selected'), 'play', 'btnReplaySelected',
+       count_id='recentSelectedCount',
+       tooltip=t('Re-process the ticked events')) }}
+  {# Resurrect used to be the dead-letter tab's own bulk action. That tab showed
+     the SAME rows as this table filtered to Status = Failed, so it is a filter
+     here and the action moved with it. It applies to the ticked events that
+     actually failed; the server ignores the rest. #}
+  {{ bulk_action(t('Resurrect selected'), 'refresh', 'btnBatchResurrect',
+       tooltip=t('Put the ticked failed events back in the queue')) }}
+  {# "Clear the old ones" is the Purge menu in the page header; this is "clear
+     THESE", the question a reader looking at rows actually has. A pending event
+     is skipped even when ticked - the server decides that, and the toast
+     reports what actually went. #}
+  {{ bulk_action(t('Delete selected'), 'trash', 'btnDeleteSelectedRecent',
+       variant='danger',
+       tooltip=t('Delete the ticked events. Pending ones are kept.')) }}
+</div>
+{% endif %}
+{% endset %}
+{# The count rides with the actions: what the table is showing, beside what
+   you can do to it. #}
+{# No subtitle, and no paragraph in the body either. The page header two blocks
+   up already says what this page is ("Everything GitLab sends this course
+   platform - what arrived, what was processed, and what needs attention"), and
+   the body carried a second sentence saying nearly the same thing. As a
+   paragraph it also pushed the filter band into second place inside the body,
+   where it read as a strip belonging to the text rather than to the table.
+   The Users card - the one every table here is measured against - has a title,
+   a count and its actions, and nothing else. #}
+{% call card(title=events_title, icon_name='activity', header_actions=events_actions) %}
+  {# There were two tabs here, and the second was this table with one filter
+     applied: the dead-letter queue is exactly `Status = Failed`, which the
+     filter below already offers. Two tables meant two paginators, two
+     selections and two copies of every bulk action - and the reason and error a
+     failed row carries are already in its Status cell and its Details. #}
+  {# The two bare wrappers that used to hold this block are gone. They were
+     nothing - no class, no attributes - but they made the filter band a
+     grandchild of the card body, so `.card-body > .table-controls:first-child`
+     could not see it and the band kept a top padding no other page's has. #}
+  {# Filters apply on change (no separate Refresh - the page-header Refresh
+     reloads everything). #}
+  {# No labels above these: the first option names the field ("All types",
+     "Any status"), and a stacked label made this band 98px where every
+     other table's is about 55. #}
+  {%- set events_filters %}
+  <div class="d-flex items-center gap-3 flex-wrap">
+    {{ select_field('recent_type', options=[
+         ('', t('All types')),
+         ('merge_request', 'merge_request'), ('issue', 'issue'),
+         ('note', 'note'), ('pipeline', 'pipeline'),
+         ('push', 'push'), ('tag_push', 'tag_push')
+       ], value='', id='recentTypeFilter', placeholder='') }}
+    {{ select_field('recent_status', options=[
+         ('', t('Any status')),
+         ('processed', t('Processed')), ('pending', t('Pending')), ('failed', t('Failed'))
+       ], value='', id='recentStatusFilter', placeholder='') }}
+  </div>
+  {% endset %}
+  {{ table_controls(filters=events_filters) }}
+  {# 65px per row, measured: Where and Received wrap to two lines, so the
+     macro's 57px single-line default under-reserved by 8px a row and the
+     card still grew when the rows landed. #}
+  {% call data_table(headers=[], id='recentEventsTable', class='events-table table-scrollable table-sticky-actions', reserve_rows=(recent_events_json.events | length) if recent_events_json and recent_events_json.events else 0, reserve_row_px=65) %}
+      <colgroup>
+        <col class="col-dlq-select">
+        <col class="col-dlq-type">
+        <col class="col-dlq-error">
+        <col class="col-dlq-reason">
+        <col class="col-dlq-project">
+        <col class="col-dlq-reason">
+        <col class="col-dlq-retries">
+        <col class="col-dlq-time">
+        <col class="col-dlq-actions">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>{% if is_admin %}<input type="checkbox" class="form-check-input" id="recentSelectAll" aria-label="{{ t('Select all') }}" data-tippy-content="{{ t('Select all') }}">{% endif %}</th>
+          {{ sortable_header(t('Type'), 'event_type') }}
+          <th data-tippy-content="{{ t('What actually happened - the action, reference and title GitLab reported.') }}">{{ t('What happened') }}</th>
+          <th data-tippy-content="{{ t('Which course, group and GitLab project the event belongs to.') }}">{{ t('Where') }}</th>
+          <th data-tippy-content="{{ t('The GitLab user whose action produced this event.') }}">{{ t('Who') }}</th>
+          <th data-tippy-content="{{ t('Whether this event has been handled yet.') }}">{{ t('Status') }}</th>
+          <th class="text-center" data-tippy-content="{{ t('How many times processing was attempted. Above zero means it failed at least once.') }}">{{ t('Retries') }}</th>
+          {{ sortable_header(t('Received'), 'received_at', sort_type='date', default_sort='desc') }}
+          <th class="text-right">{{ t('Actions') }}</th>
+        </tr>
+      </thead>
+      {# Rows are painted from the inlined first window (#gp-recent-events)
+         on load. #}
+      <tbody id="recentEventsTableBody">
+  {# A table that is filled by JavaScript starts as a header over a void.
+     `sk_table_loading` is the ONE loading state for a table body - the same
+     box the empty state uses - so the reader sees "loading" rather than a
+     blank, and the rows land in a container that was already their size. #}
+        {# The loading row is for a first page the script has to FETCH. When the
+           page is inlined below, the rows are already here and paint before the
+           first frame; a spinner then would be waiting for nothing. #}
+        {% if not recent_events_json %}
+        {{ sk_table_loading(cols=9, label=t('Loading events...')) }}
+        {% endif %}
+      </tbody>
+  {% endcall %}
+  {{ pagination_controls(id='recentPagination') }}
+{% endcall %}
+</div>
+
+{% endblock %}
+
+{% block modals %}
+{# Event Detail Modal #}
+{% call modal('eventDetailModal', t('Event Details'), class='event-detail-modal-dialog', size='lg') %}
+    <div id="eventDetailError"></div>
+    <div class="event-detail-section mb-4">
+      <div class="gl-kv-list" id="eventDetailFacts"></div>
+    </div>
+    <div class="event-detail-payload-section">
+      <div class="d-flex items-center justify-between mb-2">
+        <span class="event-payload-heading text-sm font-semibold">{{ t('What GitLab delivered') }}</span>
+        <button type="button" class="btn btn-secondary btn-sm d-none" id="eventDetailCopyBtn">
+          {{ icon('copy', size='xs') }}
+          <span>{{ t('Copy JSON') }}</span>
+        </button>
+      </div>
+      <div id="eventDetailPayloadContainer" class="event-payload-wrapper">
+        <pre class="event-code-viewer" id="eventDetailJson"></pre>
+      </div>
+    </div>
+    <div class="modal-footer">
+      {{ btn(t('Close'), variant='secondary', data_attrs={'modal-close': 'eventDetailModal'}) }}
+    </div>
+{% endcall %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+{#- The webhook state, as the toast this page raises when it opens. Raised
+    `once` (admin-events.js): still on screen - carried over from the page
+    before, or the page opened again while it shows - it is not raised a
+    second time, which is what made it flicker. Silent courses are ACTIVE ones
+    (an archived course receives nothing by design) and are named with their
+    term - "ZSI" is every year's ZSI. -#}
+{% set startup_warning = none %}
+{% if not webhooks_configured %}
+  {% set startup_warning = {
+    'message': t('No webhooks configured') ~ '. ' ~ t('Events reach this page only through GitLab webhooks. Set one up in a course: Settings, Webhooks.'),
+    'durationMs': 15000
+  } %}
+{% elif silent_courses %}
+  {% set _silent %}{% for c in silent_courses %}{{ c.code }} ({{ period_label(c.academic_year, c.semester) }}){% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+  {% set startup_warning = {
+    'message': t('These courses have a webhook but received no event from GitLab in 48 hours. Check the webhook in GitLab, or its secret:') ~ ' ' ~ (_silent | trim),
+    'durationMs': 12000
+  } %}
+{% endif %}
+{{ page_config({
+  'isAdmin': is_admin|default(false),
+  'isTeacher': is_teacher|default(false),
+  'canReplay': is_admin|default(false),
+  'canResurrect': is_admin|default(false),
+  'startupWarning': startup_warning
+}, csp_nonce) }}
+{# Reuse the payloads already loaded for this response; first paint needs no API read. #}
+{{ json_island(recent_events_json, csp_nonce, id='gp-recent-events') }}
+{{ json_island(dlq_json, csp_nonce, id='gp-dlq') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/admin-events.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,203 @@
+@media (max-width: 360px) {
+  /* No `.main-container` padding here. The page gutter is declared ONCE, in
+     00-mobile.css, and this was the same 8px written a second time at a
+     narrower breakpoint - a copy that could only ever drift. */
+  .card-body {
+    --card-body-pad-y: var(--gl-spacing-3);
+    --card-body-pad-x: var(--gl-spacing-3);
+  }
+  .card-header {
+    padding: 6px var(--gl-spacing-2);
+    min-height: 34px;
+  }
+  h1 { font-size: var(--font-size-xl); }
+  h2 { font-size: var(--font-size-lg); }
+  .page-header h1 { font-size: var(--font-size-xl); }
+
+  /* The header buttons are NOT squares here either. This block squashed every
+     one of them to 32px "inherited from <=480px" - and that <=480 rule is gone,
+     so on the narrowest phones it was the last place a labelled action still
+     rendered as an anonymous glyph. The glyph inside stays 16px like every
+     other button icon. */
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .gl-intelligence-grid,
+  .gl-intelligence-grid--compact {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn {
+    padding: var(--gl-spacing-2) var(--gl-spacing-3);
+    font-size: var(--font-size-xs);
+  }
+
+  .gl-top-bar {
+    padding: 0 var(--gl-spacing-4);
+  }
+  /* Below 360px drop the academic year so the live clock still fits */
+  .gl-top-bar-context .gl-context-item:first-child,
+  .gl-top-bar-context .gl-context-separator {
+    display: none;
+  }
+  .search-box input:focus {
+    min-width: 0;
+  }
+}
+
+/* -- Pull-to-Refresh (GitLab Pajamas style, GPU-composited) -- */
+.ptr {
+  position: fixed;
+  left: 50%;
+  top: 0;
+  z-index: 10000;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gl-background-color-overlap);
+  border: 1px solid var(--gl-border-color-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -48px);
+  will-change: transform, opacity;
+  contain: layout style;
+}
+.ptr-svg {
+  width: 20px;
+  height: 20px;
+}
+.ptr-track {
+  fill: none;
+  stroke: var(--gl-border-color-default);
+  stroke-width: 2.5;
+}
+.ptr-arc {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform-origin: center;
+  will-change: stroke-dashoffset, transform;
+}
+.ptr--load .ptr-svg { animation: spin var(--gl-anim-spin) linear infinite; }
+
+/* -- Touch device optimizations -- */
+@media (hover: none) and (pointer: coarse) {
+  /* Suppress native pull-to-refresh everywhere (login, dashboard, etc.).
+     The property must live on the root <html> element to reach the
+     viewport: per spec overscroll-behavior does NOT propagate up from
+     <body>, so a body-only rule left Chrome's native white pull-to-
+     refresh spinner firing on mobile / installed PWA. */
+  html,
+  body {
+    overscroll-behavior-y: contain;
+  }
+  /* Comfortable tap targets, but not bulky: 40px keeps fields tappable while
+     looking far tighter than the old 44px wall of inputs on phones. */
+  .btn {
+    min-height: 40px;
+  }
+  .form-input,
+  .form-select,
+  select {
+    min-height: 40px;
+  }
+.nav-tab,
+.tab-btn {
+    min-height: 44px;
+    padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  }
+  .gl-list-item {
+    min-height: 48px;
+    padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  }
+  .gl-list-item-actions {
+    opacity: 1;
+  }
+  /* Prevent hover effects sticking on touch */
+  .gl-home-stat:hover {
+    transform: none;
+  }
+  .gl-attention-item:hover {
+    transform: none;
+  }
+  .gl-activity-item:hover {
+    transform: none;
+    background: transparent;
+  }
+  /* Icon-only buttons & close buttons - 44px touch targets */
+  .gl-top-bar-action {
+    width: 44px;
+    height: 44px;
+  }
+  .btn-icon-only {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .btn-icon-only.btn-sm {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* Checkbox/radio larger tap area */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 20px;
+    height: 20px;
+  }
+  /* Ensure rcm-item checkboxes don't overlap text at 20px size */
+  .rcm-item input[type="checkbox"] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+    .check-filter-btn {
+    min-height: 36px;
+  }
+
+  .btn-sm { min-height: 32px; }
+  .gl-health-item--link,
+  button.btn-ghost,
+  summary {
+    min-height: 32px;
+  }
+  /* The look stays; the room round it is the target. A checkbox, and a link
+     that is one short line - a breadcrumb, "Back to Course", "#1", the
+     "Open in GitLab" glyph - get a positioned pseudo-element 8px wider on every
+     side: it takes no layout space, and a tap on it is a tap on the control. */
+  .form-check-input::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+  .gl-content-breadcrumb a,
+  .page-header-back,
+  .gl-home-panel-link,
+  .profile-gitlab-link,
+  .profile-email-link,
+  a.badge,
+  .gl-ref,
+  .mr-iid {
+    position: relative;
+  }
+  .gl-content-breadcrumb a::after,
+  .page-header-back::after,
+  .gl-home-panel-link::after,
+  .profile-gitlab-link::after,
+  .profile-email-link::after,
+  a.badge::after,
+  .gl-ref::after,
+  .mr-iid::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+
+  /* Sticky cells overrides removed as table columns are no longer sticky */
+}
+
+/* -- Landscape mobile -- */

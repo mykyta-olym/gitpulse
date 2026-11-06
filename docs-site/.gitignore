@@ -1,0 +1,51 @@
+# Hugo-generated files
+.hugo_build.lock
+public/
+resources/
+
+# Vite-generated files
+themes/gitlab-docs/static/vite/
+themes/gitlab-docs/static/gitlab_ui/
+themes/gitlab-docs/static/icons.svg
+
+# External data, copied in with Vite
+data/icons.json
+
+# Go-generated files
+data/*/page-metadata.json
+data/feature_flags.yaml
+data/deprecations.yaml
+static/_redirects
+content/mermaid-tests.md
+
+# Jest cache
+tmp/
+
+# Yarn-generated files
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+node_modules
+
+# rumdl cache
+.rumdl_cache
+
+# macOS-generated file
+.DS_Store
+
+# Logs
+navigation-check-debug.log
+
+# Ignore Jest & Go coverage reports
+coverage/
+coverage.*
+
+# Firebase logs
+pglite-debug.log
+
+# Ignore llms-generator output file
+llms-generator

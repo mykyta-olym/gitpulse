@@ -1,0 +1,30 @@
+{{/*
+  Server-renders the breadcrumb trail for the current page.
+
+  Renders the trail from `functions/breadcrumbs` so crawlers and no-JS clients
+  see real breadcrumb links in the HTML. The Vue `BreadcrumbNav` component
+  replaces this markup on hydration. The matching BreadcrumbList structured data
+  is emitted in the document head by `breadcrumb-schema.html`.
+
+  @param Page
+    The page object (passed as the dot context).
+*/}}
+
+{{- $crumbs := partialCached "functions/breadcrumbs" . .RelPermalink -}}
+{{- $count := len $crumbs -}}
+
+<nav aria-label="{{ T "breadcrumbs.ariaLabel" }}" class="gl-breadcrumbs gl-overflow-hidden gl-py-3">
+  <ol class="breadcrumb gl-breadcrumb-list gl-flex gl-flex-wrap gl-items-center gl-list-none gl-m-0 gl-p-0">
+    {{- range $i, $crumb := $crumbs -}}
+      {{- $isLast := eq (add $i 1) $count -}}
+      <li class="breadcrumb-item gl-breadcrumb-item">
+        {{- if $isLast -}}
+          <a href="{{ $crumb.href }}" aria-current="page" title="{{ $crumb.full }}">{{ $crumb.text }}</a>
+        {{- else -}}
+          <a href="{{ $crumb.href }}" title="{{ $crumb.full }}">{{ $crumb.text }}</a>
+          <span class="gl-breadcrumb-separator" aria-hidden="true">/</span>
+        {{- end -}}
+      </li>
+    {{- end -}}
+  </ol>
+</nav>

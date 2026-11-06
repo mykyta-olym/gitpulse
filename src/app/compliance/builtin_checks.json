@@ -1,0 +1,264 @@
+{
+  "$schema": "gitpulse/builtin-checks/v1",
+  "description": "Built-in compliance check definitions for GitPulse. Edit this file to add, remove, or reconfigure built-in checks without changing Python code.",
+  "checks": [
+    {
+      "code": "R01",
+      "db_field": "r01_issue_assigned",
+      "weight_field": "weight_issue_ownership",
+      "name": "Issue Assigned",
+      "description": "Did the student grab at least one issue to own? Everyone on the team should pick something they're personally responsible for.",
+      "category": "issue",
+      "params": [
+        {
+          "key": "min_issues",
+          "type": "number",
+          "default": "1",
+          "label": "Minimum issues assigned"
+        }
+      ]
+    },
+    {
+      "code": "R02",
+      "db_field": "r02_branch_naming",
+      "weight_field": "weight_branch_naming",
+      "name": "Branch + MR Created",
+      "description": "Did the student open an MR from their own feature branch? Work shouldn't be pushed straight to main.",
+      "category": "mr",
+      "params": [
+        {
+          "key": "require_branch_convention",
+          "type": "boolean",
+          "default": "false",
+          "label": "Require branch naming convention"
+        },
+        {
+          "key": "branch_pattern",
+          "type": "string",
+          "default": "",
+          "label": "Branch naming regex",
+          "placeholder": "^(feature|fix|issue)-\\d+",
+          "depends_on": "require_branch_convention",
+          "help": "Only enforced while the option above is on. Empty accepts any branch."
+        }
+      ]
+    },
+    {
+      "code": "R03",
+      "db_field": "r03_test_changes",
+      "weight_field": "weight_test_changes",
+      "name": "Tests Written",
+      "description": "Does at least one of their MRs touch a test file? Code without tests isn't really finished.",
+      "category": "mr",
+      "params": [
+        {
+          "key": "min_test_files",
+          "type": "number",
+          "default": "1",
+          "label": "Minimum test files changed"
+        },
+        {
+          "key": "test_file_patterns",
+          "type": "list",
+          "default": "",
+          "label": "Test file patterns",
+          "placeholder": "*test*.py, *_test.py",
+          "help": "Comma-separated globs. Always enforced: an MR passes only when it touches a matching file."
+        }
+      ]
+    },
+    {
+      "code": "R04",
+      "db_field": "r04_mr_issue_link",
+      "weight_field": "weight_mr_issue_link",
+      "name": "MR Linked to Issue",
+      "description": "Is the MR tied to the issue it solves? Either via the branch name (issue-NNN) or a 'Closes #NNN' in the description.",
+      "category": "mr",
+      "params": [
+        {
+          "key": "require_issue_ref",
+          "type": "boolean",
+          "default": "true",
+          "label": "Require issue reference in branch or description"
+        }
+      ]
+    },
+    {
+      "code": "R05",
+      "db_field": "r05_mr_template",
+      "weight_field": "weight_mr_template",
+      "name": "MR Description",
+      "description": "Did they actually write what this MR does? A real description, not a one-liner like 'fix' or 'changes'.",
+      "category": "mr",
+      "params": [
+        {
+          "key": "min_description_words",
+          "type": "number",
+          "default": "10",
+          "label": "Minimum words in MR description"
+        },
+        {
+          "key": "require_template",
+          "type": "boolean",
+          "default": "false",
+          "label": "Require template sections (What/Why/How)"
+        },
+        {
+          "key": "required_sections",
+          "type": "list",
+          "default": "",
+          "label": "Required template sections",
+          "placeholder": "## Description, ## Testing",
+          "depends_on": "require_template",
+          "help": "Comma-separated headings. Only enforced while the option above is on."
+        }
+      ]
+    },
+    {
+      "code": "R06",
+      "db_field": "r06_reviews_received",
+      "weight_field": "weight_review_count",
+      "name": "Code Review Received",
+      "description": "Did teammates actually review their MR before it was merged? You need fresh eyes on the code, not a solo merge.",
+      "category": "review",
+      "params": [
+        {
+          "key": "min_reviewers",
+          "type": "number",
+          "default": "2",
+          "label": "Distinct reviewers on own MR"
+        }
+      ]
+    },
+    {
+      "code": "R07",
+      "db_field": "r07_review_duty",
+      "weight_field": "weight_review_duty",
+      "name": "Code Review Given",
+      "description": "Did they review their teammates' MRs back? Code review is a two-way street - read and comment, not just request.",
+      "category": "review",
+      "params": [
+        {
+          "key": "min_mrs_reviewed",
+          "type": "number",
+          "default": "2",
+          "label": "Peer MRs meaningfully reviewed"
+        },
+        {
+          "key": "min_word_count",
+          "type": "number",
+          "default": "30",
+          "label": "Minimum words for meaningful review"
+        }
+      ]
+    },
+    {
+      "code": "R08",
+      "db_field": "r08_response_quality",
+      "weight_field": "weight_response_complete",
+      "name": "Review Response",
+      "description": "When teammates left review comments, did they reply or fix them? Ignoring feedback breaks the review loop.",
+      "category": "review",
+      "params": [
+        {
+          "key": "require_commit_ref",
+          "type": "boolean",
+          "default": "false",
+          "label": "Require commit reference in response"
+        },
+        {
+          "key": "pass_if_no_threads",
+          "type": "boolean",
+          "default": "true",
+          "label": "Pass when no review threads exist"
+        }
+      ]
+    },
+    {
+      "code": "R09",
+      "db_field": "r09_approvals",
+      "weight_field": "weight_approvals",
+      "name": "MR Approved",
+      "description": "Did the MR get at least one explicit approval before it was merged? (A merge itself counts as an implicit thumbs-up.)",
+      "category": "review",
+      "params": [
+        {
+          "key": "min_approvals",
+          "type": "number",
+          "default": "1",
+          "label": "Distinct approvers on own MR"
+        },
+        {
+          "key": "count_merged_as_approval",
+          "type": "boolean",
+          "default": "true",
+          "label": "Count merged MR as one implicit approval"
+        }
+      ]
+    },
+    {
+      "code": "R10",
+      "db_field": "r10_merged_by_author",
+      "weight_field": "weight_merge_by_author",
+      "name": "Merged by Author",
+      "description": "Did the author press merge themselves once approved? Owning your work end-to-end matters.",
+      "category": "mr",
+      "params": [
+        {
+          "key": "allow_self_merge",
+          "type": "boolean",
+          "default": "true",
+          "label": "Allow author to merge own MR"
+        }
+      ]
+    },
+    {
+      "code": "R11",
+      "db_field": "r11_closure_state",
+      "weight_field": "weight_closure",
+      "name": "MR + Issue Closed",
+      "description": "Once merged, was the linked issue also closed? Tidy boards make happy reviewers.",
+      "category": "mr",
+      "params": [
+        {
+          "key": "require_both_closed",
+          "type": "boolean",
+          "default": "true",
+          "label": "Require both MR and issue to be closed"
+        }
+      ]
+    },
+    {
+      "code": "R12",
+      "db_field": "r12_pipeline_health",
+      "weight_field": "weight_pipeline_health",
+      "name": "Pipeline Green",
+      "description": "Did CI go green on this branch (with the test job actually running)? Merging red pipelines isn't shipping.",
+      "category": "ci",
+      "params": [
+        {
+          "key": "require_test_job",
+          "type": "boolean",
+          "default": "true",
+          "label": "Require test job in passing pipeline"
+        }
+      ]
+    },
+    {
+      "code": "R13",
+      "db_field": "r13_commit_quality",
+      "weight_field": "weight_commit_quality",
+      "name": "Commit Quality",
+      "description": "Did they commit from a real Git workflow with proper messages - not mostly clicking around in the GitLab web editor?",
+      "category": "commit",
+      "params": [
+        {
+          "key": "max_web_editor_ratio",
+          "type": "number",
+          "default": "0.3",
+          "label": "Maximum allowed ratio of web-editor commits (0.0-1.0)"
+        }
+      ]
+    }
+  ]
+}

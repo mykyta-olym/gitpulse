@@ -1,0 +1,76 @@
+{# Dashboard "Follow the latest updates" feed body - rendered on page load
+   and re-rendered standalone by /dashboard/activity for live refresh. #}
+{% from "components/icons.html" import icon %}
+{% from "components/disclosure.html" import show_more_footer %}
+{% from "components/time.html" import localized_time %}
+{% from "components/cards.html" import block_empty %}
+{% from "components/avatar.html" import avatar %}
+
+{# One activity row, laid out like GitLab's Activity feed: who on the first
+   line, what they did on the second, the detail under it and the time on the
+   right. The linked and unlinked variants below share this macro instead of
+   repeating the markup. #}
+{% macro activity_row(item) %}
+      <span class="gl-activity-avatar">{{ avatar('', item.actor or '?', size=32) }}</span>
+      <div class="gl-activity-content">
+        <div class="gl-activity-head">
+          <span class="gl-activity-actor">{{ item.actor or item.text }}</span>
+          {# The server formats this as "4 days ago" whatever the reader chose.
+             Wrapped, it keeps that wording until localize-time.js applies "Use
+             relative times" and "Time format" to it like every other stamp. #}
+          <span class="gl-activity-time">
+            {%- if item.timestamp -%}
+              {{ localized_time(item.timestamp, format='relative', text=item.time_ago) }}
+            {%- else -%}
+              {{ item.time_ago }}
+            {%- endif -%}
+          </span>
+        </div>
+        {% if item.action %}
+        <div class="gl-activity-text">
+          <span class="gl-activity-action-icon">{{ icon(item.icon, size='sm') }}</span>
+          {{ item.action }}
+        </div>
+        {% endif %}
+        {% if item.detail %}
+        <div class="gl-activity-detail">{{ item.detail }}</div>
+        {% endif %}
+      </div>
+{% endmacro %}
+{# Overflow rows are revealed by the declarative [data-show-more] controller
+   (see core/39-tabs-and-toggles.js) instead of Alpine: the production
+   @alpinejs/csp build cannot evaluate ``x-show="limit >= N"`` or the
+   ``limit = total`` click assignment, so the extra rows stayed stuck behind
+   x-cloak and "Show all" did nothing. #}
+<div class="gl-home-card-content" data-show-more>
+  {% if recent_activity %}
+    {% for item in recent_activity %}
+    {% if item.url %}
+    <a href="{{ item.url }}" class="gl-activity-item gl-activity-item--link{% if loop.index > 5 %} gl-show-more-extra{% endif %}">
+      {{ activity_row(item) }}
+    </a>
+    {% else %}
+    <div class="gl-activity-item{% if loop.index > 5 %} gl-show-more-extra{% endif %}">
+      {{ activity_row(item) }}
+    </div>
+    {% endif %}
+    {% endfor %}
+    {{ show_more_footer(recent_activity|length, 5) }}
+  {% else %}
+    {#- An empty TERM is not an empty account: the reader has courses in
+        another academic period, and the selector above reaches them. -#}
+    {% if not active_courses and has_courses_elsewhere | default(false) %}
+    {{ block_empty(t('No activity in this academic period. Pick another period above to see its activity.')) }}
+    {% elif is_student and not active_courses %}
+    {{ block_empty(t('You are not enrolled in any courses yet. Once your teacher adds you, your activity will appear here.')) }}
+    {% elif is_student %}
+    {{ block_empty(t('No activity in your courses yet. Push some code, create a merge request, or run a CI/CD pipeline to see updates here.')) }}
+    {% elif is_teacher and not active_courses %}
+    {{ block_empty(t('Create your first course or import one from GitLab. Once you have courses with groups, activity will be tracked here automatically.')) }}
+    {% elif is_teacher %}
+    {{ block_empty(t('No recent activity yet. Sync your course data from GitLab to see group and student activity here.')) }}
+    {% else %}
+    {{ block_empty(t('No recent activity yet. Import a course and sync data to start tracking group progress.')) }}
+    {% endif %}
+  {% endif %}
+</div>

@@ -1,0 +1,36 @@
+<!-- Grab landing.yaml from current site language, falling back to the site default. -->
+{{ $siteSectionData := (index .Site.Data .Lang "landing").siteSection }}
+{{ if not $siteSectionData }}
+  {{ $siteSectionData = (index .Site.Data site.Params.defaultLang "landing").siteSection }}
+{{ end }}
+
+<!-- Render card for each main content page in landing.yaml -->
+<section class="site-section">
+  <div class="container">
+    <div class="gl-grid">
+      {{ range $siteSectionData }}
+        {{ $contentUrl := .contentUrl }}
+        {{ $svgUrl := .svgUrl }}
+        {{ $docUrl := .docUrl }}
+        {{ with $.Site.GetPage $docUrl  }}
+          <!-- If page title is missing or if there's a redirect_to link, don't render the card -->
+          {{ if and (ne .Title "") (not .Params.redirect_to)}}
+            <a href="{{ relLangURL "" }}{{ $contentUrl }}">
+              <div class="card gl-rounded-lg gl-h-full">
+                <div class="card-body">
+                  <div class="svg-wrapper">
+                    <img src="{{ relURL "" }}{{ $svgUrl }}" alt="" />
+                  </div>
+                  <div class="card-title gl-my-0 gl-pt-4 gl-pb-2 gl-font-bold gl-leading-20">
+                    {{ .Title }}
+                  </div>
+                  <p class="card-text">{{ .Description }}</p>
+                </div>
+              </div>
+            </a>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+</section>

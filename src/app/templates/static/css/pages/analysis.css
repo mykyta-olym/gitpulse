@@ -1,0 +1,206 @@
+/* -- MR analysis cards - collapsible -- */
+.mr-card-header {
+  background: var(--surface-strong);
+  padding: var(--gl-spacing-5);
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  transition: background var(--transition-normal);
+}
+.mr-card-header::-webkit-details-marker { display: none; }
+.mr-card-header::before { display: none; }
+.mr-card-header:hover { background: var(--surface-moderate); }
+.mr-card[open] > .mr-card-header { border-bottom: 1px solid var(--border-color); }
+.mr-card:not([open]) > .mr-card-header { border-bottom: none; }
+.mr-card-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-4);
+  flex-wrap: wrap;
+}
+.mr-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.mr-card-header-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-shrink: 0;
+}
+.mr-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  background: var(--surface-strong);
+  border-bottom: 1px solid var(--border-color);
+}
+.mr-card:not([open]) > .mr-card-actions { display: none; }
+.mr-card-toggle-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  transition: transform var(--transition-normal);
+  color: var(--text-secondary);
+}
+.mr-card[open] > .mr-card-header .mr-card-toggle-icon { transform: rotate(90deg); }
+.mr-iid {
+  font-size: var(--font-size-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  transition: color var(--transition-normal);
+}
+.mr-iid:hover { color: var(--primary-hover); }
+.mr-card-body { padding: var(--gl-spacing-5); }
+.mr-card-body > .analysis-section:first-child { margin-top: var(--gl-spacing-3); }
+
+.mr-card[data-mr-hidden] { display: none; }
+
+/* -- MR analysis filters -- */
+.mr-analysis-filters {
+  margin-bottom: var(--gl-spacing-5);
+}
+.mr-analysis-filter-count {
+  margin-top: var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+/* Spacing between MR pagination and MR cards */
+#mrPaginationTop { margin-bottom: var(--gl-spacing-5); border-radius: var(--radius); }
+#mrPaginationBottom { margin-top: var(--gl-spacing-5); border-radius: var(--radius); }
+
+.mr-summary {
+  margin: var(--gl-spacing-4) 0 0 0;
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+}
+
+/* -- Finding cards (strengths, risks, improvements) -- */
+.finding-card {
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+}
+/* No coloured left stripe. GitLab's own alert (`.gl-alert`, measured: 8px radius,
+   16px/48px padding, flat tint, NO border) does not carry one, and here the
+   meaning is already in the tint and the label - the stripe only repeated it. */
+.finding-card-strength {
+  background: var(--gl-feedback-success-bg);
+}
+.finding-card-risk {
+  background: var(--gl-feedback-danger-bg);
+}
+.finding-card-improvement {
+  background: var(--gl-feedback-info-bg);
+}
+.finding-category-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+/* -- Teamwork metric row -- */
+.collab-metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-5);
+  background: var(--surface-strong);
+  border-radius: var(--radius);
+}
+.collab-metric-row .flex-1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+}
+/* .metric-name is set in pages/project.css, which loads after this file. */
+.metric-detail {
+  line-height: var(--line-height-normal);
+}
+.metric-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+}
+.metric-score-poor { background: var(--gl-feedback-danger-bg); color: var(--gl-feedback-danger-text); }
+.metric-score-fair { background: var(--gl-feedback-warning-bg); color: var(--gl-feedback-warning-text); }
+.metric-score-good { background: var(--gl-feedback-info-bg); color: var(--gl-feedback-info-text); }
+.metric-score-excellent { background: var(--gl-feedback-success-bg); color: var(--gl-feedback-success-text); }
+
+/* -- DevOps practice card -- */
+.devops-practice-card {
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-4);
+  background: var(--surface-strong);
+}
+.devops-practice-card .practice-name {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--gl-spacing-2);
+}
+.devops-practice-card .practice-note {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-height-normal);
+}
+.devops-practice-status {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: var(--gl-spacing-2);
+}
+.devops-practice-well-implemented { border-left-color: var(--gl-alert-success-border); background: var(--gl-feedback-success-bg); }
+.devops-practice-well-implemented .devops-practice-status { color: var(--gl-feedback-success-text); }
+.devops-practice-good { border-left-color: var(--gl-alert-success-border); background: var(--gl-feedback-success-bg); }
+.devops-practice-good .devops-practice-status { color: var(--gl-feedback-success-text); }
+.devops-practice-needs-work { border-left-color: var(--gl-alert-warning-border); background: var(--gl-feedback-warning-bg); }
+.devops-practice-needs-work .devops-practice-status { color: var(--gl-feedback-warning-text); }
+.devops-practice-needs-improvement { border-left-color: var(--gl-alert-warning-border); background: var(--gl-feedback-warning-bg); }
+.devops-practice-needs-improvement .devops-practice-status { color: var(--gl-feedback-warning-text); }
+.devops-practice-not-observed { border-left-color: var(--gl-border-color-strong); }
+.devops-practice-not-observed .devops-practice-status { color: var(--text-tertiary); }
+.devops-practice-missing { border-left-color: var(--gl-alert-danger-border); background: var(--gl-feedback-danger-bg); }
+.devops-practice-missing .devops-practice-status { color: var(--gl-feedback-danger-text); }
+.devops-practice-partially-implemented { border-left-color: var(--gl-alert-info-border); background: var(--gl-feedback-info-bg); }
+.devops-practice-partially-implemented .devops-practice-status { color: var(--gl-feedback-info-text); }
+.devops-practice-not-applicable { border-left-color: var(--gl-border-color-strong); }
+.devops-practice-not-applicable .devops-practice-status { color: var(--text-tertiary); }
+
+/* -- Learning tips -- */
+.learning-tips-box {
+  margin-bottom: var(--gl-spacing-5);
+  background: var(--gl-feedback-warning-bg);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-5);
+  border: 1px solid var(--gl-alert-warning-border);
+}
+
+/* -- Grading suggestion -- */
+.grading-suggestion-box {
+  margin-bottom: var(--gl-spacing-5);
+  background: var(--gl-status-brand-bg);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-5);
+  border: 1px solid var(--gl-status-brand-icon);
+}
+.grading-suggestion-text {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+.analysis-heading-purple { color: var(--gl-status-brand-text); }

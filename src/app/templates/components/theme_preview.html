@@ -1,0 +1,53 @@
+{# Accent-theme preview card.
+
+   Geometry is GitLab's own `app/views/shared/icons/_theme.svg` (gitlab-org/gitlab),
+   rect for rect: a 200x120 board, a 154x100 content panel inset at 32,16, the
+   nav placeholders down the left, and the header pill at 68,4. It is driven
+   entirely by four --theme-preview-* custom properties, exactly as GitLab
+   drives it, so one markup block serves every accent.
+
+   The one deliberate change: GitLab draws its tanuki in the mark slot at 4,4.
+   That is their trademark, and our logo carries gradients with element ids
+   that would collide six times over on one page - so the slot is a rect in the
+   app's own brand colour, which is what it reads as at this scale anyway. #}
+{% macro theme_preview(accent='default') %}
+<svg class="gl-theme-preview gl-theme-preview--{{ accent }}"
+     viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" fill="none"
+     role="presentation" aria-hidden="true" focusable="false">
+  <rect width="200" height="120" fill="var(--theme-preview-application-chrome-background-color)"/>
+  <rect x="32" y="16" width="154" height="100" rx="4" fill="var(--theme-preview-background-color-default)"/>
+  <g fill="var(--theme-preview-foreground-color-subtle)">
+    <rect x="68" y="4" width="64" height="8" rx="3"/>
+    <rect x="188" y="4" width="8" height="8" rx="4"/>
+    <rect x="4" y="28" width="18" height="4" rx="1"/>
+    <rect x="4" y="36" width="20" height="4" rx="1"/>
+    <rect x="4" y="110" width="24" height="4" rx="1"/>
+    <rect x="190" y="20" width="4" height="4" rx="1"/>
+    <rect x="190" y="28" width="4" height="4" rx="1"/>
+    <rect x="190" y="36" width="4" height="4" rx="1"/>
+    <rect x="190" y="110" width="4" height="4" rx="1"/>
+  </g>
+  <g fill="var(--theme-preview-foreground-color-default)">
+    <rect x="36" y="20" width="120" height="8" rx="2"/>
+    <rect x="36" y="32" width="48" height="4" rx="2"/>
+    <rect x="36" y="48" width="112" height="64" rx="2" opacity="0.75"/>
+  </g>
+  <g fill="var(--theme-preview-foreground-color-strong)">
+    <rect x="4" y="20" width="24" height="4" rx="1"/>
+  </g>
+  {# The primary button, in the theme's own colour: the one mark that shows a
+     theme is more than a tinted sidebar - the confirm button, the checked
+     controls and the selected highlight all take this colour. #}
+  <rect x="160" y="32" width="22" height="7" rx="2" fill="var(--theme-preview-accent)"/>
+  {# The mark slot GitLab fills with its tanuki. GitLab draws that path inside
+     the `--theme-preview-foreground-color-strong` group - the SAME neutral it
+     uses for the sidebar's active row - so the preview reads as chrome. Ours
+     was brand orange, which put a coloured square in the corner of all six
+     cards and made every accent look like it had an orange one; that is the
+     "theme is coloured wrong" report. Still a rect, not their tanuki: the mark
+     is a trademark, and our logo's gradient ids would collide six times over
+     on one page. #}
+  <rect x="4" y="4" width="12" height="12" rx="3"
+        fill="var(--theme-preview-foreground-color-strong)"/>
+</svg>
+{% endmacro %}

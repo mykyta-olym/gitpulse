@@ -1,0 +1,1539 @@
+/* ============================================
+   STUDENT DETAIL
+   ============================================ */
+
+/* Group dividers: "Work by <member>" (doing) vs "Code review &
+   communication". Give the teacher an instant DOING / COMMUNICATING split. */
+.student-group-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin: var(--gl-spacing-6) 0 var(--gl-spacing-1);
+  padding-bottom: var(--gl-spacing-2);
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.student-group-heading-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.student-group-sub {
+  margin: 0 0 var(--gl-spacing-3);
+}
+.pipeline-test-badges {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+  margin-top: var(--gl-spacing-2);
+}
+.diff-container {
+  width: 100%;
+  padding: var(--gl-spacing-4);
+  background: var(--surface-default);
+}
+.diff-block {
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius);
+  background: var(--surface-default);
+  overflow: hidden;
+}
+.diff-block + .diff-block {
+  margin-top: var(--gl-spacing-3);
+}
+.diff-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+  background: var(--surface-moderate);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: var(--font-weight-semibold);
+  min-width: 0;
+  overflow-wrap: break-word;
+  cursor: pointer;
+  list-style: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.diff-header::-webkit-details-marker { display: none; }
+.diff-header::marker { display: none; }
+.diff-header:hover { background: var(--surface-strong); }
+.diff-header .badge {
+  flex-shrink: 0;
+}
+.diff-chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: transform var(--transition-normal);
+}
+.diff-block[open] > .diff-header .diff-chevron { transform: rotate(90deg); }
+/* collapsed file: hide its body */
+.diff-block:not([open]) > .diff-header { border-bottom: 0; }
+.diff-path {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.diff-renamed-from { font-family: var(--font-family); font-size: var(--font-size-xs); }
+.diff-stat {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* -- Change-type colouring for the file icon (new/modified/renamed/deleted) -- */
+.diff-change-icon { flex-shrink: 0; display: inline-flex; }
+.diff-change-icon--new      { color: var(--gl-status-success-icon); }
+.diff-change-icon--deleted  { color: var(--gl-status-danger-icon); }
+.diff-change-icon--renamed  { color: var(--gl-status-info-icon); }
+.diff-change-icon--modified { color: var(--text-tertiary); }
+
+/* -- Multi-file changes view: summary + sticky file tree + diff blocks -- */
+.diff-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: 0 var(--gl-spacing-1) var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+.diff-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: var(--gl-spacing-4);
+  align-items: start;
+}
+.diff-file-tree {
+  position: sticky;
+  top: var(--gl-spacing-3);
+  align-self: start;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: min(620px, calc(100dvh - 96px));
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--gl-spacing-2);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+/* -- Nested folder tree (GitLab changes view) -- */
+.diff-tree-folder { min-width: 0; }
+.diff-tree-folder-label {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+  padding: var(--gl-spacing-1) var(--gl-spacing-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.diff-tree-folder-label::-webkit-details-marker { display: none; }
+.diff-tree-folder-label::marker { display: none; }
+.diff-tree-folder-label:hover { background: var(--surface-moderate); }
+.diff-tree-chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: transform var(--transition-normal);
+}
+.diff-tree-folder[open] > .diff-tree-folder-label .diff-tree-chevron { transform: rotate(90deg); }
+.diff-tree-folder-icon { flex-shrink: 0; color: var(--gl-feedback-info-icon); }
+.diff-tree-folder-name { overflow: hidden; text-overflow: ellipsis; }
+/* Indent each nested level via a left rail (GitLab-style guide line). */
+.diff-tree-children {
+  margin-left: var(--gl-spacing-3);
+  padding-left: var(--gl-spacing-2);
+  border-left: 1px solid var(--border-color);
+}
+
+.diff-file-tree-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+}
+.diff-file-tree-stat {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The jump-to flash is GP.motion.highlight - one ring pulse for every "here is
+   the thing you asked for" in the app, instead of three keyframes on this page
+   alone (file block, MR card, issue row). */
+.diff-files { min-width: 0; display: flex; flex-direction: column; gap: var(--gl-spacing-3); }
+.diff-files .diff-block + .diff-block { margin-top: 0; }
+@media (max-width: 768px) {
+  .diff-layout { grid-template-columns: 1fr; }
+  .diff-file-tree {
+    position: static;
+    max-height: 60vh;
+  }
+  .diff-header { position: static; }
+}
+@media (max-width: 480px) {
+  .diff-file-tree {
+    max-height: 50vh;
+    padding: var(--gl-spacing-1);
+    font-size: var(--font-size-xs);
+  }
+}
+.diff-pre {
+  margin: 0;
+  padding: 0;
+  background: var(--gl-background-color-default);
+  color: var(--gl-text-color-default);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  max-height: 600px;
+  overflow: auto;
+  counter-reset: diff-ln;
+}
+.diff-line {
+  display: flex;
+  min-height: 1.5em;
+}
+.diff-line-num {
+  flex: 0 0 3.5em;
+  padding: 0 var(--gl-spacing-3);
+  text-align: right;
+  color: var(--text-tertiary);
+  background: var(--gl-background-color-subtle);
+  user-select: none;
+  border-right: 1px solid var(--gl-border-color-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.diff-line-num::before {
+  counter-increment: diff-ln;
+  content: counter(diff-ln);
+}
+.diff-line-hunk .diff-line-num { counter-reset: diff-ln; }
+.diff-line-hunk .diff-line-num::before { content: ''; }
+.diff-line-content {
+  flex: 1;
+  padding: 0 var(--gl-spacing-4);
+  white-space: pre;
+  min-width: 0;
+}
+.diff-line-add {
+  background: var(--gl-diff-added-bg);
+}
+.diff-line-add .diff-line-content { color: var(--gl-text-color-success); }
+.diff-line-add .diff-line-num { background: var(--gl-diff-added-num-bg); color: var(--gl-text-color-success); }
+.diff-line-del {
+  background: var(--gl-diff-removed-bg);
+}
+.diff-line-del .diff-line-content { color: var(--gl-text-color-danger); }
+.diff-line-del .diff-line-num { background: var(--gl-diff-removed-num-bg); color: var(--gl-text-color-danger); }
+.diff-line-hunk {
+  background: var(--gl-diff-hunk-bg);
+}
+.diff-line-hunk .diff-line-content {
+  color: var(--gl-text-color-link);
+  font-weight: var(--font-weight-medium);
+}
+.diff-line-hunk .diff-line-num { background: var(--gl-diff-hunk-num-bg); }
+/* -- Diff details - reuse summary-toggle-primary from Changed Files -- */
+.font-085rem { font-size: var(--font-size-base); }
+.font-09rem { font-size: var(--font-size-base); }
+
+/* -- Student Detail: Charts Layout -- */
+.student-charts-layout {
+  display: flex;
+  gap: var(--gl-spacing-6);
+  /* flex-start (not stretch): stretching let the responsive radar canvas grow
+     to the taller score-trend column, pushing the week-summary stats down over
+     the heatmap header below. */
+  align-items: flex-start;
+  width: 100%;
+}
+.student-chart-primary {
+  flex: 2;
+  min-width: 0;
+  width: 100%;
+}
+.student-chart-secondary {
+  flex: 1;
+  min-width: 200px;
+  width: 100%;
+}
+.chart-title-sm {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.chart-empty-msg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  width: 100%;
+}
+/* -- Week-over-week summary stats -- */
+.compliance-summary-stats {
+  display: flex;
+  gap: var(--gl-spacing-4);
+  padding-top: var(--gl-spacing-4);
+  border-top: 1px solid var(--gl-border-color-default);
+}
+.summary-stat {
+  flex: 1;
+  text-align: center;
+  padding: var(--gl-spacing-3) var(--gl-spacing-2);
+  border-radius: var(--radius);
+  background: var(--surface-default);
+}
+/* Value over label, always. Both were inline spans, so a short value ("-"
+   before the numbers land) shared one line with its label and the tile was
+   21px shorter than once filled, when "85%" + "Current Score" wrapped onto
+   two - the summary row grew under the reader after paint. */
+.summary-stat-value {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+}
+.summary-stat-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .student-charts-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--gl-spacing-4);
+  }
+  .student-chart-primary,
+  .student-chart-secondary {
+    width: 100%;
+    min-width: 100%;
+    flex: none;
+  }
+  #complianceHistoryPanel .student-chart-primary .chart-container--interactive,
+  #complianceHistoryPanel .student-chart-secondary .chart-container--interactive {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .compliance-summary-stats {
+    flex-wrap: wrap;
+  }
+  .summary-stat {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  #complianceHistoryPanel .chart-canvas-wrap--lg {
+    height: 240px;
+    min-height: 220px;
+  }
+}
+
+/* -- Check Progress Heatmap -- */
+/* The gap under the header sits on the swap cell that holds BOTH the loader
+   and the table, not on the table's scroll wrapper alone: on the wrapper it
+   made the table 12px taller than the loader it replaced, and the panel grew
+   by that much at the hand-off. */
+.heatmap-swap { margin-top: .75rem; }
+.heatmap-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-table {
+  border-collapse: collapse;
+  font-size: .8rem;
+  width: 100%;
+  min-width: 500px;
+  table-layout: fixed;
+}
+
+.heatmap-table th,
+.heatmap-table td {
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.hm-check-col {
+  text-align: left !important;
+  font-weight: var(--font-weight-medium);
+  width: 220px;
+  min-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hm-week-col {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-semibold);
+  width: 60px;
+}
+
+.hm-code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hm-name {
+  font-size: var(--font-size-xs);
+}
+
+.hm-cell {
+  display: inline-block;
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
+.hm-cell--pass { color: var(--gl-text-color-success); }
+.hm-cell--fail { color: var(--gl-text-color-danger); }
+.hm-cell--na   { color: var(--text-disabled); }
+.hm-cell--empty { color: var(--gl-text-color-subtle); font-size: var(--font-size-xs); }
+
+.heatmap-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: .75rem;
+  color: var(--text-secondary);
+  align-items: center;
+}
+
+.heatmap-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+}
+
+/* -- Commit message + badge inline --
+   Grid, not flex: the CI slot keeps a constant width whether or not a pipeline
+   ran, and the badge group is pinned to the right track. Every row therefore
+   starts its message at the same x and ends its badges at the same x, instead
+   of both drifting with the message length. */
+.commit-message-cell {
+  display: grid;
+  /* ci · message. The badges track is gone: the branch is a COLUMN of the table
+     now. Pinning them to this cell's right edge was meant to align them, and it
+     did not - measured on four rows they landed at 723, 786, 880 and 911px,
+     because a cell only spans its own row's content. A column is aligned across
+     rows by construction, which is the property that was wanted. */
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  /* Fill the Message column. A fixed `max-width: 640px` truncated the message
+     early on a wide table and clustered the badges mid-cell with a dead gap to
+     the Stats column; letting the cell span the column keeps the badges pinned
+     to the column's right edge and gives the message all the room there is. */
+  width: 100%;
+  min-width: 160px;
+  max-width: 48ch;
+}
+.commit-ci-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+}
+/* One line + ellipsis: a wrapped message would push the badges onto a second
+   row and re-introduce the drift. Full text stays reachable via the tooltip. */
+.commit-message-link {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -- Heatmap Zebra Striping, Hover highlights and Sticky columns alignment -- */
+.heatmap-table tbody tr:nth-child(even) > td {
+  background: var(--gl-table-row-stripe-bg);
+}
+@media (hover: hover) {
+  .heatmap-table tbody tr:hover > td {
+    background: var(--gl-table-row-hover-bg);
+  }
+}
+
+/* ============================================================
+   MR-CENTRIC STUDENT PROFILE  (GitLab-styled, compact)
+   ============================================================ */
+
+/* -- Section heading counter -- */
+.student-group-count {
+  /* The shared count badge beside the heading. */
+  align-self: center;
+  margin-left: var(--gl-spacing-2);
+}
+
+/* -- Profile score chip (header, instant read) -- */
+.profile-header { position: relative; }
+.profile-score {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-left: var(--gl-spacing-4);
+}
+.profile-score-main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+.profile-score--green  .profile-score-value { color: var(--gl-text-color-success); }
+.profile-score--yellow .profile-score-value { color: var(--gl-text-color-warning); }
+.profile-score--red    .profile-score-value { color: var(--gl-text-color-danger); }
+.profile-score--gray   .profile-score-value { color: var(--text-secondary); }
+.profile-score-sub {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: var(--text-secondary);
+}
+
+/* -- MR card -- */
+.mr-card-list, .rg-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-6);
+}
+.mr-card, .rg-card {
+  background: var(--surface-default);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  overflow: visible;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+.mr-card:hover, .rg-card:hover {
+  border-color: var(--border-color-strong);
+  box-shadow: var(--shadow-sm);
+}
+.mr-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+  padding-bottom: var(--gl-spacing-3);
+  border-bottom: 1px solid var(--border-color);
+}
+.mr-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  min-width: 0;
+}
+.mr-iid {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-bold);
+  color: var(--gl-text-color-link);
+  text-decoration: none;
+}
+.mr-iid:hover { text-decoration: underline; }
+.mr-card-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.mr-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2) var(--gl-spacing-3);
+}
+.mr-card-proj {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.mr-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px var(--gl-spacing-2);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  overflow: hidden;
+}
+.mr-branch .icon { width: 12px; height: 12px; flex-shrink: 0; }
+/* Show the full branch when it fits; only ellipsize genuinely long names. */
+.mr-branch-src { color: var(--gl-text-color-link); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(40ch, 60vw); }
+.mr-branch-arrow { color: var(--text-tertiary); flex-shrink: 0; }
+.mr-branch-tgt { color: var(--text-primary); white-space: nowrap; }
+.mr-card-time { font-size: var(--font-size-xs); color: var(--text-tertiary); margin-left: auto; }
+
+/* -- Workflow ribbon (Issue -> Branch -> MR -> Review -> Approve -> Merge) -- */
+.wf-ribbon {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  list-style: none;
+  margin: var(--gl-spacing-3) 0;
+  padding: var(--gl-spacing-3) var(--gl-spacing-1);
+  overflow-x: auto;
+}
+.wf-step {
+  flex: 1 1 0;
+  min-width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  text-align: center;
+}
+.wf-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: var(--border-color);
+  z-index: 0;
+}
+.wf-step.is-done:not(:last-child)::after { background: var(--gl-green-500); }
+.wf-dot {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-moderate);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+/* 12px, not 13: the dot's content box is 20px, and a 13px glyph starts 3.5px
+   in - drawn across two device pixels on every edge at 1x, which is what
+   read as "not centred". 12px sits 4px in on every side, and scales the
+   16-unit glyph by exactly 3/4. */
+.wf-dot .icon { width: 12px; height: 12px; }
+/* Interactive: hovering/focusing a step answers in COLOUR, and focus adds a
+   ring. It used to grow the dot 1.08x - the last hover transform in the app,
+   and one GitLab's own transition inventory has no equivalent for. */
+.wf-step { cursor: pointer; outline: none; }
+.wf-dot { transition: background var(--transition-normal), border-color var(--transition-normal),
+                      box-shadow var(--transition-normal); }
+.wf-step:hover .wf-dot { border-color: var(--gl-border-color-strong); }
+.wf-step:focus-visible .wf-dot { box-shadow: var(--focus-ring); }
+.wf-step:hover .wf-label { color: var(--text-primary); }
+.wf-step.is-done .wf-dot {
+  background: var(--gl-feedback-success-bg);
+  border-color: var(--gl-feedback-success-icon);
+  color: var(--gl-feedback-success-icon);
+}
+.wf-dot-empty { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .55; }
+.wf-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+.wf-step.is-done .wf-label { color: var(--text-primary); }
+
+/* -- Attribution + reviewers -- */
+.mr-attrib {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin: var(--gl-spacing-3) 0;
+}
+.mr-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--gl-spacing-4) var(--gl-spacing-6);
+  margin: var(--gl-spacing-3) 0;
+}
+.mr-people-group {
+  min-width: 0;
+  max-width: 100%;
+}
+.mr-people-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-spacing-2) var(--gl-spacing-3);
+  margin: 0;
+}
+.mr-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.mr-section-label .icon { color: var(--text-tertiary); }
+/* -- MR sections (description / commits / discussions / diff) -- */
+.mr-section { margin-top: var(--gl-spacing-4); }
+.mr-section-label { margin-bottom: var(--gl-spacing-2); }
+.mr-count {
+  margin-left: var(--gl-spacing-2);
+}
+.mr-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+}
+.mr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+  margin-top: var(--gl-spacing-3);
+}
+.mr-section-toggle {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  list-style: none;
+  padding: var(--gl-spacing-1) 0;
+}
+.mr-section-toggle::-webkit-details-marker { display: none; }
+.mr-section-toggle::before {
+  content: '';
+  width: 12px; height: 12px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M10.707 7.293a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L8.586 8 6.293 5.707a1 1 0 0 1 1.414-1.414l3 3z'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M10.707 7.293a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L8.586 8 6.293 5.707a1 1 0 0 1 1.414-1.414l3 3z'/%3E%3C/svg%3E") no-repeat center / contain;
+  transition: transform var(--transition-normal);
+}
+details[open] > .mr-section-toggle::before { transform: rotate(90deg); }
+.mr-section-toggle:hover { color: var(--primary); }
+
+/* -- Per-branch commit list -- */
+.mr-commit-list { list-style: none; margin: var(--gl-spacing-2) 0 0; padding: 0; }
+.mr-commit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 122px;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-2) 0;
+  border-bottom: 1px solid var(--gl-border-color-subtle);
+  font-size: var(--font-size-sm);
+}
+.mr-commit:last-child { border-bottom: none; }
+/* msg + merge badge share a flex column so the stats/time columns stay aligned
+   across rows whether or not a row has a Merge-commit badge. */
+.mr-commit-main { min-width: 0; display: flex; align-items: center; gap: var(--gl-spacing-2); }
+.mr-commit-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.mr-commit-msg {
+  display: block;
+  min-width: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mr-commit-msg:hover { color: var(--primary); text-decoration: underline; }
+.mr-commit-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}
+.mr-commit-author {
+  min-width: 0;
+  color: var(--text-secondary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+a.mr-commit-author:hover { color: var(--primary); text-decoration: underline; }
+.mr-commit-stats {
+  justify-self: end;
+  width: 96px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mr-commit-time {
+  justify-self: end;
+  width: 122px;
+  text-align: right;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+/* `.diff-add` / `.diff-del` are declared once, in utilities.css, where they
+   take the reader's chosen diff colours with the stock green and red as the
+   fallback. A second copy stood here with the colours hardcoded; being later
+   in the cascade at equal specificity, it won - so on the student page, which
+   is where the diffs are, choosing a diff colour changed the code rows and
+   left the +12 -3 counts beside them on the stock palette. */
+
+/* -- Pipeline row (GitLab-style status chips + inline coverage text) -- */
+.mr-pipeline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: var(--gl-spacing-2);
+  margin-top: var(--gl-spacing-4);
+}
+.mr-pipeline-statuses {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-3);
+}
+.mr-pipeline-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 3px var(--gl-spacing-3);
+  border-radius: var(--radius-full);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+}
+/* Neutralise the legacy .pipeline-test-badges margin so Tests aligns with Pipeline */
+.mr-pipeline .pipeline-test-badges { margin-top: 0; }
+.mr-pipeline-stage .icon { width: 16px; height: 16px; flex-shrink: 0; }
+.mr-pipeline-stage--green .icon { color: var(--gl-feedback-success-icon); }
+.mr-pipeline-stage--red   .icon { color: var(--gl-feedback-danger-icon); }
+.mr-pipeline-stage--yellow .icon { color: var(--gl-feedback-warning-icon); }
+.mr-pipeline-stage--gray  .icon { color: var(--text-tertiary); }
+.mr-pipeline-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   DISCUSSION THREADS  (GitLab tree: root + indented replies)
+   Resolved = first-class positive state (no opacity dimming).
+   ============================================================ */
+.thread-list { display: flex; flex-direction: column; gap: var(--gl-spacing-3); margin-top: var(--gl-spacing-2); }
+.thread {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--gl-background-color-subtle);
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+/* The thread's state is already stated in words next to an icon
+   (`.thread-flag` renders "Resolved" / "Unresolved"), so the stripe was a second
+   encoding of the same fact - and a colour-only one at that. */
+.thread-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-2) var(--gl-spacing-4);
+  background: var(--surface-strong);
+  border-bottom: 1px solid var(--border-color);
+}
+.thread-head-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2) var(--gl-spacing-3);
+  min-width: 0;
+}
+.thread-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.thread-flag--open     { color: var(--gl-text-color-warning); }
+.thread-flag--resolved { color: var(--gl-text-color-success); }
+.thread-flag .icon { width: 12px; height: 12px; }
+.thread-anchor:focus-visible,
+.dn-anchor:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.thread-participants {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+.thread-starter {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+.thread-starter strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.thread-anchor,
+.dn-anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: color var(--transition-normal), opacity var(--transition-normal), background var(--transition-normal);
+}
+.thread:hover .thread-anchor,
+.thread:focus-within .thread-anchor,
+.dn:hover .dn-anchor,
+.dn:focus-within .dn-anchor {
+  opacity: 1;
+}
+.thread-anchor:hover,
+.dn-anchor:hover {
+  color: var(--primary);
+  background: var(--surface-moderate);
+}
+.thread-replies-count {
+  margin-left: var(--gl-spacing-1);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* -- Note (root or reply): GitLab-style avatar + body -- */
+.thread-notes { display: flex; flex-direction: column; gap: var(--gl-spacing-3); padding: var(--gl-spacing-3) var(--gl-spacing-4); min-width: 0; }
+.thread-diff-context {
+  margin: var(--gl-spacing-3) var(--gl-spacing-4) 0;
+  border-color: var(--gl-border-color-default);
+  background: var(--surface-default);
+}
+.thread-diff-scroll {
+  max-height: 360px;
+}
+.thread-diff-footer {
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  border-top: 1px solid var(--border-color);
+  background: var(--gl-background-color-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+.dn { display: flex; align-items: flex-start; gap: var(--gl-spacing-3); min-width: 0; }
+.dn:target,
+.thread:target {
+  scroll-margin-top: 84px;
+}
+.dn-main { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Reply: indented under its parent with a GitLab-style L connector so it is
+   unambiguous that this note answers the one above it. */
+.dn--reply {
+  margin-left: var(--gl-spacing-5);
+  padding-left: var(--gl-spacing-5);
+  border-left: 2px solid var(--gl-feedback-info-icon);
+  position: relative;
+}
+.dn--reply::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 16px;
+  width: var(--gl-spacing-4);
+  height: 2px;
+  background: var(--gl-feedback-info-icon);
+  border-bottom-left-radius: 4px;
+}
+.dn-reply-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-link);
+  text-decoration: none;
+}
+.dn-reply-cue:hover { color: var(--primary); text-decoration: underline; }
+.dn-reply-cue .icon { width: 12px; height: 12px; }
+.thread-replies {
+  min-width: 0;
+}
+.thread-replies-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin: 0 0 var(--gl-spacing-2) calc(26px + var(--gl-spacing-3));
+  color: var(--gl-text-color-link);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.thread-replies-toggle::-webkit-details-marker { display: none; }
+.thread-replies-toggle::marker { display: none; }
+.thread-replies-toggle:hover { color: var(--primary); }
+.thread-replies-chevron {
+  transition: transform var(--transition-normal);
+}
+.thread-replies[open] .thread-replies-chevron { transform: rotate(90deg); }
+.thread-replies-open { display: none; }
+.thread-replies[open] .thread-replies-open { display: inline; }
+.thread-replies[open] .thread-replies-closed { display: none; }
+.thread-replies-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+}
+.dn-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+  margin-bottom: 2px;
+}
+.dn-author { font-weight: var(--font-weight-semibold); color: var(--text-primary); font-size: var(--font-size-sm); }
+.dn-author.is-teacher { color: var(--gl-text-color-link); }
+.dn-author.is-self { color: var(--gl-status-brand-text); }
+.dn-tag {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+}
+.dn-tag--teacher { color: var(--gl-status-info-text); background: var(--gl-status-info-bg); }
+.dn-tag--self    { color: var(--gl-status-brand-text); background: var(--gl-status-brand-bg); }
+.dn-time { font-size: var(--font-size-xs); color: var(--text-tertiary); }
+.dn-file {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono); font-size: var(--font-size-xs);
+  color: var(--gl-status-brand-text);
+}
+.dn-file .icon { width: 12px; height: 12px; }
+.dn-wc {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+}
+.dn-wc { font-weight: var(--font-weight-semibold); border: 1px solid transparent; }
+.dn-wc--rich { color: var(--gl-status-success-text); background: var(--gl-status-success-bg); border-color: var(--gl-status-success-icon); }
+.dn-wc--med  { color: var(--gl-status-info-text); background: var(--gl-status-info-bg); border-color: var(--gl-status-info-icon); }
+.dn-wc--low  { color: var(--text-secondary); background: var(--surface-moderate); border-color: var(--border-color); }
+.dn-body {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.dn-code-context {
+  margin-top: var(--gl-spacing-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--gl-background-color-default);
+  max-width: 100%;
+}
+.dn-code-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  min-width: 0;
+  min-height: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 var(--gl-spacing-3);
+  background: var(--gl-background-color-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+}
+/* Collapsible code context: the toolbar IS the <summary>. Closed by default,
+   so heavy code tables only mount on demand (keeps long MR threads fast). */
+.dn-code-collapse > summary.dn-code-toolbar {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.dn-code-collapse > summary.dn-code-toolbar::-webkit-details-marker { display: none; }
+.dn-code-collapse > summary.dn-code-toolbar::marker { display: none; }
+.dn-code-collapse > summary.dn-code-toolbar:hover { background: var(--surface-moderate); }
+.dn-code-collapse[open] > summary.dn-code-toolbar { border-bottom: 1px solid var(--border-color); }
+.dn-code-chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: transform var(--transition-normal);
+}
+.dn-code-collapse[open] > summary.dn-code-toolbar .dn-code-chevron { transform: rotate(90deg); }
+.dn-code-peek {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--gl-text-color-link);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-semibold);
+}
+.dn-code-collapse[open] > summary.dn-code-toolbar .dn-code-peek { display: none; }
+.dn-code-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.dn-code-ref .icon {
+  flex-shrink: 0;
+  color: var(--gl-status-brand-text);
+}
+.dn-code-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dn-code-line {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+/* The copy control is a SIBLING of the summary now (a control inside <summary>
+   cannot be reached by keyboard: Enter and Space belong to the disclosure), so
+   it is positioned back onto the toolbar row. `.dn-code-collapse` is the
+   positioning context; the summary reserves room for it on the right so the
+   file path never runs underneath. */
+.dn-code-collapse { position: relative; }
+.dn-code-collapse > summary.dn-code-toolbar { padding-right: 38px; }
+.dn-code-collapse > .dn-code-action {
+  position: absolute;
+  top: 4px;
+  right: var(--gl-spacing-3);
+  z-index: 1;
+}
+
+.dn-code-scroll {
+  max-width: 100%;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+.dn-code-scroll:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-inset);
+}
+.dn-code-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+}
+.dn-code-row {
+  background: var(--gl-background-color-default);
+}
+/* Preferences > Diffs. The override is a per-user "#RRGGBB" set on <html>;
+   with none set these fall back to the app's own green/red, so an untouched
+   account renders exactly as before. The tint percentages are unchanged. */
+.dn-code-row--add {
+  background: color-mix(
+    in srgb,
+    var(--gl-diff-color-added) 12%,
+    var(--gl-background-color-default)
+  );
+}
+.dn-code-row--del {
+  background: color-mix(
+    in srgb,
+    var(--gl-diff-color-removed) 11%,
+    var(--gl-background-color-default)
+  );
+}
+.dn-code-row.is-target {
+  background: color-mix(in srgb, var(--primary) 22%, var(--gl-background-color-default));
+}
+.dn-code-ln,
+.dn-code-mark {
+  padding: 0 var(--gl-spacing-2);
+  color: var(--text-tertiary);
+  text-align: right;
+  user-select: none;
+  background: var(--gl-background-color-subtle);
+  border-right: 1px solid var(--border-color);
+  font-variant-numeric: tabular-nums;
+}
+.dn-code-ln {
+  width: 3.5em;
+  min-width: 3.5em;
+}
+.dn-code-mark {
+  width: 1.8em;
+  min-width: 1.8em;
+  text-align: center;
+  color: var(--text-secondary);
+}
+.dn-code-row--add .dn-code-mark { color: var(--gl-diff-color-added); }
+.dn-code-row--del .dn-code-mark { color: var(--gl-diff-color-removed); }
+.dn-code-row.is-target .dn-code-ln,
+.dn-code-row.is-target .dn-code-mark {
+  background: color-mix(in srgb, var(--primary) 24%, var(--gl-background-color-subtle));
+  color: var(--text-primary);
+}
+.dn-code-text {
+  min-width: 24ch;
+  padding: 0 var(--gl-spacing-3);
+  white-space: pre;
+}
+.dn-code-text code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: inherit;
+  white-space: pre;
+}
+.dn-commits { display: flex; flex-wrap: wrap; gap: var(--gl-spacing-2); margin-top: var(--gl-spacing-2); }
+.dn-sha {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono); font-size: var(--font-size-xs);
+  padding: 1px 6px; border-radius: var(--radius);
+  border: 1px solid var(--border-color); color: var(--gl-text-color-link);
+  text-decoration: none;
+}
+.dn-sha .icon { width: 12px; height: 12px; }
+.dn-sha:hover { border-color: var(--gl-feedback-info-icon); }
+.dn-sha-more { font-size: var(--font-size-xs); color: var(--text-disabled); }
+
+/* -- Reviews given (reviewer side) -- */
+.rg-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2) var(--gl-spacing-3);
+  padding-bottom: var(--gl-spacing-2);
+  border-bottom: 1px solid var(--border-color);
+}
+.rg-title { flex: 1; min-width: 0; font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.rg-sub {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--gl-spacing-2) var(--gl-spacing-3);
+  margin: var(--gl-spacing-3) 0;
+  font-size: var(--font-size-sm);
+}
+.rg-author { font-weight: var(--font-weight-medium); color: var(--text-primary); }
+
+/* -- Compliance progress: cohesive carded chart panels (scoped) -- */
+#complianceHistoryPanel .student-chart-primary .chart-container--interactive,
+#complianceHistoryPanel .student-chart-secondary .chart-container--interactive {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-4);
+  height: 100%;
+}
+#complianceHistoryPanel .chart-header { margin-bottom: var(--gl-spacing-3); }
+#complianceHistoryPanel .threshold-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+}
+
+/* -- Responsive -- */
+@media (max-width: 600px) {
+  .profile-score {
+    width: 100%;
+    margin-left: 0;
+    align-items: center;
+    padding-left: 0;
+    margin-top: var(--gl-spacing-3);
+    text-align: center;
+  }
+  .wf-label { display: none; }
+  .wf-step { min-width: 34px; }
+  .mr-card, .rg-card { padding: var(--gl-spacing-4); }
+}
+
+/* ============================================================
+   POLISH: GitLab avatars, activity overview, diff responsiveness
+   ============================================================ */
+
+/* -- Real GitLab avatar images (CSP-safe fallback to initials sibling) -- */
+
+/* -- Profile contribution stats: GitLab-style divider row inside the card -- */
+.profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin-top: var(--gl-spacing-4);
+  padding-top: var(--gl-spacing-3);
+  border-top: 1px solid var(--border-color);
+}
+.profile-card .profile-header {
+  margin-bottom: var(--gl-spacing-4);
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.profile-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 var(--gl-spacing-3);
+  border: 0;
+  border-left: 1px solid var(--border-color);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.profile-stat:first-child { padding-left: 0; border-left: 0; }
+.profile-stat .icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-tertiary); }
+.profile-stat strong { color: var(--text-primary); font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+.profile-stat-lbl { color: var(--text-secondary); }
+.profile-stat--add strong { color: var(--gl-diff-color-added); }
+.profile-stat--del strong { color: var(--gl-diff-color-removed); }
+.profile-stat--window { color: var(--text-tertiary); }
+.profile-stat--window .icon { color: var(--text-tertiary); }
+
+/* -- Diff: responsive within the MR card on narrow viewports -- */
+.mr-diff-details .diff-container { padding: var(--gl-spacing-2) 0 0; max-width: 100%; }
+.mr-diff-details .diff-block { max-width: 100%; }
+.mr-diff-details .diff-pre { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.mr-diff-details .diff-line-content { white-space: pre; }
+@media (max-width: 600px) {
+  .profile-identity {
+    flex-basis: 100%;
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+  .mr-branch-src { max-width: min(24ch, 50vw); }
+  /* Two rows, not three: the message on the first, "+n -n" and the time on
+     the second. Stacking stats and time as separate rows made every commit
+     three lines tall while its title was cut at twenty characters, because
+     the two empty badge slots kept their desktop 4.5rem each - on a phone the
+     slots collapse to their content, so the title gets the width. */
+  .mr-commit {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "main main" "stats time";
+    row-gap: var(--gl-spacing-1);
+  }
+  .mr-commit-main { grid-area: main; }
+  .mr-commit-stats {
+    grid-area: stats;
+    justify-self: start;
+    width: auto;
+    text-align: left;
+  }
+  .mr-commit-time {
+    grid-area: time;
+    width: auto;
+  }
+  .mr-commit-mark { flex-basis: auto; }
+  .mr-commit-mark:empty { display: none; }
+  .thread-head {
+    align-items: flex-start;
+  }
+  .thread-anchor,
+  .dn-anchor {
+    opacity: 1;
+  }
+  .dn--reply {
+    margin-left: var(--gl-spacing-3);
+    padding-left: var(--gl-spacing-3);
+  }
+  .thread-replies-toggle {
+    margin-left: 0;
+  }
+  .profile-stats {
+    gap: var(--gl-spacing-2) 0;
+    justify-content: center;
+  }
+  .profile-stat {
+    flex: 1 1 50%;
+    justify-content: center;
+    padding: var(--gl-spacing-1) var(--gl-spacing-2);
+  }
+  .profile-stat:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .profile-stat--window {
+    flex-basis: 100%;
+    border-left: 0;
+  }
+}
+
+/* ============================================================
+   ACTIVITY TIMELINE + LINKED NAMES + PROFILE META
+   ============================================================ */
+
+/* -- MR activity timeline (curated GitLab system events) -- */
+.mr-activity { list-style: none; margin: var(--gl-spacing-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--gl-spacing-2); }
+.mr-activity-item { display: flex; align-items: center; gap: var(--gl-spacing-2); font-size: var(--font-size-sm); min-width: 0; }
+.mr-activity-icon { flex-shrink: 0; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-tertiary); }
+/* 12px in an 18px box: 3px in on every side. 13px started at 2.5px and was
+   drawn across two device pixels at 1x, like the workflow dots above. */
+.mr-activity-icon .icon { width: 12px; height: 12px; }
+.mr-activity-icon--approved, .mr-activity-icon--ready,
+.mr-activity-icon--resolved, .mr-activity-icon--merged { color: var(--gl-feedback-success-icon); }
+.mr-activity-icon--unapproved, .mr-activity-icon--closed { color: var(--gl-feedback-danger-icon); }
+.mr-activity-icon--review_request { color: var(--gl-feedback-info-icon); }
+.mr-activity-icon--assigned { color: var(--gl-status-brand-icon); }
+.mr-activity-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+.mr-activity-author { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+a.mr-activity-author { text-decoration: none; }
+a.mr-activity-author:hover { color: var(--primary); text-decoration: underline; }
+.mr-activity-summary { color: var(--text-secondary); }
+.mr-activity-time { flex-shrink: 0; font-size: var(--font-size-xs); color: var(--text-tertiary); }
+
+/* -- In-app links: teammate mentions + comment author names -- */
+.gl-ref--student { color: var(--gl-text-color-link); font-weight: var(--font-weight-medium); text-decoration: none; }
+.gl-ref--student:hover { text-decoration: underline; }
+.dn-author--link, .rg-author--link { text-decoration: none; cursor: pointer; }
+.dn-author--link:hover, .rg-author--link:hover { text-decoration: underline; }
+
+/* -- Profile identity meta: username / email / GitLab inline -- */
+.profile-identity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gl-spacing-2) var(--gl-spacing-4); margin-top: 2px; }
+.profile-email { display: inline-flex; align-items: center; gap: 4px; font-size: var(--font-size-sm); color: var(--text-secondary); min-width: 0; }
+.profile-email .icon { width: 16px; height: 16px; color: var(--text-tertiary); flex-shrink: 0; }
+.profile-email a { color: var(--text-secondary); text-decoration: none; overflow-wrap: anywhere; }
+.profile-email a:hover { color: var(--primary); text-decoration: underline; }
+
+/* Land the jump clear of the sticky topbar. The flash itself is
+   GP.motion.highlight, driven by a hashchange listener - as `:target` rules
+   these fired only on the FIRST arrival, so following the same anchor twice, or
+   arriving through the SPA content swap, highlighted nothing. */
+[id^="mr-"], [id^="issue-"] { scroll-margin-top: 84px; }
+
+/* -- Per-commit pipeline status icon (GitLab-style CI indicator) -- */
+.ci-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+.ci-dot .icon { width: 16px; height: 16px; }
+.ci-dot--success { color: var(--gl-status-success-icon); }
+.ci-dot--danger  { color: var(--gl-status-danger-icon); }
+.ci-dot--warning { color: var(--gl-status-warning-icon); }
+.ci-dot--info    { color: var(--gl-status-info-icon); }
+.ci-dot--muted   { color: var(--gl-status-neutral-icon); }
+
+/* -- Commit History columns --
+   The branch has its own column, so it needs its own width: enough for a long
+   ref and a "Merge commit" beside it, and no more - the message takes the rest. */
+.col-commit-message { width: auto; min-width: 180px; }
+.col-commit-branch  { width: 220px; }
+.col-commit-stats   { width: 120px; text-align: right; }
+.col-commit-date    { width: 170px; }
+.commit-branch-cell {
+  white-space: nowrap;
+}
+.commit-branch-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  white-space: nowrap;
+}
+
+/* The pipeline mark for a commit that never had one. Hollow, muted, and the
+   same size as every other state, so the column reads as a column. */
+.ci-dot--none {
+  color: var(--gl-text-color-disabled, var(--text-tertiary));
+  opacity: 0.65;
+}
+
+/* -- The diff row's +/- marker --
+   Its own column, so the code starts at the same x on every line whether the
+   line is added, removed or context. Carrying the marker inside the code (as
+   the raw diff does) also lexed it: a leading `-` came out coloured as an
+   operator of the statement after it. */
+.diff-line-marker {
+  display: inline-block;
+  width: 1ch;
+  flex: 0 0 1ch;
+  user-select: none;
+  opacity: 0.7;
+}
+
+/* -- The markers on an MR's commit row --
+   Two fixed slots. They used to trail the message, so a row with one marker
+   put it where that row's text ended and a row with two put the second
+   somewhere else again - the same badge at a different x on every line. The
+   slot is drawn whether its badge is or not. */
+.mr-commit-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  flex: 0 0 auto;
+}
+.mr-commit-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 4.5rem;
+}

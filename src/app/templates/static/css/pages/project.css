@@ -1,0 +1,338 @@
+.th-center-50 { min-width: 50px; }
+.font-07 { font-size: var(--font-size-xs); }
+.font-08 { font-size: var(--font-size-sm); }
+.legend-toggle { cursor: pointer; font-size: var(--font-size-sm); color: var(--text-secondary); }
+.check-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--gl-spacing-2) var(--gl-spacing-5);
+}
+.check-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  color: var(--text-secondary);
+}
+.icon-warn-14 { width: 16px; height: 16px; color: var(--gl-feedback-warning-icon); }
+.icon-error-inline { color: var(--gl-feedback-danger-icon); flex-shrink: 0; }
+.icon-advisory { width: 20px; height: 20px; color: var(--gl-feedback-info-icon); flex-shrink: 0; margin-top: 0.125rem; }
+.analysis-toggle { cursor: pointer; font-weight: var(--font-weight-medium); display: flex; align-items: center; gap: var(--gl-spacing-3); padding: var(--gl-spacing-3) 0; margin-bottom: 0; list-style: none; }
+.analysis-toggle::-webkit-details-marker { display: none; }
+.analysis-toggle::before { display: none; }
+.analysis-toggle::after { content: ''; display: inline-block; width: 16px; height: 16px; background-color: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M7.293 10.707a1 1 0 0 0 1.414 0l3-3a1 1 0 0 0-1.414-1.414L8 8.586 5.707 6.293a1 1 0 0 0-1.414 1.414l3 3z'/%3E%3C/svg%3E") no-repeat center / contain; mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M7.293 10.707a1 1 0 0 0 1.414 0l3-3a1 1 0 0 0-1.414-1.414L8 8.586 5.707 6.293a1 1 0 0 0-1.414 1.414l3 3z'/%3E%3C/svg%3E") no-repeat center / contain; transition: transform var(--transition-normal); margin-left: auto; flex-shrink: 0; }
+details[open] > .analysis-toggle::after { transform: rotate(180deg); }
+.analysis-details-section { margin-top: var(--gl-spacing-5); margin-bottom: var(--gl-spacing-5); padding: var(--gl-spacing-4) var(--gl-spacing-5); background: var(--surface-strong); border-radius: var(--radius); border: 1px solid var(--border-color); }
+.analysis-toggle-purple { font-size: var(--font-size-base); color: var(--gl-status-brand-text); }
+.analysis-toggle-indigo { font-size: var(--font-size-base); color: var(--gl-text-color-link); }
+.analysis-toggle-gray { font-size: var(--font-size-base); color: var(--text-primary); }
+.analysis-toggle-muted { cursor: pointer; font-size: var(--font-size-sm); color: var(--text-secondary); }
+.practices-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--gl-spacing-5); padding: var(--gl-spacing-4) 0 var(--gl-spacing-3); margin-top: var(--gl-spacing-5); }
+.metrics-grid { display: grid; gap: var(--gl-spacing-5); padding: var(--gl-spacing-4) 0 var(--gl-spacing-3); margin-top: var(--gl-spacing-5); }
+.practice-name { font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); color: var(--text-primary); }
+.practice-note { font-size: var(--font-size-xs); color: var(--text-secondary); margin-top: var(--gl-spacing-1); }
+.metric-name { font-weight: var(--font-weight-medium); font-size: var(--font-size-base); }
+.metric-detail { font-size: var(--font-size-sm); color: var(--text-secondary); flex: 2; }
+.findings-header { display: flex; align-items: center; gap: var(--gl-spacing-3); margin-bottom: var(--gl-spacing-1); }
+.finding-cat-green { color: var(--gl-text-color-success); }
+.finding-desc-green { margin: var(--gl-spacing-1) 0 0 0; font-size: var(--font-size-base); color: var(--gl-text-color-success); }
+.finding-flag-name { font-weight: var(--font-weight-medium); color: var(--gl-text-color-danger); }
+.finding-desc-red { margin: 0; font-size: var(--font-size-base); color: var(--gl-text-color-danger); }
+.finding-evidence { margin-top: var(--gl-spacing-3); padding-top: var(--gl-spacing-3); border-top: 1px dashed var(--gl-alert-danger-border); }
+.finding-evidence-green { border-top-color: var(--gl-alert-success-border); }
+.finding-evidence-quote { margin: 0 0 var(--gl-spacing-2) 0; font-size: var(--font-size-xs); color: var(--gl-text-color-danger); display: flex; align-items: flex-start; gap: var(--gl-spacing-2); line-height: var(--line-height-normal); }
+.finding-evidence-green-quote { color: var(--gl-text-color-success); }
+.finding-evidence-indigo { border-top-color: var(--gl-alert-info-border); }
+.finding-evidence-indigo-quote { color: var(--gl-text-color-link); }
+.evidence-link { display: inline-flex; align-items: center; gap: var(--gl-spacing-1); color: var(--gl-text-color-link); flex-shrink: 0; transition: color var(--transition-normal); font-style: normal; }
+.evidence-link:hover { color: var(--gl-feedback-info-icon); }
+.evidence-link-red { color: var(--gl-text-color-danger); }
+.evidence-link-red:hover { color: var(--gl-feedback-danger-icon); }
+.evidence-label { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 0; white-space: nowrap; }
+.finding-cat-blue { color: var(--gl-text-color-link); }
+.finding-desc-blue { margin: 0; font-size: var(--font-size-base); color: var(--gl-text-color-link); }
+.finding-resource { margin: var(--gl-spacing-2) 0 0 0; font-size: var(--font-size-xs); color: var(--gl-text-color-link); }
+.explanation-details { margin-top: var(--gl-spacing-5); padding-top: var(--gl-spacing-5); border-top: 1px solid var(--border-color); }
+.explanation-text { margin: var(--gl-spacing-3) 0 0 0; font-size: var(--font-size-sm); color: var(--text-secondary); line-height: var(--line-height-normal); }
+
+/* -- GitLab Intelligence Panel -- */
+.gl-intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--gl-spacing-4);
+  margin-bottom: var(--gl-spacing-6);
+}
+/* "Last synced" - a meta line under the header, not a panel. It used to be a
+   full-width `gl-intelligence-grid--info` box holding one label and one date;
+   the box is gone and the line reads as what it is. */
+.project-last-synced {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin: 0 0 var(--gl-spacing-5) 0;
+}
+.project-last-synced strong {
+  color: var(--gl-text-color-default);
+  font-weight: var(--font-weight-semibold);
+}
+/* GL API panel - strict 3-column layout */
+.gl-intelligence-grid--panel {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 900px)  { .gl-intelligence-grid--panel { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 576px)  { .gl-intelligence-grid--panel { grid-template-columns: 1fr; } }
+.gl-intelligence-grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--gl-spacing-4);
+}
+/* The shared card shape, not a third one. This was a parallel implementation -
+   4px radius, its own header/body, a shadow on hover - sitting beside `.card`
+   and `.gl-home-stat`, which is what made the project page read as an older
+   screen. Same values as both of those: lighter shell at 16px with 4px padding,
+   content as a darker inset block at 12px, and colour-only hover. */
+.gl-intelligence-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+  background: var(--gl-background-color-strong);
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--radius-xl);
+  padding: var(--gl-spacing-2);
+  transition: border-color var(--transition-normal);
+}
+.gl-intelligence-card:hover {
+  border-color: var(--primary);
+}
+/* Sits ON the shell, like `.gl-home-stat-head` - no band, no divider; the inset
+   block below provides the separation. */
+.gl-intelligence-header {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin: var(--gl-spacing-3) var(--gl-spacing-4);
+  padding: 0;
+}
+.gl-intelligence-header h4 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.gl-intelligence-header svg { color: var(--primary); flex-shrink: 0; }
+.gl-intelligence-body {
+  background: var(--gl-background-color-default);
+  border-radius: var(--gl-card-border-radius);
+  padding: var(--gl-spacing-4);
+  flex-grow: 1;
+  min-height: 40px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+.gl-intelligence-body .gl-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.gl-intelligence-body .gl-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--gl-spacing-1) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.gl-intelligence-body .gl-stat-row:last-child { border-bottom: none; }
+.gl-contrib-bar-wrap {
+  width: 60px;
+  flex: 0 0 60px;
+}
+.gl-intelligence-body .gl-contrib-bar {
+  height: 6px;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  width: var(--progress, 0%);
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress) var(--motion-ease-standard);
+}
+/* A side card is small: an empty one keeps its art and its line and drops
+   the page-sized air. */
+.gl-intelligence-body > .table-empty-state {
+  padding: var(--gl-spacing-3) 0;
+}
+
+/* ============================================
+   ISSUES TO ADDRESS (structured compliance issue list)
+   ============================================ */
+.issues-summary-badges { display: inline-flex; gap: var(--gl-spacing-2); align-items: center; }
+
+/* Use the shared highlight ring when navigating to a member from Issues. */
+
+/* -- Legend row -- */
+.issues-chart-legend {
+  padding-bottom: var(--gl-spacing-3);
+  border-bottom: 1px dashed var(--border-color);
+}
+.issues-chart-legend__hint {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  color: var(--text-tertiary);
+  opacity: 0.8;
+}
+
+/* -- Canvas wrap -- */
+.issues-chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 280px; /* default - overridden by JS based on bar count */
+  padding: var(--gl-spacing-2) 0;
+  /* `contain: layout` isolates the canvas's layout from ancestors so
+     Chart.js resize cycles can't trigger a re-layout of the topbar,
+     breadcrumbs or the document body. */
+  contain: layout;
+  overflow: hidden;
+}
+.issues-chart-canvas-wrap > canvas {
+  /* Chart.js manages sizing with maintainAspectRatio:false.
+     Do NOT force height:100% - it creates a growth loop with the wrap. */
+  max-width: 100%;
+  display: block;
+}
+
+/* -- Detail panel (shown when user clicks a bar) -- */
+.issues-chart-detail {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  /* Flat surface, no stripe: the gradient and the heavy left edge were two
+     decorations on a panel whose content already says what it is. */
+  background: var(--surface-default);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+  box-shadow: var(--shadow-sm);
+}
+/* `display: flex` above overrides the browser default for [hidden], so
+   the empty panel would still claim ~40px of vertical space. Force it
+   back to display:none when hidden. */
+/* The FOURTH disclosure in the app, and the only one that could not animate:
+   it toggles the `hidden` ATTRIBUTE, and `display: none` is not an animatable
+   state on its own. Same treatment the dropdown panel got - `display` in the
+   transition with `allow-discrete`, plus `@starting-style` for the entrance - so
+   opening an issue slides in like every other panel instead of appearing whole.
+   Guarded by @supports: without it the panel just appears, as it does today. */
+.issues-chart-detail[hidden] { display: none; }
+@supports (transition-behavior: allow-discrete) {
+  .issues-chart-detail {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity var(--motion-duration-fast) var(--motion-ease-standard),
+                transform var(--motion-duration-fast) var(--motion-ease-standard),
+                display var(--motion-duration-fast) allow-discrete;
+  }
+  .issues-chart-detail[hidden] {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  @starting-style {
+    .issues-chart-detail:not([hidden]) {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .issues-chart-detail { transition: none; transform: none; }
+}
+.issues-chart-detail.issues-chart-detail--high { border-left-color: var(--chart-danger); }
+.issues-chart-detail.issues-chart-detail--med  { border-left-color: var(--chart-warning); }
+.issues-chart-detail.issues-chart-detail--low  { border-left-color: var(--chart-brand); }
+.issues-chart-detail__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding-right: calc(var(--gl-spacing-5) + 16px); /* room for close btn */
+}
+.issues-chart-detail__title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+.issues-chart-detail__stat {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+/* The shared close button, in the panel's corner. */
+.issues-chart-detail__close {
+  position: absolute;
+  top: var(--gl-spacing-3);
+  right: var(--gl-spacing-3);
+}
+.issues-chart-detail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--gl-spacing-2);
+}
+.issues-chart-detail__list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  background: var(--surface-default);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+.issues-chart-detail__list li:hover {
+  border-color: var(--primary);
+  /* Colour only on hover - GitLab's whole transition inventory carries no
+     transform outside animated icons (@gitlab/ui 136.3.0). The lift was
+     already removed from the course cards once; it survived here. */
+}
+.issues-chart-detail__list a {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  text-decoration: none;
+  display: inline-flex;
+  gap: var(--gl-spacing-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.issues-chart-detail__list a:hover {
+  color: var(--primary);
+}
+.issues-chart-detail__list a .muted {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+.issues-chart-detail__note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding: 0;
+  border: none;
+}
+
+/* -- Fallback list (noscript) -- */
+.issues-chart-fallback {
+  list-style: disc;
+  padding-left: var(--gl-spacing-4);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 576px) {
+  .issues-chart-legend__hint { display: none; }
+  .issues-chart-detail { padding: var(--gl-spacing-3); }
+  .issues-chart-detail__list { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,132 @@
+{% from "components/academic_period.html" import period_label, period_fields with context %}
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/modals.html" import modal %}
+{% from "components/forms.html" import text_input, select_field, textarea, checkbox with context %}
+{% from "components/badges.html" import badge %}
+{% from "components/import_helpers.html" import import_status_box, import_modal_footer %}
+{% from "components/_config_import_body.html" import config_import_body with context %}
+
+{#- The period a NEW course defaults to. The term the reader PICKED in the
+    period selector - a course created while looking at a chosen summer
+    belongs in that summer - and otherwise the TUKE calendar's, recomputed per
+    render. Not the term the page merely opened on: that is the newest term
+    with data, often last summer, and a new course belongs in the term the
+    calendar is in. Import and Create used to default to "summer" and "winter"
+    respectively. -#}
+{%- set _np = period_scope.selected if (period_scope and period_scope.explicit and period_scope.selected) else new_course_period() -%}
+{% if can_edit %}
+<!-- Import Course From GitLab Modal -->
+{% call modal('importGitlabCourseModal', t('Import from GitLab')) %}
+<form id="importGitlabCourseForm" data-submit-action="importGitlabCourse">
+  <p class="muted mb-3">{{ t('Paste any GitLab URL - group or single project. Groups, students, projects, and teacher mappings are imported automatically.') }}</p>
+  {{ text_input('group_url', label=t('GitLab URL (group or project)'), id='importGroupUrl', placeholder=gitlab_url ~ '/namespace/project-or-group', required=true, autocomplete='off') }}
+  {% set course_opts = [] %}
+  {#- Every active course of the reader, in any term - importing into last
+      summer's course must not require switching the page to last summer. -#}
+  {% for c in (import_target_courses if import_target_courses is defined else active_courses) %}
+    {% set _ = course_opts.append((c.id|string, c.code ~ ' - ' ~ c.name ~ ' (' ~ period_label(c.academic_year, c.semester) ~ ')')) %}
+  {% endfor %}
+  {{ select_field('target_course_id', label=t('Import Target'), options=course_opts, id='importTargetCourseId', placeholder=t('Create or match by code/year/semester'), help_text=t('Select an existing course to attach imported groups/students/projects to it.')) }}
+  <div id="importNewCourseFields">
+  {{ text_input('course_code', label=t('Course Code'), id='importCourseCode', placeholder=t('e.g., zsi'), autocomplete='off') }}
+  {{ text_input('course_name', label=t('Course Name'), id='importCourseName', placeholder=t('e.g., Software Engineering Basics'), autocomplete='off') }}
+  {#- Import alone offers finished terms: bringing in last summer's GitLab
+      group for its history is a real use, creating a new course in it is not. -#}
+  {{ period_fields({'period': 'importCoursePeriod', 'year': 'importAcademicYear', 'semester': 'importSemester', 'start': 'importCourseSemesterStart', 'end': 'importCourseSemesterEnd'}, _np.academic_year, _np.semester, past_terms=2, help_text=t('The term the course runs in. Finished terms are offered too, to import a past course for its history.')) }}
+  </div>
+  <p class="form-help form-help-import">
+    {{ t('Structure is auto-detected from GitLab: subgroups become groups, projects are linked automatically.') }}
+  </p>
+  <!-- Hidden fields - auto-detection handles these -->
+  <input type="hidden" id="importIncludeSubgroups" name="include_subgroups" value="true">
+  <input type="hidden" id="importOneTeamPerProject" name="one_team_per_project" value="false">
+  {{ checkbox('auto_sync', label=t('Auto-sync data after import'), checked=true, id='importAutoSync', help_text=t('Pulls issues, merge requests, comments, and pipelines right away.')) }}
+  {{ import_status_box() }}
+  {{ import_modal_footer() }}
+</form>
+{% endcall %}
+
+<!-- Create Course Modal -->
+{% call modal('createCourseModal', t('Create New Course')) %}
+<form id="createCourseForm" data-submit-action="createCourse">
+  {{ text_input('code', label=t('Course Code'), id='courseCode', placeholder=t('e.g., CS101'), required=true, autocomplete='off') }}
+  {{ text_input('name', label=t('Course Name'), id='courseName', placeholder=t('e.g., Introduction to DevOps'), required=true, autocomplete='off') }}
+  {{ textarea('description', label=t('Description'), id='courseDescription', rows=2, placeholder=t('Course description (visible to students)')) }}
+  {{ period_fields({'period': 'createCoursePeriod', 'year': 'academicYear', 'semester': 'semester', 'start': 'courseSemesterStart', 'end': 'courseSemesterEnd'}, _np.academic_year, _np.semester) }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'createCourseModal'}) }}
+    {{ btn(t('Create Course'), type='submit', id='createCourseBtn') }}
+  </div>
+</form>
+{% endcall %}
+
+<!-- Add Group Modal -->
+{% set _addTeamTitle %}{{ t('Add Group to') }} <span id="teamModalCourseName"></span>{% endset %}
+{% call modal('addTeamModal', _addTeamTitle) %}
+<form id="addTeamForm" data-submit-action="addTeam">
+  <input type="hidden" id="teamCourseId" name="course_id">
+  <div class="form-group">
+    <label class="form-label" for="teamGitLabUrl">{{ t('GitLab URL') }} {{ badge(t('Auto-fill'), variant='info', size='sm', class='ml-2') }}</label>
+    {{ text_input('gitlab_url', id='teamGitLabUrl', class='gitlab-url-input', placeholder=t('Paste GitLab group/project URL to auto-fill...'), help_text=t('Paste a GitLab URL to automatically fill group details'), autocomplete='off') }}
+  </div>
+  {{ text_input('name', label=t('Group Name'), id='teamName', placeholder=t('e.g., Group Alpha'), required=true, autocomplete='off') }}
+  {{ text_input('gitlab_namespace', label=t('GitLab Namespace'), id='gitlabNamespace', placeholder=t('e.g., group/subgroup'), help_text=t('Optional: GitLab group or namespace for the group'), autocomplete='off') }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'addTeamModal'}) }}
+    {{ btn(t('Add Group'), type='submit', id='addTeamBtn') }}
+  </div>
+</form>
+{% endcall %}
+
+<!-- Course Menu Modal -->
+{% call modal('courseMenuModal', t('Course Actions'), size='sm') %}
+<div class="p-05">
+  <input type="hidden" id="menuCourseId">
+  <input type="hidden" id="menuCourseCode">
+  <input type="hidden" id="menuCourseName">
+  <input type="hidden" id="menuCourseYear">
+  <input type="hidden" id="menuCourseSemester">
+  <input type="hidden" id="menuCourseStart">
+  <input type="hidden" id="menuCourseEnd">
+  <input type="hidden" id="menuCourseDescription">
+  {{ btn_icon(t('Edit Course'), 'edit', variant='secondary', class='btn-block ctx-item-start', data_attrs={'action': 'openEditCourseModal'}) }}
+  {{ btn_icon(t('Settings'), 'settings', variant='secondary', class='btn-block ctx-item-start', data_attrs={'action': 'goToSettings'}) }}
+  {% if feature_multi_tenant %}
+  {{ btn_icon(t('Transfer to New Semester'), 'copy', variant='secondary', class='btn-block ctx-item-start', data_attrs={'action': 'transferCourse', 'tippy-content': t('Opens the transfer wizard in course settings')}) }}
+  <hr class="ctx-separator">
+  {{ btn_icon(t('Archive Course'), 'archive', variant='secondary', class='btn-block ctx-item-danger', data_attrs={'action': 'archiveCourse', 'action-args': '["$event"]'}) }}
+  {% endif %}
+</div>
+{% endcall %}
+
+<!-- Edit Course Modal -->
+{% call modal('editCourseModal', t('Edit Course')) %}
+<form id="editCourseForm" data-submit-action="updateCourse">
+  <input type="hidden" id="editCourseId">
+  {{ text_input('code', label=t('Course Code'), id='editCourseCode', required=true, autocomplete='off') }}
+  {{ text_input('name', label=t('Course Name'), id='editCourseName', required=true, autocomplete='off') }}
+  {{ textarea('description', label=t('Description'), id='editCourseDescription', rows=3, placeholder=t('Course description...')) }}
+  {#- The same fields as Create: moving a course to another term moves its
+      dates with it, in the same save. Filled from the course by
+      openEditCourseModal. -#}
+  {{ period_fields({'period': 'editCoursePeriod', 'year': 'editCourseYear', 'semester': 'editCourseSemester', 'start': 'editCourseStart', 'end': 'editCourseEnd'}, '', '', start='', end='', help_text=t('Moving the course to another term moves its official dates with it; dates you set yourself stay.')) }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'editCourseModal'}) }}
+    {{ btn(t('Save Changes'), type='submit', id='editCourseBtn') }}
+  </div>
+</form>
+{% endcall %}
+
+<!-- Import Course from JSON Config Modal -->
+{% call modal('importConfigCourseModal', icon('upload', size='sm') ~ ' ' ~ t('Import Course from JSON'), size='lg') %}
+  {{ config_import_body(
+    prefix='importConfig',
+    upload_name='import_config',
+    description=t('Create or update a course from a full JSON configuration file. If a course with the same code, year, and semester exists it will be updated; otherwise a new course is created.'),
+    apply_label=t('Create & Apply Configuration'),
+    apply_id='btnImportConfigApply',
+    cancel_attrs={'modal-close': 'importConfigCourseModal'}
+  ) }}
+{% endcall %}
+{% endif %}

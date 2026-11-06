@@ -1,0 +1,519 @@
+{% from "components/layout.html" import json_island, page_config with context -%}
+{% from "components/preference_cookies.html" import preference_cookie_data -%}
+<!DOCTYPE html>
+<html lang="{{ current_locale|default('sk') }}"
+      dir="ltr"
+      data-locale="{{ current_locale|default('sk') }}"
+      data-theme-preference="{{ theme_preference|default('system') }}"
+      {{ preference_cookie_data(request|default(none)) }}
+      data-theme-persist-url="/dashboard/api/theme"
+      {# Offer the app's install card alongside the browser's native promotion. #}
+      data-custom-pwa-install="true"
+      {# The first-frame gate: the page stays invisible until the scripts that
+         finish it have run (theme-bootstrap.js lifts it one frame after
+         DOMContentLoaded). `blocking="render"` on the bundles below holds the
+         first paint for the HEAD scripts; this holds it for the rest - the
+         body-level page scripts, Alpine's start, the clock, every painter on
+         DOMContentLoaded - so the first thing a reader sees is the finished
+         page rather than the page and then everything that arrives on it. #}
+      data-gp-gate
+      {# Preferences that change how the whole document renders. They sit on
+         <html> rather than <body> so CSS can key off them before first paint,
+         the same reason data-theme-preference is here - a class added later by
+         script would repaint the layout in front of the reader. #}
+      data-accent="{{ accent_theme|default('default') }}"
+      data-syntax-theme="{{ syntax_theme|default('dark') }}"
+      data-layout-width="{{ layout_width|default('fixed') }}"
+      data-time-format="{{ time_format|default('system') }}"
+      data-first-day="{{ first_day_of_week|default('system') }}"
+      {# GitPulse's own two. The client reads these as the DEFAULT; a per-table
+         or per-device choice already in localStorage still wins. #}
+      data-page-size="{{ default_page_size|default('50') }}"
+      {% if sidebar_collapsed|default(false) %}data-sidebar-collapsed="1"{% endif %}
+      {# Preferences > Diffs. Emitted ONLY for the colours actually overridden -
+         an empty custom-property value is invalid CSS and would make the whole
+         declaration drop, taking the other colour with it. Both values are
+         validated server-side against /^#[0-9a-fA-F]{6}$/ before they get
+         here, which is what makes it safe to interpolate into a style. #}
+      {%- set _diff_style = [] -%}
+      {%- if diff_color_removed %}{% set _ = _diff_style.append('--gl-diff-color-removed: ' ~ diff_color_removed) %}{% endif -%}
+      {%- if diff_color_added %}{% set _ = _diff_style.append('--gl-diff-color-added: ' ~ diff_color_added) %}{% endif -%}
+      {%- if _diff_style %} style="{{ _diff_style|join('; ') }};"{% endif %}
+      {% if not use_relative_times|default(true) %}data-absolute-times="1"{% endif %}
+      data-period-default="{{ default_period|default('remembered') }}"
+      {% if not keyboard_shortcuts_enabled|default(true) %}data-no-shortcuts="1"{% endif %}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ t('Dashboard') }}{% endblock %} - GitPulse</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="{{ theme_color }}">
+
+  {# -- Google Search Console verification -- #}
+  <meta name="google-site-verification" content="mifdTXZP9fuj9e9chx_2f1S_hGfzMfyFsEd7oOY7iao">
+
+  {# -- SEO and Metadata -- #}
+  {% block seo %}
+    {% from "components/seo.html" import seo_meta %}
+    {{ seo_meta(
+      title=None,
+      description=t("GitPulse - GitLab Assessment & DevOps Platform"),
+      canonical_path=request.url.path if request is defined else None,
+      robots="noindex, nofollow, noarchive"
+    ) }}
+  {% endblock %}
+
+  {# SVG for browsers that take one, the multi-resolution .ico for the rest (and
+     for Google Search, which only reads /favicon.ico). Both are the app's own
+     tanuki mark - the same five paths and gradients as components/logo.html,
+     with the pulse drawn the way that logo draws it (white guard under a dark
+     core). The .ico is generated FROM the svg, so they cannot drift. #}
+  <link rel="icon" type="image/svg+xml" href="{{ static_url('favicon.svg') }}">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="manifest" href="{{ static_url('site.webmanifest') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('img/icons/apple-touch-icon.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GitPulse">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileImage" content="{{ static_url('img/icons/icon-144x144.png') }}">
+  <meta name="msapplication-TileColor" content="#0f1117">
+
+  {# -- DNS prefetch + preconnect for CDN origins (only needed on pages with vendor_head CDN deps) -- #}
+  {% block cdn_hints %}{% endblock %}
+
+  {# Preconnect to the GitLab origin - a resource hint only, so it cannot affect
+     rendering. The login CTA redirects there for OAuth, and authenticated pages
+     load user avatars + call its API, so warming DNS/TCP/TLS early shaves the
+     first round-trip off those. Origin comes from settings (gitlab_url global),
+     never hardcoded. #}
+  {% if gitlab_url %}
+  <link rel="preconnect" href="{{ gitlab_url }}">
+  <link rel="dns-prefetch" href="{{ gitlab_url }}">
+  {% endif %}
+
+  {# Resolve light/dark/system mode before CSS to prevent a wrong-theme flash. #}
+  <script nonce="{{ csp_nonce }}" src="{{ static_url('js/theme-bootstrap.js') }}"></script>
+
+  {# -- Self-hosted GitLab Sans, preloaded.
+        A preload was tried before and reverted because Chrome reported it
+        "preloaded but not used" - that warning is what a font preload WITHOUT
+        `crossorigin` always produces: a font is fetched in CORS mode, so the
+        anonymous preload lands in a different cache entry and the CSS request
+        misses it. With `crossorigin` it is reused, and the face is on screen
+        for the first paint.
+        It is not cosmetic. `font-display: swap` means the first frame is laid
+        out in the fallback metrics and re-laid-out in GitLab Sans, and GitLab
+        Sans is WIDER: measured on the dashboard, the courses toolbar grew from
+        610px to 664px when the face landed, no longer fitted beside the heading,
+        wrapped to its own line, and dropped everything below it by 33px
+        (CLS 0.0296 - the largest single shift left in the app).
+        Only the regular upright face is preloaded: italic and Mono are not on
+        the critical path (Mono appears in code blocks). -- #}
+  {# The href is the LITERAL path, not `static_url(...)`. A preload is matched to
+     a request by exact URL, and `fonts.css` asks for
+     `/static/fonts/GitLabSans.woff2` with no query - so a cache-busted
+     `...?v=9892dc17` here matched nothing, fetched the face a second time, and
+     produced Chrome's "preloaded but not used" on every page. The file is
+     immutable in practice (a new face gets a new name), which is why the
+     stylesheet references it unversioned in the first place. #}
+  <link rel="preload" href="/static/fonts/GitLabSans.woff2" as="font" type="font/woff2" crossorigin>
+
+  {# Without scripts the gate would never lift; show the page as it is. #}
+  <noscript><style nonce="{{ csp_nonce }}">html[data-gp-gate] body { visibility: visible !important; }</style></noscript>
+  {# -- Critical CSS bundle (single file, minified, built into dist/) -- #}
+  <link rel="preload" href="{{ static_url('styles.bundle.css') }}" as="style" fetchpriority="high">
+  <link rel="stylesheet" href="{{ static_url('styles.bundle.css') }}" fetchpriority="high">
+
+  {# -- Core framework scripts: ALL deferred so they never block parsing.
+
+     But `blocking="render"` on the bundle, the catalogue and Alpine: the first
+     frame WAITS for them to have executed. Every table whose rows paint from
+     an inlined island, every "selected" state a script sets, every x-for and
+     x-show, lands in that same deferred run - and measured locally the first
+     paint came 60-190ms BEFORE it (FCP ~200-260ms, DOMContentLoaded
+     ~260-450ms). So a reader saw the mode switcher with nothing selected, the
+     tables as headers over empty bodies and the pagination bars empty, and
+     then everything popped in: the "everything flashes on load" report.
+     Deferred scripts run in document order, so blocking on Alpine (the last
+     one that paints) covers every page bundle before it. A browser without
+     the attribute ignores it and behaves as before. -- #}
+  {# SEC-03: every script tag with nonce="{{ csp_nonce }}" carries the per-request CSP nonce so the strict
+     Report-Only policy with 'strict-dynamic' permits execution; without the
+     nonce a future enforced policy would block the bundle entirely. #}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/htmx-1.9.12.min.js') }}"></script>
+  {# Popper + Tippy must load before app bundle so initTooltips() finds window.tippy #}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/popper-2.11.8.min.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/tippy-6.3.7.min.js') }}"></script>
+  {# GSAP - the app's ONE animation engine (core/45-gsap-motion.js). Vendored, not
+     from a CDN: the CSP has no external script host. It MUST come before the app
+     bundle - deferred scripts run in document order, so a bundle that loads first
+     would find `window.gsap` undefined and fall back to its no-motion path. #}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/gsap-3.15.0.min.js') }}"></script>
+  {# App bundle MUST load before Alpine so Alpine components (glFormSelect etc.) are defined #}
+  <link rel="preload" href="{{ static_url('js/core.bundle.js') }}" as="script" nonce="{{ csp_nonce }}">
+  {# Alpine self-starts in a microtask the moment
+     its own script finishes executing - which is during the deferred-script phase,
+     BEFORE a page's {% block content %} factory scripts (e.g. course-teachers.js,
+     which lives in the body, not extra_scripts) have run. Their x-data components
+     were therefore unregistered at alpine:init, so a direct load / F5 / new tab
+     threw "Undefined variable: teacherManager" and rendered the component dead
+     (SPA navigation re-inits, so it was only ever visible on a cold load). Wrap
+     Alpine.start() the instant Alpine is assigned so it waits for DOMContentLoaded,
+     by which point EVERY deferred script (head extra_scripts AND body content) has
+     defined its factory. Alpine starts exactly once, so SPA nav is unaffected. #}
+  <script nonce="{{ csp_nonce }}">
+  (function () {
+    var domReady = false, started = false;
+    document.addEventListener('DOMContentLoaded', function () { domReady = true; }, { once: true });
+    Object.defineProperty(window, 'Alpine', {
+      configurable: true,
+      get: function () { return undefined; },
+      set: function (A) {
+        if (A && typeof A.start === 'function' && !A.__deferStart) {
+          var realStart = A.start.bind(A);
+          A.start = function () {
+            if (started) return;
+            started = true;
+            if (domReady || document.readyState === 'complete') { realStart(); }
+            else { document.addEventListener('DOMContentLoaded', realStart, { once: true }); }
+          };
+          A.__deferStart = true;
+        }
+        Object.defineProperty(window, 'Alpine', { configurable: true, writable: true, value: A });
+      }
+    });
+  })();
+  </script>
+  {# The guided tours - Driver.js (MIT, vendored, no CDN) and the tour engine
+     with its tours. Fetched by core.bundle.js once the page is idle, not on
+     the critical path: see _parts/core/49-tours.js. #}
+  <meta name="gp-tour-scripts" content="{{ static_url('vendor/driver.js/driver.js.iife.js') }} {{ static_url('js/tours.js') }}">
+  {# The translation catalogue: a content-hashed file the browser keeps, rather than 205KB inlined into every page. Deferred and placed BEFORE its consumer, so document order guarantees it is set first. #}
+  {% if i18n_catalog_url %}<script defer blocking="render" nonce="{{ csp_nonce|default('') }}" src="{{ i18n_catalog_url }}"></script>{% endif %}
+  <script defer blocking="render" nonce="{{ csp_nonce }}" src="{{ static_url('js/core.bundle.js') }}"></script>
+  {# -- Per-page vendor libraries (Chart.js for the pages that draw charts, Tom
+        Select, ...) come BEFORE the page bundles. Deferred scripts execute in
+        document order, and `_loadScriptsSeq` loads an in-app navigation's head
+        scripts in that same order - so a page's own code can count on its
+        library being defined. These two blocks sat at the very end of <head>,
+        after the page bundle: on a cold load every chart's init found `Chart`
+        undefined and waited for the `load` event, and on an in-app navigation
+        `load` never fires, so the User Role Breakdown, the score trend, the
+        skill profile and the checklist stayed empty until a hard refresh.
+        Chart.js is 73kB compressed and five of the eighteen pages need it,
+        which is why it is per page and not global. -- #}
+  {% block extra_head %}{% endblock %}
+  {% block vendor_head %}{% endblock %}
+  {# Page-specific scripts MUST load before Alpine so x-data component functions are defined #}
+  {% block extra_scripts %}{% endblock %}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/alpine-collapse-3.17.5.min.js') }}"></script>
+  <script defer blocking="render" nonce="{{ csp_nonce }}" src="{{ static_url('vendor/alpine-csp-3.17.5.min.js') }}"></script>
+
+  {# -- Flatpickr is loaded GLOBALLY: the themed, semester-week-aware date
+        picker is a system-wide component (initDatePickers upgrades every
+        .date-picker / .datetime-picker and any native date input on every page
+        + HTMX swap), so it must be available everywhere a date field can
+        appear - not just on the few pages that used to opt in. Deferred, so it
+        never blocks first paint. -- #}
+  <link rel="stylesheet" href="{{ static_url('vendor/flatpickr.min.css') }}">
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/flatpickr.min.js') }}"></script>
+
+  <meta name="csrf-token" content="{{ csrf_token|default('') }}">
+  <meta name="app-version" content="{{ build_hash }}">
+  {#- The term the calendar is in, for scripts that draw a period badge
+      (GP.periodBadgeHtml) - so a badge built in the browser highlights the
+      running term exactly like one rendered here. -#}
+  <meta name="gp-current-period" content="{{ current_period().key if current_period is defined else '' }}">
+  {# Teaching-week count for the date picker's semester week column (weeks
+     1..N are teaching weeks, anything after is the exam period S1, S2...). #}
+  <meta name="semester-weeks" content="{{ DEFAULT_SEMESTER_WEEKS }}">
+  {# The semester every date picker on this page numbers its weeks from. The
+     course in context wins; otherwise fall back to the running (or next)
+     semester of the TUKE FEI calendar, so a page with no course - the events
+     replay range, the create-course dialog - still shows the SAME week column
+     as everywhere else instead of a bare month grid. #}
+  {% set _sem_fallback = current_semester_start() if current_semester_start is defined else '' %}
+  {% if course %}
+  <meta name="course-id" content="{{ course.id }}">
+  {% endif %}
+  {% if course and course.settings and course.settings.semester_start_date %}
+  <meta name="semester-start" content="{{ course.settings.semester_start_date.isoformat() }}">
+  {% elif _sem_fallback %}
+  <meta name="semester-start" content="{{ _sem_fallback }}" data-source="calendar">
+  {% endif %}
+  {% if course and course.settings and course.settings.semester_end_date %}
+  <meta name="semester-end" content="{{ course.settings.semester_end_date.isoformat() }}">
+  {% endif %}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/locale-sync.js') }}"></script>
+</head>
+<body data-spa-nav="true">
+  {# Skip navigation - accessibility #}
+  <a href="#main-content" class="sr-only sr-only-focusable">{{ t('Skip to main content') }}</a>
+
+  {# GitLab-style sidebar navigation #}
+  {% from "components/sidebar.html" import sidebar with context %}
+  {{ sidebar(
+    active=nav_active|default('dashboard'),
+    user_role=user_role|default(''),
+    username=username|default(''),
+    is_admin=is_admin|default(false),
+    is_teacher=is_teacher|default(false),
+    current_locale=current_locale|default('sk'),
+    supported_locales=supported_locales|default([]),
+    current_path_with_query=current_path_with_query|default('/dashboard/')
+  ) }}
+
+  {% from "components/icons.html" import icon %}
+  {% from "components/buttons.html" import close_button %}
+  {# Top bar - global bar above sidebar+content area (like GitLab super-topbar) #}
+  {% from "components/header.html" import topbar with context %}
+  {{ topbar(
+    active=nav_active|default('dashboard'),
+    user_role=user_role|default(''),
+    username=username|default(''),
+    full_name=full_name|default(''),
+    is_admin=is_admin|default(false),
+    is_teacher=is_teacher|default(false),
+    avatar_url=avatar_url|default('')
+  ) }}
+
+  {# Page content wrapper (sits to the right of sidebar, below top bar) #}
+  <div class="gl-page" id="glPage">
+    {# Global Background Job Indicator - placed at the very top of the page
+       area, ABOVE the breadcrumb, so it's always fully visible in a fixed
+       slot with no overflow/z-index clipping. This matches how the courses
+       page renders correctly and eliminates lazy-shell races. #}
+    <div id="globalJobBar" class="global-job-bar" role="status" aria-live="polite" hidden>
+      <div class="global-job-bar-inner" id="globalJobContent">
+        {# Job items rendered dynamically #}
+      </div>
+    </div>
+
+    {# Global Health Status Banner - kept directly under the job bar so the
+       two top-of-page status strips stack as a single visual block instead
+       of being split by the breadcrumb. #}
+    <div id="healthGlobalBanner"
+         class="health-global-banner"
+         role="alert"
+         aria-live="assertive"
+         hidden>
+      <div class="health-global-banner-inner">
+        <span class="health-global-banner-icon" id="healthBannerIcon"></span>
+        <span class="health-global-banner-text" id="healthBannerText"></span>
+        <span class="health-global-banner-meta" id="healthBannerMeta"></span>
+        {{ close_button(t('Dismiss'), id='healthBannerDismiss', class='btn-on-filled health-global-banner-dismiss') }}
+      </div>
+    </div>
+
+    {% if observability_enabled %}
+    <div id="serviceNoticeBanner" class="gp-top-banner gp-top-banner--warning" role="status" aria-live="polite" hidden>
+      <div class="gp-top-banner-inner">
+        <span class="gp-top-banner-icon" aria-hidden="true">{{ icon('alert-triangle', size='sm') }}</span>
+        <span class="gp-top-banner-msg" id="serviceNoticeText"></span>
+        <a class="gp-top-banner-action" id="serviceNoticeAction" hidden></a>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Global slot for page-level status banners: the job bar, health/connection
+       strip, archived-course notice, stale-data warnings - all stacked together
+       like GitLab's broadcast bar instead of sitting inline in the content.
+
+       A page whose strip is known at render time fills `top_banners` and the
+       strip is IN this slot from the first byte. That is the only way it can not
+       move: the tail script below (which portals strips out of #main-content) is
+       parser-blocking, but on a 460 KB document Chromium has already painted
+       several frames by the time the parser reaches it - measured on the archived
+       course settings page, the slot went 0 -> 30px at t=278ms while the first
+       frame was at t=139ms, and the breadcrumb plus everything under it dropped
+       30px. That is the "on an archived course everything jumps" report.
+
+       Strips created at RUNTIME (dead token, stale data) and strips inside
+       lazily-loaded content still arrive through the JS portal in
+       core.bundle.js; it skips whatever is already here. Element-scoped empty
+       states (e.g. "not synced yet") are not marked and stay put. #}
+    <div id="globalBannerSlot">{% block top_banners %}{% endblock %}</div>
+
+    {# Content breadcrumb bar #}
+    <div class="gl-content-breadcrumb">
+      <nav class="gl-content-breadcrumb-nav" aria-label="{{ t('Breadcrumb') }}">
+        {% if breadcrumb_items is defined and breadcrumb_items %}
+          {# Template provided custom breadcrumbs #}
+          {% for crumb in breadcrumb_items %}
+            {% if not loop.last %}
+              <a href="{{ crumb.href }}">{{ crumb.label }}</a>
+              <span class="gl-content-breadcrumb-sep" aria-hidden="true">/</span>
+            {% else %}
+              <span class="gl-content-breadcrumb-current">{{ crumb.label }}</span>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          {# Default breadcrumb: SECTION then page, the way GitLab reads
+             ("Your work / Home"). The root used to be a fixed "Dashboard",
+             which on the dashboard itself produced "Dashboard > Dashboard" -
+             the same word twice. The root is now whichever sidebar section the
+             page lives in, so the crumb never repeats the page name. #}
+          {% set _admin_pages = ['users', 'courses', 'system', 'events'] %}
+          {% set _teaching_pages = ['my_courses', 'support_tickets'] %}
+          {% set _nav = nav_active|default('dashboard') %}
+          {% if is_admin|default(false) and _nav in _admin_pages %}
+            <a href="/dashboard/">{{ t('Administration') }}</a>
+          {% elif _nav in _teaching_pages %}
+            <a href="/dashboard/">{{ t('Teaching') }}</a>
+          {% else %}
+            <a href="/dashboard/">{{ t('Your work') }}</a>
+          {% endif %}
+          <span class="gl-content-breadcrumb-sep" aria-hidden="true">/</span>
+          {% set page_labels = {
+            'dashboard': t('Dashboard'),
+            'users': t('Users'),
+            'courses': t('Courses'),
+            'system': t('System'),
+            'events': t('Events'),
+            'my_courses': t('My Courses'),
+            'support': t('Support'),
+            'support_tickets': t('Support Tickets'),
+            'course': t('Course'),
+            'project': t('Project'),
+            'team': t('Group'),
+            'student': t('Student')
+          } %}
+          <span class="gl-content-breadcrumb-current">{{ page_labels.get(_nav, _nav|capitalize) }}</span>
+        {% endif %}
+      </nav>
+    </div>
+
+    {# Global Health Status Banner is rendered above (right under the
+       job bar) so both top-of-page status strips sit together. #}
+
+    {# Scrollable content area (like GitLab panel-content-inner) #}
+    <div class="gl-page-content gl-scrollbar">
+      {# `is-course-archived` on the content well from the SERVER, on every
+         course-scoped page. `#main-content` is the element the read-only guard
+         (core/48-archived-course.js) toggles the class on, but the guard runs after
+         the deferred core bundle - and the page HEADER actions (Add Group, Sync
+         All, Run Checks) live here in the shell, outside the `.gl-tab-content`
+         that `tab_content()` already marks. So on a full load or reload of an
+         archived course those buttons painted in their real colours under a
+         banner saying "read-only", and only greyed once the script ran. The
+         class from the server dims them on the first frame; the guard still
+         owns the tooltip, the click answer, and clearing the class after an SPA
+         swap to a page that is not archived. #}
+      <main id="main-content" class="main-container{% if course is defined and course and course.is_active is defined and not course.is_active %} is-course-archived{% endif %}" role="main">
+        {% block breadcrumb %}{% endblock %}
+        {# Flash messages from server #}
+        {% block flash_messages %}
+        {% with messages = get_flashed_messages(with_categories=true) if get_flashed_messages is defined %}
+          {% if messages %}
+            {% from "components/alerts.html" import alert %}
+            {% for category, message in messages %}
+              {{ alert(message, variant=category|replace('error','danger')|replace('message','info'), dismissible=true, auto_dismiss=5000 if category == 'success' else 0) }}
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% endblock %}
+        {% block content %}{% endblock %}
+
+        {# GitLab's page footer: a centred "Leave feedback | Documentation" pair
+           closing the content panel. It lives INSIDE #main-content so an SPA
+           navigation swap carries it along with the page - anything outside that
+           region would need explicit reconciliation.
+           The Dashboard sets page_footer = false: its sidebar already ends with
+           the "Support & suggestions" panel, so a second feedback link would
+           duplicate it. #}
+        {% if page_footer|default(true) %}
+        {% set docs_href = docs_url|default('/docs/') %}
+        <footer class="gl-page-footer">
+          <a href="/dashboard/support" class="gl-page-footer-link">{{ t('Leave feedback') }}</a>
+          <span class="gl-page-footer-sep" aria-hidden="true">|</span>
+          <a href="{{ docs_href }}" class="gl-page-footer-link" target="_blank" rel="noopener noreferrer">{{ t('Documentation') }}</a>
+        </footer>
+        {% endif %}
+      </main>
+    </div>
+
+  </div>
+
+  {# Page-level status strips (archived, stale data, dead token, ...) are
+     rendered inside the content, where the template has the context to decide
+     they apply, and belong at the TOP of the page. Moving them there from JS
+     that runs at DOMContentLoaded grows the slot AFTER the first paint: measured
+     on the course and analytics pages as the breadcrumb and everything under it
+     dropping 47px and the page settling back - "it all falls down for a moment
+     and jumps back".
+     This runs while the parser is still blocked, right after #main-content has
+     been parsed and before anything is painted, so the strip is already in the
+     slot for the FIRST frame. Lazily-loaded content still needs the JS portal in
+     core.bundle.js; it skips whatever is already in the slot. #}
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      var slot = document.getElementById('globalBannerSlot');
+      if (!slot) return;
+      var strips = document.querySelectorAll('#main-content .js-top-banner');
+      // Mark as portaled-from-content so the navigation reconciler can tell these
+      // apart from strips the server rendered straight into the slot block (which
+      // are reconciled by signature and must NOT be dropped on every nav).
+      for (var i = 0; i < strips.length; i++) { strips[i].setAttribute('data-portaled', '1'); slot.appendChild(strips[i]); }
+    })();
+  </script>
+
+  {# Modals render OUTSIDE .gl-page so they are not trapped by overflow
+     or stacking-context isolation.  Pages override this block.
+     Wrapped in #gp-modals so SPA navigation (which swaps only #main-content) can
+     replace the page-specific modals from the incoming response. #}
+  <div id="gp-modals">{% block modals %}{% endblock %}</div>
+
+  {# -- Shared confirmation dialog --
+     ONE styled dialog for every "are you sure?" in the app, replacing the raw
+     browser `window.confirm` / `window.prompt` that destructive actions used to
+     rely on: those are unthemed, ignore dark mode, cannot carry a danger accent
+     and read as if the page broke. Driven by GP.confirmDialog() (core/19-confirm-dialog.js).
+     Deliberately OUTSIDE #gp-modals so a navigation swap never removes it - it
+     belongs to the app, not to a page. #}
+  <div id="gpConfirmDialog" class="modal-backdrop" role="dialog" aria-modal="true"
+       aria-labelledby="gpConfirmDialog-title" data-action="closeModalOnBackdrop" data-action-args='["$event"]'>
+    <div class="modal modal-sm gp-confirm" role="document">
+      <div class="modal-header">
+        <h3 class="modal-title" id="gpConfirmDialog-title"></h3>
+        {{ close_button(class='modal-close', data_attrs={'gp-confirm': 'cancel'}) }}
+      </div>
+      <div class="modal-body">
+        <p class="gp-confirm-message" id="gpConfirmDialog-message"></p>
+        <div class="gp-confirm-typing d-none">
+          <label class="form-label" for="gpConfirmDialogInput"></label>
+          <input type="text" id="gpConfirmDialogInput" class="form-input" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-gp-confirm="ok"></button>
+        <button type="button" class="btn btn-secondary" data-gp-confirm="cancel">{{ t('Cancel') }}</button>
+      </div>
+    </div>
+  </div>
+
+  {% include "components/cookie_banner.html" %}
+
+  {# The illustrations a state built in JS leads with (GP.emptyStateHtml,
+     GP.errorStateHtml). Included from the same vendored files the macros use,
+     so there is one copy of each; inline because they colour themselves from
+     --gl-illustration-* variables an <img> could not see. #}
+  <template id="gpStateIllustrations">
+    {%- for name in ('status-nothing-sm', 'search-sm', 'chart-bar-sm', 'status-fail-sm') %}
+    <div data-illustration="{{ name }}">{% include 'components/illustrations/' ~ name ~ '.svg' %}</div>
+    {%- endfor %}
+  </template>
+
+  {# -- Runtime configuration (JSON data, not executable - no defer needed) -- #}
+  {{ json_island(i18n_client_config, csp_nonce, id='gp-i18n-config') }}
+  {# `userInfoModalUrl`: the User Info card renderer is fetched on demand by
+     core/12-user-info.js the first time that modal is opened, from any page.
+     The URL is handed over from here because static_url() resolves it to the
+     built, content-hashed file in dist/, a name JS cannot know. #}
+  {{ page_config({'userInfoModalUrl': static_url('js/user-info-modal.js')},
+                 csp_nonce, id='gp-base-config') }}
+
+  {# -- Application JS - now loaded in <head> before Alpine -- #}
+<div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

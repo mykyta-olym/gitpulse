@@ -1,0 +1,44 @@
+{
+  "name": "GitPulse - GitLab Assessment & DevOps Platform",
+  "short_name": "GitPulse",
+  "description": "Course management and student competency evaluation platform integrated with GitLab. Automated CI/CD checks, grading workflows, and real-time assessment insights.",
+  "start_url": "/dashboard/",
+  "scope": "/",
+  "id": "/dashboard/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#0f1117",
+  "theme_color": "#6366F1",
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/static/site.webmanifest",
+      "id": "https://gitpulse.kpi.fei.tuke.sk/dashboard/"
+    }
+  ],
+  "launch_handler": { "client_mode": "auto" },
+  "categories": ["education", "productivity", "developer tools"],
+  "icons": [
+    { "src": "/static/favicon.svg", "sizes": "any", "type": "image/svg+xml",     "purpose": "any" },
+    { "src": "/static/img/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png" },
+    { "src": "/static/img/icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png" },
+    { "src": "/static/img/icons/icon-128x128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "/static/img/icons/icon-144x144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "/static/img/icons/icon-152x152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "/static/img/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/img/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/static/img/icons/icon-384x384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "/static/img/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/img/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "url": "/dashboard/",
+      "icons": [{ "src": "/static/img/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ]
+}

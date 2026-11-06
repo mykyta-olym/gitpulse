@@ -1,0 +1,305 @@
+.skip-link {
+  transition: opacity 0.2s linear;
+  &:focus {
+    background-color: var(--gl-button-confirm-primary-background-color-focus);
+    border-radius: 4px;
+    border: 2px solid var(--gl-button-confirm-primary-border-color-focus);
+    clip: auto;
+    color: var(--gl-color-brand-white);
+    height: auto;
+    left: 2px;
+    opacity: 1;
+    overflow: visible;
+    padding: 0.5rem 1rem;
+    margin-left: 0.25rem;
+    position: fixed;
+    text-align: center;
+    white-space: normal;
+    width: 15rem;
+    z-index: 500;
+  }
+}
+
+/* Header navbar */
+.header-wrapper {
+  height: var(--header-height);
+  left: 0;
+  right: 0;
+  top: 0;
+  background-color: var(--gl-background-color-default);
+  @media (min-width: 992px) {
+    height: var(--header-height-lg);
+  }
+  .whats-new {
+    padding: .5rem .75rem;
+  }
+}
+.header {
+  background-color: var(--gl-background-color-default);
+  margin: auto;
+  max-width: var(--max-width);
+
+  @media (min-width: 1376px) {
+    padding: 0 2.5rem;
+    box-sizing: content-box;
+  }
+  .gl-search-box-by-type-input {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    @media (max-width: 991px) {
+      padding-right: .75rem;
+    }
+  }
+}
+.fluid .header {
+  max-width: 100%;
+}
+.header-top {
+  height: var(--header-height);
+}
+.header-top,
+.header-bottom {
+  @media (max-width: 1376px) {
+    padding: 0 2.5rem;
+  }
+  @media (max-width: 992px) {
+    padding: 0 1rem;
+  }
+}
+
+main {
+  padding-top: var(--header-height);
+}
+
+.navbar-logo {
+  background: url("../gitpulse-logo-header.svg") no-repeat left center;
+  color: var(--gl-text-color-default);
+  display: block;
+  height: 2rem;
+  width: 12.25rem;
+  flex-shrink: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--gl-focus-ring-outer-color);
+    outline-offset: 8px;
+    border-radius: 4px;
+  }
+}
+.gl-dark .navbar-logo {
+  background: url("../gitpulse-logo-footer.svg") no-repeat left center;
+}
+
+/* Home page only */
+.home main {
+  padding-top: 0;
+  .header {
+    height: auto;
+    background-color: transparent;
+  }
+  .header-wrapper {
+    height: auto;
+  }
+  .landing-div .navbar-logo {
+    filter: brightness(0) invert(1);
+  }
+}
+.collapsible-header-right-open main .landing-div .navbar-logo {
+  filter: none;
+}
+
+/* Taller header when the subheader is present */
+@media (min-width: 992px) {
+  .header {
+    height: var(--header-height-lg);
+  }
+  main {
+    padding-top: var(--header-height-lg);
+  }
+}
+
+.navbar-toggle {
+  border: 1px solid var(--gl-button-default-primary-border-color-default);
+  border-radius: 0.25rem;
+  padding: 0 1rem;
+
+  .navbar-toggle-icon {
+    background-color: var(--gl-button-default-primary-foreground-color-default);
+    mask-image: url("../gitlab_ui/svgs/hamburger.svg");
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: cover;
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+.header .search-results {
+  margin-top: 0.25rem;
+  border-radius: 0.25rem;
+  line-height: 1.6;
+}
+.header .gl-new-dropdown-panel {
+  width: var(--gl-spacing-scale-31) !important;
+}
+
+/* navbar small screens */
+@media (max-width: 991px) {
+  nav.header:has(.collapse.show) {
+    height: var(--header-mobile-open-height);
+  }
+  nav.header:has(.mobile-header-short):has(.collapse.show) {
+    height: calc(var(--header-mobile-open-height) - 3rem);
+  }
+  .mobile-header .header-right.collapse.show {
+    background-color: var(--gl-background-color-default);
+    left: 0;
+    overflow: visible;
+    padding: 1rem;
+    position: absolute;
+    right: 0;
+    top: var(--header-height);
+  }
+  /* makes dropdowns full width in mobile header */
+  .gl-new-dropdown-toggle {
+    width: 100%;
+  }
+  /* aligns dropdrown text to the left */
+  .gl-new-dropdown-toggle.gl-button {
+    padding-right: var(--gl-spacing-scale-3) !important;
+    padding-left: var(--gl-spacing-scale-3) !important;
+    display: flex;
+    justify-content: flex-start;
+    .gl-button-text {
+      flex: 1;
+    }
+  }
+  .mobile-header:has(.collapse.show) .mobile-header-overlay {
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - var(--header-height));
+    background-color: var(--gl-background-color-overlay);
+    transition: background-color 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .appearance-toggle.gl-new-dropdown .gl-button .gl-button-text .gl-new-dropdown-chevron {
+    margin-left: auto;
+  }
+}
+
+/* navbar at wide width */
+@media (min-width: 992px) {
+  /* Prevent layout shift by preserving space for Vue components */
+  .header-menus {
+    width: var(--header-width, 2.25rem); /* Default: just theme toggle */
+  }
+  .header-menus:has([data-vue-app="language-selector"]) {
+    --header-width: 5rem; /* Lang + Theme */
+  }
+  .header-menus:has([data-vue-app="versions-menu"]) {
+    --header-width: 7.5rem; /* Versions + Theme */
+  }
+  .header-menus:has([data-vue-app="versions-menu"]):has([data-vue-app="language-selector"]) {
+    --header-width: 10.25rem; /* All three */
+  }
+
+  .mobile-header .collapse {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    max-height: initial;
+    padding: 0.25rem;
+  }
+  .language-selector .gl-new-dropdown-toggle,
+  .appearance-toggle .gl-new-dropdown-toggle {
+    overflow-x: hidden;
+    width: 2.25rem;
+  }
+  .header .search-wrapper {
+    max-width: 40%;
+  }
+}
+.versions-menu {
+  .gl-disclosure-dropdown .gl-button.gl-button.btn-default,
+  .gl-disclosure-dropdown .gl-button.gl-button.btn-default .gl-icon,
+  .gl-disclosure-dropdown
+    .gl-button.gl-button.btn-default:active:focus
+    .gl-icon,
+  .gl-disclosure-dropdown .gl-button.gl-button.btn-default .gl-icon:active {
+    color: var(--gl-color-brand-white);
+  }
+  .gl-disclosure-dropdown .gl-button.gl-button.btn-default:focus,
+  .gl-disclosure-dropdown .gl-button.gl-button.btn-default:active {
+    border: 1px solid var(--gl-color-brand-white);
+  }
+  .gl-new-dropdown-contents > li:not(:first-child) {
+    border-top: 1px solid var(--gl-dropdown-border-color);
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
+  }
+}
+.cta-button {
+  white-space: nowrap;
+}
+
+/* Subheader */
+.subheader-menu a {
+  color: var(--gl-text-color-default);
+  position: relative;
+
+  &:focus-visible {
+    outline: 2px solid var(--gl-focus-ring-outer-color);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+}
+.subheader-menu a::after {
+  content: attr(title);
+  display: block;
+  font-weight: 700;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  visibility: hidden;
+}
+.subheader-menu a.active {
+  font-weight: 700;
+}
+/* Smaller font size to fit CJK links, which use wider glyphs than Latin scripts. */
+@media (max-width: 1110px) {
+  :lang(ja-jp) .subheader-menu,
+  :lang(ko-kr) .subheader-menu {
+    font-size: 0.75rem;
+  }
+}
+
+/* Dark mode */
+.gl-dark {
+  /* changes search icon to white */
+  .gl-search-box-by-type-search-icon.gl-fill-icon-subtle {
+    filter: brightness(0) invert(1);
+  }
+}
+
+
+
+/* The right-hand controls size to their contents.
+   Adding the language control made the row 32px wider than the space the
+   cluster had reserved, so the LAST item - the theme toggle - was pushed past
+   .header-right and clipped by its `overflow: hidden`. Measured: the toggle's
+   right edge at 1428 against a container ending at 1400. */
+.header-right .header-menus {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+}

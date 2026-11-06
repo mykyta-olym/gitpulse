@@ -1,0 +1,1 @@
+{{- $isPreRelease := partial "functions/is-pre-release-version.html" . -}}

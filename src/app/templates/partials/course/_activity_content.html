@@ -1,0 +1,235 @@
+{# The initial page and live refresh share these server-rendered components. #}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, stat_card, empty_state %}
+{% from "components/buttons.html" import btn_icon %}
+{% from "components/tables.html" import data_table, sortable_header, pagination_controls, table_controls %}
+{% from "components/alerts.html" import stale_data_banner %}
+{% from "components/layout.html" import page_config, filter_tabs with context %}
+
+{# Stale-data banner - surfaces when no snapshot exists for the current ISO week #}
+{# Archived course: read-only, so its data being old is expected rather than
+   actionable - and the archived strip above already says so. Same rule as
+   the Overview tab. #}
+{% set _course_archived = course is defined and course and not course.is_active %}
+{{ stale_data_banner(is_stale=data_is_stale|default(false) and not _course_archived, latest_snapshot_at=latest_snapshot_at|default(none), days_old=data_days_old|default(none), current_week_groups=current_week_groups|default(0), total_active_groups=total_active_groups|default(0), class='js-top-banner') }}
+
+<!-- Pipeline Health Overview -->
+{% set pipeline_title %}{{ t('CI/CD Health') }}{% endset %}
+{% set activity_actions %}{{ btn_icon(t('Refresh'), 'refresh-cw', variant='secondary', size='sm', id='btnRefreshActivity') }}{% endset %}
+{% call card(title=pipeline_title, icon_name='activity', id='activityHealthCard', header_actions=activity_actions,
+             info_tip=t('Counts each project\'s most recent pipeline by status. Running/Pending mean GitLab still reports them as executing. Without GitLab pipeline webhooks, these counts only refresh when the next sync re-fetches a finished status.')) %}
+    <div class="pipeline-overview-grid">
+      {% if pipeline_stats.passed + pipeline_stats.failed + pipeline_stats.running + pipeline_stats.pending + pipeline_stats.other > 0 %}
+      <div class="pipeline-chart-wrap">
+        <canvas id="pipelineDoughnut" role="img" aria-label="{{ t('Pipeline health chart') }}"></canvas>
+        <div class="pipeline-chart-center">
+          <span class="pipeline-chart-pct" id="pipelineHealthPct">{% if pipeline_stats.passed + pipeline_stats.failed > 0 %}{{ "%.0f"|format(pipeline_stats.passed / (pipeline_stats.passed + pipeline_stats.failed) * 100) }}%{% else %}-{% endif %}</span>
+          {# "Pass Rate" alone collides with the Checklist Pass Rate on
+             Analytics, which measures compliance rather than CI. Naming the
+             subject keeps the two numbers from reading as contradictory. #}
+          <span class="pipeline-chart-label"
+                data-tippy-content="{{ t('Share of finished CI pipelines that passed. This is about builds, not about compliance scoring - see Analytics for that.') }}">{{ t('Pipeline Pass Rate') }}</span>
+        </div>
+      </div>
+      {% else %}
+      {{ badge(t('No pipelines'), variant='muted') }}
+      {% endif %}
+      <div class="stats-grid stats-grid-5 pipeline-stats-compact">
+        {{ stat_card(t('Passed'), pipeline_stats.passed, icon_name='check-circle', state='success', value_id='actStatPassed', tooltip=t('CI pipelines that finished successfully across every project in this course.')) }}
+        {{ stat_card(t('Failed'), pipeline_stats.failed, icon_name='x-circle', state='danger', value_id='actStatFailed', tooltip=t('CI pipelines that finished with a failure. These are what students need to fix before merging.')) }}
+        {{ stat_card(t('Running'), pipeline_stats.running, icon_name='loader', state='info', value_id='actStatRunning', tooltip=t('Pipelines executing right now. This number moves on its own.')) }}
+        {{ stat_card(t('Pending'), pipeline_stats.pending, icon_name='clock', state='warning', value_id='actStatPending', tooltip=t('Pipelines queued but not started yet, usually waiting for a GitLab runner.')) }}
+        {{ stat_card(t('Total Projects'), projects|length, icon_name='folder', state='info', value_id='actStatProjects', tooltip=t('GitLab projects linked to this course. Every figure on this page is aggregated across them.')) }}
+      </div>
+    </div>
+{% endcall %}
+
+{# ONE card, two views. Group Activity and Recent Merge Requests are two
+   readings of the same thing - what happened in this course - so they share
+   one card and one view switcher, the way Configuration on System Settings
+   and the student's Issues card do (and the way GitLab's own Activity page
+   switches Push / Merge / Issue events on one strip). They were two cards
+   stacked, each with its own header, help tip and pagination bar; before that,
+   two half-width cards whose tables cut every cell to "...". The strip carries
+   `panels=true`, so each pill shows its own table (GP.initTabs) instead of
+   filtering one table's rows. #}
+{% set activity_title %}{{ t('Activity') }}{% endset %}
+{% set activity_views %}
+  {{ filter_tabs([
+       {'value': 'groups', 'label': t('Groups'), 'icon': 'users', 'badge': team_activity|length},
+       {'value': 'mrs', 'label': t('Merge requests'), 'icon': 'git-merge', 'badge': recent_mrs|length}
+     ], active='groups', aria_label=t('Activity view'), class='activity-view-filter', panels=true) }}
+{% endset %}
+{% call card(title=activity_title, icon_name='activity', class='activity-card',
+             info_tip=t('Groups: latest pipeline and merge request activity per group. Merge requests: a chronological feed across all projects in this course.')) %}
+  <div data-tabs id="activityViews">
+    {{ table_controls(filters=activity_views) }}
+    <div data-tab-panel="groups" id="tab-panel-groups">
+      {% if team_activity %}
+      <div data-paginator="groupActivityTable" data-page-size="25">
+      {% call data_table(headers=[], class='table-scrollable', sortable=true, id='groupActivityTable') %}
+          <colgroup>
+            <col class="col-activity-group">
+            <col class="col-activity-projects">
+            <col class="col-activity-pipeline">
+            <col class="col-activity-mrs">
+            <col class="col-activity-status">
+          </colgroup>
+          <thead>
+            <tr>
+              {{ sortable_header(t('Group'), 'team', default_sort='asc') }}
+              {{ sortable_header(t('Projects'), 'projects', sort_type='number') }}
+              <th>{{ t('Pipeline Health') }}</th>
+              {{ sortable_header(t('MRs'), 'mrs', sort_type='number') }}
+              {{ sortable_header(t('Status'), 'status') }}
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in team_activity %}
+            <tr data-team-id="{{ item.team.id }}">
+              <td>
+                <a href="/dashboard/teams/{{ item.team.id }}" class="font-weight-500">
+                  {{ item.team.name }}
+                </a>
+              </td>
+              <td class="text-nowrap">{{ item.project_count }}</td>
+              <td>
+                {% if item.pipeline_total > 0 %}
+                <div class="pipeline-health-cell" data-tippy-content="{{ t('Passed') }}: {{ item.pipeline_passed }} / {{ t('Failed') }}: {{ item.pipeline_failed }} / {{ t('Total') }}: {{ item.pipeline_total }}">
+                  <div class="pipeline-health-main">
+                    <div class="team-health-bar">
+                      {% set pass_pct = (item.pipeline_passed / item.pipeline_total * 100) if item.pipeline_total > 0 else 0 %}
+                      {% set fail_pct = (item.pipeline_failed / item.pipeline_total * 100) if item.pipeline_total > 0 else 0 %}
+                      <div class="passed" data-progress="{{ "%.1f"|format(pass_pct) }}"></div>
+                      <div class="failed" data-progress="{{ "%.1f"|format(fail_pct) }}"></div>
+                    </div>
+                    <div class="pipeline-health-counts">
+                      <span class="count-item"><span class="count-dot dot-passed"></span><span class="count-num">{{ item.pipeline_passed }}</span></span>
+                      <span class="count-item"><span class="count-dot dot-failed"></span><span class="count-num">{{ item.pipeline_failed }}</span></span>
+                    </div>
+                  </div>
+                  <span class="health-pct {{ 'health-success' if item.health_pct >= 80 else ('health-warning' if item.health_pct >= 50 else 'health-danger') }}">{{ item.health_pct }}%</span>
+                </div>
+                {% else %}
+                <span class="muted">{{ t('No pipelines') }}</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {{ badge(item.mr_count, variant='secondary') }}
+              </td>
+              <td class="text-nowrap">
+                {% if item.latest_status %}
+                  {% if item.latest_status == 'success' %}
+                  {{ badge(t('Passed'), variant='success') }}
+                  {% elif item.latest_status == 'failed' %}
+                  {{ badge(t('Failed'), variant='danger') }}
+                  {% elif item.latest_status == 'running' %}
+                  {{ badge(t('Running'), variant='info') }}
+                  {% elif item.latest_status == 'pending' or item.latest_status == 'created' %}
+                  {{ badge(t('Pending'), variant='warning') }}
+                  {% elif item.latest_status == 'canceled' %}
+                  {{ badge(t('Canceled'), variant='secondary') }}
+                  {% else %}
+                  {{ badge(item.latest_status|title, variant='secondary') }}
+                  {% endif %}
+                {% else %}
+                <span class="muted">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      {% endcall %}
+      </div>
+      {{ pagination_controls(id='groupActivityTablePaginationControls', total=team_activity | length, page_size=default_page_size | default('50')) }}
+      {% else %}
+      {% if is_student %}
+      {{ empty_state(t('No Group Activity Yet'), t('Activity from your group will appear here once data is synced from GitLab.'), illustration='empty-activity') }}
+      {% elif can_edit %}
+      {{ empty_state(t('No Group Activity Yet'), t('Sync course data from GitLab to see group activity here.'), illustration='empty-activity') }}
+      {% else %}
+      {{ empty_state(t('No group activity yet'), illustration='empty-activity') }}
+      {% endif %}
+      {% endif %}
+    </div>
+    <div data-tab-panel="mrs" id="tab-panel-mrs" hidden>
+      {% if recent_mrs %}
+      <div data-paginator="recentMrsTable" data-page-size="50">
+      {% call data_table(headers=[], class='table-scrollable', sortable=true, id='recentMrsTable') %}
+          <colgroup>
+            <col class="col-mr-icon">
+            <col class="col-mr-title">
+            <col class="col-mr-project">
+            <col class="col-mr-date">
+            <col class="col-mr-state">
+          </colgroup>
+          <thead>
+            <tr>
+              <th></th>
+              {{ sortable_header(t('Merge Request'), 'mr') }}
+              {{ sortable_header(t('Project'), 'project') }}
+              {{ sortable_header(t('Date'), 'date') }}
+              {{ sortable_header(t('State'), 'state') }}
+            </tr>
+          </thead>
+          <tbody>
+            {% for mr in recent_mrs %}
+            <tr data-search="{{ mr.title }} {{ mr.project_name }} {{ mr.iid }}">
+              <td class="text-center">
+                <span class="status-dot {{ 'success' if mr.state == 'merged' else ('danger' if mr.state == 'closed' else 'info') }}" data-tippy-content="{{ mr.state|title }}"></span>
+              </td>
+              <td>
+                <a href="{{ gitlab_url }}/{{ mr.project_path }}/-/merge_requests/{{ mr.iid }}" target="_blank" rel="noopener noreferrer" class="font-weight-500" data-tippy-content="{{ mr.title }}">
+                  !{{ mr.iid }} {{ mr.title or t('Untitled') }}
+                </a>
+              </td>
+              <td>{{ mr.project_name }}</td>
+              <td class="text-nowrap" data-sort-value="{{ mr.merged_at.isoformat() if mr.merged_at else (mr.created_at.isoformat() if mr.created_at else '') }}">
+                {% if mr.merged_at %}
+                {{ local_time(mr.merged_at, fmt='%b %d, %H:%M') }}
+                {% elif mr.created_at %}
+                {{ local_time(mr.created_at, fmt='%b %d, %H:%M') }}
+                {% else %}
+                <span class="muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if mr.state == 'merged' %}
+                {{ badge(t('Merged'), variant='success') }}
+                {% elif mr.state == 'closed' %}
+                {{ badge(t('Closed'), variant='danger') }}
+                {% else %}
+                {{ badge(t('Open'), variant='info') }}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      {% endcall %}
+      </div>
+      {{ pagination_controls(id='recentMrsTablePaginationControls', total=recent_mrs | length, page_size=default_page_size | default('50')) }}
+      {% else %}
+      {% if is_student %}
+      {{ empty_state(t('No Recent Merge Requests'), t('Merge requests from your group will appear here after they are created in GitLab.'), illustration='empty-merge-requests') }}
+      {% elif can_edit %}
+      {{ empty_state(t('No Recent Merge Requests'), t('No merge requests were found in any linked project. Students have not created any merge requests yet.'), illustration='empty-merge-requests') }}
+      {% else %}
+      {{ empty_state(t('No recent merge requests'), illustration='empty-merge-requests') }}
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+{% endcall %}
+
+{{ page_config({
+  'courseId': course.id | string,
+  'courseName': course.name,
+  'pipelineStats': {
+    'passed': pipeline_stats.passed,
+    'failed': pipeline_stats.failed,
+    'running': pipeline_stats.running,
+    'pending': pipeline_stats.pending,
+    'other': pipeline_stats.other,
+  },
+}, csp_nonce, id='gp-course-activity-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/course-activity.js') }}"></script>

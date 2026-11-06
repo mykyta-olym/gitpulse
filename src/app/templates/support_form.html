@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ t('GitPulse Support') }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "partials/support/_course_table.html" import support_course_table with context %}
+{% from "components/academic_period.html" import period_badge with context %}
+{% set nav_active = 'support' %}
+
+{#- A request for an archived course is a real one (last summer's grade) and
+    reaches its teachers - but the reader should know which course that is,
+    not tell it by a grey badge alone. -#}
+{% block top_banners %}{% with course = selected_course, archived_note = t('support requests still reach its teachers') %}{% include "partials/course/_archived_banner.html" %}{% endwith %}{% endblock %}
+
+{# -- Category definitions (GitHub-style) -- #}
+{% set platform_features = [
+  ('dashboard', t('Dashboard'), 'bar-chart-2'),
+  ('cicd', t('CI/CD Pipeline'), 'git-branch'),
+  ('code_review', t('Code Reviews'), 'git-pull-request'),
+  ('evaluation', t('Evaluations'), 'check-square'),
+  ('repositories', t('Repositories'), 'folder'),
+] %}
+
+{% set situations = [
+  ('bug', t('Bug Report'), t("Something isn't working as expected"), 'alert-circle'),
+  ('feature_request', t('Feature Request'), t('Suggest a new feature or improvement'), 'zap'),
+  ('account', t('Account Issues'), t('Login, access, or permission problems'), 'user'),
+  ('grade', t('Grade Inquiry'), t('Questions about grades or evaluations'), 'award'),
+] %}
+
+{% set all_category_labels = {
+  'dashboard': t('Dashboard Issue'), 'cicd': t('CI/CD Pipeline'), 'code_review': t('Code Reviews'),
+  'evaluation': t('Evaluations'), 'repositories': t('Repositories'),
+  'bug': t('Bug Report'), 'feature_request': t('Feature Request'), 'account': t('Account Issues'),
+  'grade': t('Grade Inquiry'), 'general': t('General Request'), 'question': t('Question')
+} %}
+
+{% block content %}
+
+  {# -- STEP 1: the course the request is about --
+     The reader's courses as the table Support Tickets opens with - the same
+     component, the same period selector and Status filter - counting the
+     reader's OWN requests: a student sees at a glance that last week's question
+     is still waiting before writing it again. It was a list of cards, archived
+     courses in a collapsible card. #}
+  {% if not selected_course %}
+
+  {{ page_header(t('Select a Course'), t('Choose the course you would like to submit a support request for')) }}
+  {% if user_courses %}
+  {{ support_course_table('supportCoursesTable', support_courses if support_courses is defined else user_courses, my_ticket_stats, period_scope, '/dashboard/support', mine=true) }}
+  {% else %}
+  {{ empty_state(
+       title=(t('You are not enrolled in any courses yet.') if is_student else t('No courses found. Import or create a course to collect support requests.')),
+       illustration='empty-issues',
+       action_text=t('Back to Dashboard'),
+       action_href='/dashboard/'
+  ) }}
+  {% endif %}
+
+  {% elif not selected_category %}
+  {# -- STEP 2: Category Selection (GitHub-style grid) -- #}
+
+  {{ page_header(t('What do you need help with?'), selected_course.code ~ ' - ' ~ selected_course.name, back_link='/dashboard/support', back_text=t('Back to Courses'), badge=period_badge(selected_course.academic_year, selected_course.semester, current=is_current_period(selected_course.academic_year, selected_course.semester))) }}
+
+  {# -- Platform Features (3-col compact grid like GitHub's Popular products) -- #}
+  <div class="gh-section" data-tour="support-platform-features">
+    <h2 class="gh-section-title">{{ t('Platform Features') }}</h2>
+    <div class="gh-products-grid">
+      {% for cat_id, cat_label, cat_icon in platform_features %}
+      <a href="/dashboard/support?course_id={{ course_id }}&category={{ cat_id }}" class="gh-product-card">
+        <div class="gh-product-icon {{ cat_id }}">
+          {{ icon(cat_icon) }}
+        </div>
+        <span class="gh-product-name">{{ cat_label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# -- Situations (descriptive cards like GitHub's Situations) -- #}
+  <div class="gh-section" data-tour="support-situations">
+    <h2 class="gh-section-title">{{ t('Situations') }}</h2>
+    <div class="gh-situations-list">
+      {% for cat_id, cat_label, cat_desc, cat_icon in situations %}
+      <a href="/dashboard/support?course_id={{ course_id }}&category={{ cat_id }}" class="gh-situation-card">
+        <div class="gh-situation-icon {{ cat_id }}">
+          {{ icon(cat_icon) }}
+        </div>
+        <div class="gh-situation-info">
+          <h3>{{ cat_label }}</h3>
+          <p>{{ cat_desc }}</p>
+        </div>
+        {{ icon('chevron-right', size='sm', class='gh-situation-arrow') }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# -- Something else? -- #}
+  <a href="/dashboard/support?course_id={{ course_id }}&category=general" class="gh-something-else" data-tour="support-something-else">
+    {{ t('Something else?') }} {{ icon('chevron-right', size='xs') }}
+  </a>
+
+  {% else %}
+  {# -- STEP 3: Ticket Form (GitHub-style with markdown editor) -- #}
+
+  {% include 'partials/support/_form_content.html' %}
+  {% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/markdown-helpers.js') }}"></script>
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/support-form.js') }}"></script>
+{% endblock %}

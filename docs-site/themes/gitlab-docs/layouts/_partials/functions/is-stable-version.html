@@ -1,0 +1,19 @@
+{{/*
+  Determine if a string is a valid site version
+
+  This is used to check if a Git branch name is
+  referencing a GitLab version.
+
+  @param dict
+    $version string
+
+  @return string
+    "true" if this is a stable version, "false" if not
+*/}}
+
+{{- $stableVersionRegex := `^\d{1,2}\.\d{1,2}$` -}}
+{{- if findRE $stableVersionRegex .version -}}
+  {{- "true" -}}
+{{- else -}}
+  {{- "false" -}}
+{{- end -}}

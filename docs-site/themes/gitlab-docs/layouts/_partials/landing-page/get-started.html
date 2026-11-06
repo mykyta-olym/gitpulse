@@ -1,0 +1,35 @@
+<!-- Grab get-started.yaml from current site language, falling back to the site default. -->
+{{ $getStartedData := index .Site.Data .Lang "get-started" }}
+{{ if not $getStartedData }}
+  {{ $getStartedData = index .Site.Data site.Params.defaultLang "get-started" }}
+{{ end }}
+
+<!-- Render card for each get started content page in get-started.yaml -->
+<section class="get-started">
+  <div class="container">
+    <h2 id="get-started" class="title gl-mt-0 gl-py-0">
+      {{ T "get-started.mainTitle" }}
+    </h2>
+    <p class="subtitle gl-mt-6 mb-0">
+      {{ T "get-started.mainSubtitle" }}
+    </p>
+    <div class="gl-grid gl-pt-8">
+      {{ range $getStartedData }}
+        {{ $url := .url}}
+        {{ with $.Site.GetPage $url }}
+          <!-- If page title is missing or if there's a redirect_to link, don't render the card -->
+          {{ if and (ne .Title "") (not .Params.redirect_to)}}
+            <a href="{{ relLangURL "" }}{{ $url }}">
+              <div class="card gl-rounded-lg gl-h-full">
+                <div class="card-body">
+                  <h3 class="card-title gl-my-0 gl-pb-2 gl-max-w-none">{{ .Title }}</h3>
+                  <p class="card-text !gl-mt-0">{{ .Description }}</p>
+                </div>
+              </div>
+            </a>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+</section>

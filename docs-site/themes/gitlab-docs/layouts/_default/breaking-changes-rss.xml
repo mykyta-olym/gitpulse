@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>GitLab Breaking Changes</title>
+  <id>{{ .Site.BaseURL }}update/deprecations/</id>
+  <link href="{{ .Site.BaseURL }}update/deprecations/" rel="alternate"/>
+  <link href="{{ .Site.BaseURL }}releases/breaking-changes.xml" rel="self" type="application/atom+xml"/>
+  <subtitle>Receive notifications of upcoming changes to GitLab that may affect your team's workflow.</subtitle>
+  <author>
+    <name>The GitLab Team</name>
+  </author>
+  {{- $breakingChanges := where .Site.Data.deprecations.deprecations "breaking_change" true -}}
+  {{- $dated := slice -}}
+  {{- range $breakingChanges -}}
+    {{- if .announcement_date -}}
+      {{- $dated = $dated | append . -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $sorted := sort $dated "announcement_date" "desc" -}}
+  {{- if gt (len $sorted) 0 }}
+  <updated>{{ (index $sorted 0).announcement_date | time.AsTime | dateFormat "2006-01-02T15:04:05Z07:00" }}</updated>
+  {{- else }}
+  <updated>{{ now | dateFormat "2006-01-02T15:04:05Z07:00" }}</updated>
+  {{- end }}
+  {{- range $sorted }}
+  {{- $itemLink := "" -}}
+  {{- if .issue_url -}}
+    {{- $itemLink = .issue_url -}}
+  {{- else if .documentation_url -}}
+    {{- $itemLink = .documentation_url -}}
+  {{- else -}}
+    {{- $itemLink = printf "%supdate/deprecations/#%s" $.Site.BaseURL (anchorize .title) -}}
+  {{- end }}
+  {{- $entryDate := .announcement_date | time.AsTime | dateFormat "2006-01-02T15:04:05Z07:00" }}
+  <entry>
+    <title>{{ .title | plainify }}</title>
+    <link href="{{ $itemLink }}" rel="alternate"/>
+    <id>{{ $itemLink }}</id>
+    <published>{{ $entryDate }}</published>
+    <updated>{{ $entryDate }}</updated>
+    <content type="html"><![CDATA[{{ .body | markdownify | replaceRE "]]>" "]]]]><![CDATA[>" | safeHTML }}]]></content>
+  </entry>
+  {{- end }}
+</feed>

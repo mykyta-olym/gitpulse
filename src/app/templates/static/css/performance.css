@@ -1,0 +1,116 @@
+/* ============================================
+   PERFORMANCE - Layout containment & paint optimization
+   ============================================
+   These CSS properties tell the browser it can skip layout/paint
+   calculations for off-screen or isolated sections.
+   ============================================ */
+
+/* -- Layout containment for major structural sections --
+   NOTE: contain:layout style removed from .gl-page, .gl-page-content,
+   .gl-content-breadcrumb - these created formatting contexts that
+   prevented :nth-child() <td> background from painting correctly
+   when combined with animations or wide horizontal scroll. */
+
+/* -- Content-visibility for sections below the fold --
+   NOTE: content-visibility:auto removed from main.main-container -
+   it created an implicit contain:layout-style-paint boundary that
+   prevented <td> backgrounds from resolving correctly inside tables.
+   Keep the intrinsic size hint so layout-shift avoidance still works
+   if we re-enable content-visibility in the future. */
+main.main-container {
+  contain-intrinsic-size: auto 800px;
+}
+
+.toast-container {
+  contain: style;
+}
+
+/* Note: `contain: layout` was previously set on `.global-job-bar` but
+   it combined poorly with position: sticky / overflow in the scrolling
+   ancestor and caused the bar to render vertically clipped during HTMX
+   page transitions. The bar is now in normal flow and does not need a
+   containment hint. */
+
+/* -- Reduce paint areas with isolation -- */
+.gl-modal-overlay,
+.toast-container {
+  isolation: isolate;
+}
+
+/* -- Optimize scrollable areas -- */
+.gl-page-content.gl-scrollbar {
+  overflow-anchor: auto;
+  overscroll-behavior: contain;
+}
+
+/* -- Reduce scroll jank on fast-scroll --
+   `content-visibility: auto` is deliberately NOT applied to Chart.js canvases:
+   skipping/unskipping a rasterized canvas as it crosses the viewport made the
+   chart visibly blink and re-animate on every scroll (the role-breakdown /
+   issues "blink" report). `contain: layout` still isolates the chart's layout
+   without the unrender flicker. */
+.chart-canvas-wrap,
+.chart-container > canvas {
+  contain: layout;
+}
+
+/* -- Reduce motion - defined in animations.css (kept here for scroll-behavior) -- */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* -- Safe-area insets for notched / rounded-corner devices -- */
+.gl-sidebar {
+  padding-left: env(safe-area-inset-left);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.gl-page-content {
+  /* Browser toolbars are already outside the viewport. Only the real safe
+     area contributes to spacing, including browsers without dynamic units. */
+  --page-bottom-gutter: max(env(safe-area-inset-bottom, 0px), var(--gl-spacing-3));
+  padding-right: env(safe-area-inset-right);
+}
+/* The inset ADDS to the bar's own padding. Setting padding-left/right to a bare
+   env() replaced it, and env() is 0 on a desktop display, so the brand ended up
+   flush against x=0 instead of GitLab's 12px. */
+.gl-top-bar {
+  padding-left: max(var(--gl-spacing-4), env(safe-area-inset-left));
+  padding-right: max(var(--gl-spacing-3), env(safe-area-inset-right));
+}
+.toast-container {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Modal footer: ensure safe-area-inset-bottom on standalone PWA so the Run
+   button (or any sticky footer) never hides behind system navigation. */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .modal-footer,
+  .modal-body > .modal-footer,
+  .modal-body > form > .modal-footer,
+  .rcm-footer {
+    padding-bottom: max(var(--gl-spacing-4), env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* -- Touch-action: disable 300ms tap delay on interactive elements -- */
+a,
+button,
+[role="button"],
+input,
+select,
+textarea,
+label,
+.sortable-header,
+.pagination-page,
+.check-filter-btn {
+  touch-action: manipulation;
+}
+/* Allow natural pan on scrollable containers */
+.gl-scrollbar,
+.gl-sidebar-body,
+.gl-page-content,
+.data-table-container {
+  touch-action: pan-x pan-y;
+}

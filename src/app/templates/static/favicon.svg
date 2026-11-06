@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="7 7 34 34">
+  <!-- THE app's own mark, not a redrawing of it.
+       The five tanuki paths and the five gradients below are copied verbatim
+       from components/logo.html, and the ECG is drawn the way that logo draws
+       it: a white guard stroke with a dark core on top. The version this
+       replaced invented a 2.6-wide SOLID GREEN line - a colour the mark uses
+       nowhere else - which at a 16px tab size covered the face and left an
+       orange blob with a green scribble through it.
+
+       Stroke widths are the logo's ratio (guard 2.4 / core 1.2 in a 48 box)
+       re-scaled for this tighter 34-unit box and for the fact that a tab icon
+       is rasterised at 16px: below ~1.6 units the core disappears entirely.
+       The blue halo the large logo carries is dropped - at 16px it is one
+       sub-pixel of blur around a line that is already thin.
+
+       Tight viewBox: the mark's paths span 6..42 in a 0 0 48 48 canvas, so a
+       quarter of it was padding and the icon rendered at ~12px inside its 16px
+       slot. `7 7 34 34` matches the ink coverage of GitLab's own favicon at
+       16px (66% of the canvas). -->
+  <defs>
+    <linearGradient id="gpFavCenter" x1="18" y1="19" x2="31" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff7a00"/><stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpFavLeftEar" x1="11" y1="6" x2="18" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fc6d26"/><stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpFavRightEar" x1="37" y1="6" x2="31" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fc6d26"/><stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpFavLeftCheek" x1="6" y1="27" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fca326"/><stop offset="100%" stop-color="#fc6d26"/>
+    </linearGradient>
+    <linearGradient id="gpFavRightCheek" x1="42" y1="27" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fca326"/><stop offset="100%" stop-color="#fc6d26"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Tanuki - identical paths to components/logo.html -->
+  <path d="M6 27.4152L17.9932 18.9935L23.9627 42Z" fill="url(#gpFavLeftCheek)"/>
+  <path d="M42 27.4152L30.9661 18.9935L23.9627 42Z" fill="url(#gpFavRightCheek)"/>
+  <path d="M11.0151 6L17.9932 18.9935L6 27.4152Z" fill="url(#gpFavLeftEar)"/>
+  <path d="M36.9957 6L30.9661 18.9935L42 27.4152Z" fill="url(#gpFavRightEar)"/>
+  <path d="M17.9932 18.9935H30.9661L23.9627 42Z" fill="url(#gpFavCenter)"/>
+
+  <!-- The pulse, as the logo draws it: guard under core. Same path data. -->
+  <path d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none"
+        stroke="#ffffff" stroke-opacity="0.92" stroke-width="3.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none"
+        stroke="#18171d" stroke-opacity="0.9" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,52 @@
+{% from "components/forms.html" import csrf_field, language_selector with context %}
+{% from "components/preference_cookies.html" import preference_cookie_data %}
+<!DOCTYPE html>
+<html lang="{{ current_locale|default('sk') }}" data-locale="{{ current_locale|default('sk') }}" data-color-scheme-lock="light" {{ preference_cookie_data(request|default(none)) }}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="{{ theme_color }}">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ t('Logging out') }} - GitPulse</title>
+  <link rel="icon" type="image/svg+xml" href="{{ static_url('favicon.svg') }}">
+  {# Preload the backdrop only where it is painted (>=768px); the mobile sheet
+     uses background-image:none, so an unconditional preload triggers the
+     "preloaded but not used" console warning. #}
+  {# The URL must match the stylesheet byte for byte: it requests the plain
+     path, so a versioned preload here is a second, unused download. #}
+  <link rel="preload" href="/static/img/keycloak-bg.png" as="image" fetchpriority="high" media="(min-width: 768px)">
+  <script nonce="{{ csp_nonce }}" src="{{ static_url('js/theme-bootstrap.js') }}"></script>
+  <link rel="preload" href="{{ static_url('styles.bundle.css') }}" as="style" fetchpriority="high">
+  <link rel="stylesheet" href="{{ static_url('styles.bundle.css') }}" fetchpriority="high">
+  <link rel="stylesheet" href="{{ static_url('css/login.css') }}">
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/dropdowns.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/cookies.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/locale-sync.js') }}"></script>
+</head>
+<body class="login-page auth-status-page">
+  <main>
+    <div class="login-shell-header">
+      <div class="login-brand-block">
+        <h1 class="login-brand-title">GitPulse</h1>
+      </div>
+    </div>
+
+    <div class="login-container">
+      <div class="login-card logout-card">
+        <h2 class="login-heading">{{ t('Logging out') }}</h2>
+        <p class="logout-prompt">{{ t('Do you want to log out?') }}</p>
+        <form method="post" action="/dashboard/logout" class="logout-form">
+          {{ csrf_field() }}
+          <button type="submit" class="btn-signin">{{ t('Logout') }}</button>
+        </form>
+        <a href="/dashboard/" class="logout-cancel">{{ t('Cancel') }}</a>
+        <div class="login-lang-switch">
+          {{ language_selector(supported_locales|default([]), current_locale|default('sk'), '/dashboard/logout', variant='auth') }}
+        </div>
+      </div>
+    </div>
+  </main>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/pages/logout.js') }}"></script>
+</body>
+</html>

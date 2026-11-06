@@ -1,0 +1,174 @@
+groups:
+  - name: gitpulse
+    rules:
+      - alert: QueueStuck
+        expr: rq_queue_depth > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RQ queue depth is high ({{ $labels.queue_name }}: {{ $value }})"
+          description: "Queue {{ $labels.queue_name }} has more than 50 pending jobs for 5+ minutes."
+
+      - alert: HighFailureRate
+        expr: rate(webhook_events_processed_total{status="error"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High webhook processing failure rate ({{ $value | humanize }}/s)"
+          description: "More than 0.1 errors/sec processing {{ $labels.event_type }} events."
+
+      - alert: ApiDown
+        expr: up{job="gitpulse-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GitPulse API is down"
+          description: "Prometheus cannot scrape the API /metrics endpoint."
+
+      - alert: HighProcessingLatency
+        expr: histogram_quantile(0.95, rate(webhook_processing_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 webhook processing latency is high ({{ $value | humanize }}s)"
+          description: "95th percentile processing time exceeds 10 seconds."
+
+      - alert: WorkerDown
+        expr: rq_workers_active == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No active RQ workers"
+          description: "All background workers are offline. Jobs will not be processed."
+
+      - alert: DBPoolExhausted
+        expr: db_pool_checked_out / db_pool_size > 0.9
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool >90% utilized"
+          description: "{{ $value | humanizePercentage }} of DB pool connections are in use."
+
+      # Summed first: series by series, a 5xx series divided by itself is 1, so
+      # a single error read as 100 %.
+      - alert: HighHTTPErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx error rate >5%"
+          description: "{{ $value | humanizePercentage }} of requests are returning 5xx errors."
+
+      - alert: RQFailedJobsHigh
+        expr: sum(increase(rq_job_failures_total[1h])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RQ execution errors ({{ $value }} in the last hour)"
+          description: "More than 5 execution errors in the last hour, including retries. Open Service status for failure references and check worker logs."
+
+      - alert: MetricsComputeFailureRate
+        expr: rate(metrics_compute_total{status="error"}[15m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Metrics compute errors elevated ({{ $value | humanize }}/s)"
+          description: "Compliance metrics recomputation is failing at an elevated rate."
+
+      - alert: HighHTTPLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 HTTP request latency >5s ({{ $value | humanize }}s)"
+          description: "95th percentile HTTP response time exceeds 5 seconds."
+
+      - alert: GitLabAPILatencyHigh
+        expr: histogram_quantile(0.95, rate(gitlab_api_duration_seconds_bucket[5m])) > 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GitLab API P95 latency >15s ({{ $value | humanize }}s)"
+          description: "95th percentile GitLab API response time is too high."
+
+      - alert: EnrichmentFailureRate
+        expr: rate(enrichment_jobs_total{status="error"}[15m]) / rate(enrichment_jobs_total[15m]) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Enrichment job failure rate >30%"
+          description: "{{ $value | humanizePercentage }} of enrichment jobs are failing."
+
+      - alert: HighDBPoolOverflow
+        expr: db_pool_overflow > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB pool overflow >3 connections"
+          description: "{{ $value }} overflow connections active - pool may be undersized."
+
+      # Silence after a week of traffic. A quiet hour is any night, and both
+      # courses run in the summer semester, so "no webhook for an hour" fired
+      # all winter; and right after a deploy the counter has no series yet,
+      # which the old rule read as nothing at all (hence the `or vector(0)`).
+      - alert: NoWebhooksReceived
+        expr: >-
+          (sum(increase(webhook_events_received_total[12h])) or vector(0)) == 0
+          and on() sum(increase(webhook_events_received_total[7d])) > 50
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No webhooks received for 12 hours"
+          description: "Webhooks arrived all week and then stopped - the GitLab integration may be broken."
+
+  - name: infrastructure
+    rules:
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Scrape target {{ $labels.job }} is down"
+          description: "Prometheus cannot reach {{ $labels.instance }} for 2+ minutes."
+
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus config reload failed"
+          description: "The last Prometheus configuration reload was unsuccessful."
+
+      - alert: PrometheusHighMemory
+        expr: process_resident_memory_bytes{job="prometheus"} > 500 * 1024 * 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus memory usage >500MB"
+          description: "Prometheus is using {{ $value | humanize1024 }}B of memory."
+
+      - alert: JaegerCollectorDropping
+        expr: rate(jaeger_collector_spans_dropped_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jaeger is dropping spans"
+          description: "{{ $value | humanize }}/s spans are being dropped by the collector."

@@ -1,0 +1,106 @@
+/* ============================================
+   AVATAR - GitLab's GlAvatar (@gitlab/ui avatar.scss), the ONE avatar
+   Every person and every course, group or project is drawn by the `avatar`
+   macro (components/avatar.html) or `GP.avatarHtml`: a `.gl-avatar` box that
+   holds the initial as an identicon, with the picture laid over it. The
+   initial is there from the first frame; the picture covers it once it
+   paints, and a picture that fails is hidden, so the initial is what stays.
+   A person is a circle; an entity (`entity=true`) is GitLab's square.
+   The size is one of GitLab's six, never a box of the caller's own: there
+   were fourteen avatars at 16, 18, 24, 26, 28, 32, 40, 56 and 64px, each with
+   its own fill, ring and letter size, and only two of them - the top bar and
+   the home greeting - kept the initial under a picture that was still loading.
+   ============================================ */
+.gl-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  user-select: none;
+  color: var(--gl-text-color-strong);
+  outline: 1px solid var(--gl-avatar-border-color-default);
+  outline-offset: -1px;
+  border-radius: var(--radius-full);
+}
+
+/* The picture, over the initial. No background of its own: an <img> paints
+   its background before its pixels arrive, which would hide the initial for
+   the whole load - the grey disc this replaces. */
+.gl-avatar-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* -- Sizes: GlAvatar's six -- */
+.gl-avatar-s16 { width: 16px; height: 16px; font-size: var(--font-size-xs); }
+.gl-avatar-s24 { width: 24px; height: 24px; font-size: 1rem; }
+.gl-avatar-s32 { width: 32px; height: 32px; font-size: clamp(1.125rem, .9027777778rem + .462962963vw, 1.25rem); }
+.gl-avatar-s48 { width: 48px; height: 48px; font-size: clamp(1.3125rem, .8680555556rem + .9259259259vw, 1.5625rem); }
+.gl-avatar-s64 { width: 64px; height: 64px; font-size: clamp(1.5rem, .8333333333rem + 1.3888888889vw, 1.875rem); }
+.gl-avatar-s96 { width: 96px; height: 96px; font-size: clamp(1.75rem, .8611111111rem + 1.8518518519vw, 2.25rem); }
+
+/* -- A course, group or project: GitLab's square, rounder from 48px up -- */
+.gl-avatar-rect { border-radius: var(--radius); }
+.gl-avatar-rect:is(.gl-avatar-s48, .gl-avatar-s64, .gl-avatar-s96) { border-radius: var(--radius-lg); }
+
+/* -- Identicon fills: `identicon(key)` picks one, as entityId % 7 does.
+      Purple twice, as in GitLab: it stood in for indigo, and dropping it would
+      have recoloured every identicon. -- */
+.gl-avatar-identicon-bg1 { background-color: var(--gl-avatar-fallback-background-color-red); color: var(--gl-avatar-fallback-text-color-red); }
+.gl-avatar-identicon-bg2,
+.gl-avatar-identicon-bg3 { background-color: var(--gl-avatar-fallback-background-color-purple); color: var(--gl-avatar-fallback-text-color-purple); }
+.gl-avatar-identicon-bg4 { background-color: var(--gl-avatar-fallback-background-color-blue); color: var(--gl-avatar-fallback-text-color-blue); }
+.gl-avatar-identicon-bg5 { background-color: var(--gl-avatar-fallback-background-color-green); color: var(--gl-avatar-fallback-text-color-green); }
+.gl-avatar-identicon-bg6 { background-color: var(--gl-avatar-fallback-background-color-orange); color: var(--gl-avatar-fallback-text-color-orange); }
+.gl-avatar-identicon-bg7 { background-color: var(--gl-avatar-fallback-background-color-neutral); color: var(--gl-avatar-fallback-text-color-neutral); }
+
+/* GitLab UI src/components/base/avatar_labeled/avatar_labeled.scss:
+   labels 8px after the avatar, base text, bold label and inline metadata. */
+.gl-avatar-labeled {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+.gl-avatar-labeled-labels {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: var(--gl-spacing-3);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--gl-text-color-strong);
+}
+.gl-avatar-labeled-labels.inline-labels {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+}
+/* GlAvatarLabeled's meta slot wraps independently of the avatar. */
+.gl-avatar-labeled-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: calc(-1 * var(--gl-spacing-1));
+}
+a.gl-avatar-labeled {
+  text-decoration: none;
+}
+a.gl-avatar-labeled:hover .gl-avatar-labeled-label {
+  color: var(--gl-text-color-link);
+  text-decoration: underline;
+}
+.gl-avatar-labeled-label {
+  font-weight: var(--font-weight-bold);
+  padding: var(--gl-spacing-1);
+  color: var(--gl-text-color-strong);
+}

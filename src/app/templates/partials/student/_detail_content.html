@@ -1,0 +1,338 @@
+{# Server-rendered student profile, organised around merge requests. #}
+{% from "components/badges.html" import badge, traffic_light %}
+{% from "components/cards.html" import card, empty_state, block_empty %}
+{% from "components/alerts.html" import alert %}
+{% from "components/icons.html" import icon %}
+{% from "components/avatar.html" import avatar %}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/tables.html" import table_count, table_controls, data_table, sortable_header %}
+{% from "components/student.html" import mr_card, reviews_given_card, state_pill, commit_pipeline_icon %}
+{% from "components/layout.html" import page_config, filter_tabs with context %}
+
+{# -- Profile identity -- #}
+{% set _role = member_role_label|default('Student') %}
+{% set _is_teacher_profile = _role in ('Admin', 'Teacher', 'Mentor') %}
+{% set ct %}{% if is_own_profile %}{{ t('My Profile') }}{% else %}{{ t('Profile') }}{% endif %}{% endset %}
+{% set _profile_ha %}
+{% if can_edit and team and not _is_teacher_profile %}
+  {{ btn_icon(t('Run Checks'), 'play-circle', variant='warning', size='sm', id='btnOpenRunChecks',
+              data_attrs={'modal-open': 'runChecksModal',
+                          'process-lock-when': 'run_checks sync',
+                          'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id,
+                          'tour': 'run-checks',
+                          'tippy-content': t('Recompute compliance metrics for this student. Runs the full team\'s checks because GitPulse stores one snapshot per student-on-team; the result refreshes this profile within seconds.')}) }}
+{% endif %}
+{% if can_edit and snapshot %}
+  {{ btn_icon(t('Export'), 'download', variant='secondary', size='sm', id='btnExportStudentData', data_attrs={'student-name': student.full_name or student.gitlab_username, 'student-username': student.gitlab_username, 'course-code': course.code if course else '', 'tippy-content': t('Export compliance data as JSON')}) }}
+{% endif %}
+{% endset %}
+{% call card(title=ct, icon_name='user', header_actions=_profile_ha, class='profile-card') %}
+    <div class="profile-header">
+      {{ avatar(student_avatar_url, student.full_name or student.gitlab_username, size=64) }}
+      <div class="profile-identity">
+        <h2 class="profile-name">
+          {{ student.full_name or student.gitlab_username }}
+          {% if _is_teacher_profile %}{{ badge(t(_role), variant=('teal' if _role == 'Mentor' else 'info'), size='sm') }}{% endif %}
+        </h2>
+        <div class="profile-identity-meta">
+          <span class="profile-username">@{{ student.gitlab_username }}</span>
+          {% if can_edit and student.email %}
+          <span class="profile-email" data-tippy-content="{{ t('Email address from GitLab profile. Visible only to teachers and admins; shown as PRIVATE if the user hides it.') }}">
+            {{ icon('mail', size='xs') }}
+            {% if student.email == 'PRIVATE' %}<span class="color-muted italic">{{ t('PRIVATE') }}</span>{% else %}<a href="mailto:{{ student.email }}" class="profile-email-link">{{ student.email }}</a>{% endif %}
+          </span>
+          {% endif %}
+          {% if gitlab_url and student.gitlab_user_id %}
+          <a href="{{ gitlab_url }}/{{ student.gitlab_username }}" target="_blank" rel="noopener" class="profile-gitlab-link">{{ icon('external-link', size='xs') }} {{ t('View on GitLab') }}</a>
+          {% endif %}
+        </div>
+      </div>
+      {% if snapshot and has_any_activity|default(true) and not _is_teacher_profile %}
+      {% set tl = (snapshot.traffic_light or 'gray') | lower %}
+      <div class="profile-score" data-tippy-content="{{ t('Latest compliance snapshot') }}">
+        <div class="profile-score-main profile-score--{{ 'green' if tl == 'green' else 'yellow' if tl in ('yellow','amber') else 'red' if tl == 'red' else 'gray' }}">
+          <span class="profile-score-value">{{ "%.0f"|format(snapshot.weighted_score * 100) }}%</span>
+          {{ traffic_light(snapshot.traffic_light or 'GRAY', show_text=false) }}
+        </div>
+        <span class="profile-score-sub">{{ snapshot.checks_passed }}/{{ snapshot.checks_total }} {{ t('checks') }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if _is_teacher_profile and not is_own_profile %}
+    {% call alert(variant='info', class='mt-5') %}{% if _role == 'Mentor' %}{{ t("This member is a peer mentor - a senior student helping the group. Their activity is shown for context but doesn't count toward team scoring.") }}{% elif _role == 'Admin' %}{{ t("This member has admin access via GitLab. Their activity below is limited to commits, MRs, and issues in this group's repositories.") }}{% else %}{{ t("This member is a teacher. Their activity below is limited to commits, MRs, and issues in this group's repositories.") }}{% endif %}{% endcall %}
+    {% elif is_own_profile and _role == 'Mentor' %}
+    {{ alert(t("You are a peer mentor for this group - a senior student helping out. Your activity is shown for context, but it doesn't count toward the group's score."), variant='info', class='mt-5') }}
+    {% endif %}
+    {# -- Contribution stats row (GitLab-style, fills the profile card) -- #}
+    <div class="profile-stats" data-tour="contribution-stats" aria-label="{{ t('Activity overview') }}">
+      <span class="profile-stat" data-tippy-content="{{ t('Total commits authored by this member during the current course window.') if activity_window_label else t('Total commits authored by this member across all synced repositories in this group.') }}">{{ icon('git-commit', size='sm') }}<strong>{{ commits_authored_count }}</strong><span class="profile-stat-lbl">{{ t('commits') }}</span></span>
+      {% if commits_authored_count > 0 %}
+      {# One stat, two numbers: the pair never splits across the phone's two-column grid. #}
+      <span class="profile-stat profile-stat--diff" data-tippy-content="{{ t('lines added') }} / {{ t('lines removed') }}"><span class="profile-stat--add"><strong>+{{ commits_total_additions }}</strong></span><span class="profile-stat--del"><strong>-{{ commits_total_deletions }}</strong></span></span>
+      {% endif %}
+      <span class="profile-stat" data-tippy-content="{{ t('Merge requests opened by this member.') }}">{{ icon('git-merge', size='sm') }}<strong>{{ mrs_authored_count }}</strong><span class="profile-stat-lbl">{{ t('MRs') }}</span></span>
+      <span class="profile-stat" data-tippy-content="{{ t('Issues this member created (opened) in the synced repositories.') }}">{{ icon('alert-circle', size='sm') }}<strong>{{ issues_authored_count }}</strong><span class="profile-stat-lbl">{{ t('issues') }}</span></span>
+      <span class="profile-stat" data-tippy-content="{{ t('Issues currently or previously assigned to this member.') }}">{{ icon('user-check', size='sm') }}<strong>{{ issues_assigned_count }}</strong><span class="profile-stat-lbl">{{ t('assigned') }}</span></span>
+      <span class="profile-stat" data-tippy-content="{{ t('Distinct peer merge requests this member reviewed.') }}">{{ icon('eye', size='sm') }}<strong>{{ reviews_given_count }}</strong><span class="profile-stat-lbl">{{ t('reviews') }}</span></span>
+      <span class="profile-stat" data-tippy-content="{{ t('Comments and review notes this member left on merge requests (own and peers).') }}">{{ icon('message-square', size='sm') }}<strong>{{ notes_by_student_count }}</strong><span class="profile-stat-lbl">{{ t('comments') }}</span></span>
+      {% if activity_window_label %}<span class="profile-stat profile-stat--window" data-tippy-content="{{ t('Current course window') }}">{{ icon('calendar', size='sm') }}<span class="profile-stat-lbl">{{ activity_window_label }}</span></span>{% endif %}
+    </div>
+{% endcall %}
+
+{# ============================================================
+   MERGE REQUESTS - the core. One card per MR, everything below it.
+   ============================================================ #}
+<h2 class="student-group-heading">{{ icon('git-merge', size='sm', class='student-group-heading-icon') }} {{ t('Your Merge Requests') if is_own_profile else t('Merge Requests') }}
+  {{ badge(mrs_authored|length ~ ((' / ' ~ mrs_authored_count) if mrs_authored|length < mrs_authored_count else ''), variant='muted', class='student-group-count') }}
+</h2>
+<p class="muted text-sm student-group-sub">{{ t('Each merge request with its workflow, commits, reviewers and full discussion thread.') }}</p>
+
+{% if mrs_authored %}
+<div class="mr-card-list" id="mrCardList">
+  {% for entry in mrs_authored %}
+    {{ mr_card(entry, is_own_profile=is_own_profile, mr_required_sections=mr_required_sections, username_map=username_map, student_url_map=student_url_map, page_issue_iids=page_issue_iids, idx=loop.index, commit_pipeline_status=commit_pipeline_status) }}
+  {% endfor %}
+</div>
+{% else %}
+{% set has_synced = team.projects and team.projects | selectattr('last_synced_at') | list | length > 0 %}
+{% if _is_teacher_profile and not is_own_profile %}
+{{ empty_state(t('No Merge Requests'), t('This ' ~ _role|lower ~ ' has no merge requests in the synced repositories. This is expected - teachers typically review merge requests rather than create them.'), illustration='empty-merge-requests') }}
+{% elif has_synced %}
+{# The list is scoped to the course's activity window (see
+   `_course_activity_window`), so "none found in the synced repositories" is a
+   claim this page cannot actually make: merge requests dated before the semester
+   starts are filtered out and the reader is told nothing exists. Name the window
+   whenever one is active - a teacher reading an empty profile has to be able to
+   tell "did no work" apart from "worked outside the course run". #}
+{% set _mr_none = t("You haven't created any merge requests yet.") if is_own_profile else t('No merge requests found in the synced repositories.') %}
+{% if activity_window_label %}
+{{ empty_state(t('No Merge Requests'), t('Nothing in this course run') ~ ' (' ~ activity_window_label ~ '). ' ~ t('Merge requests dated outside this window are not shown.'), illustration='empty-merge-requests') }}
+{% else %}
+{{ empty_state(t('No Merge Requests'), _mr_none, illustration='empty-merge-requests') }}
+{% endif %}
+{% else %}
+{{ empty_state(t('No Merge Requests Yet'), t('Data will appear after the next sync from GitLab.'), illustration='empty-merge-requests') }}
+{% endif %}
+{% endif %}
+
+{# ============================================================
+   REVIEWS GIVEN - peers' MRs this member reviewed (reviewer side).
+   ============================================================ #}
+{% if reviews_given %}
+<h2 class="student-group-heading">{{ icon('eye', size='sm', class='student-group-heading-icon') }} {{ t('Reviews You Gave to Peers') if is_own_profile else t('Reviews Given to Peers') }}
+  {{ badge(reviews_given|length, variant='muted', class='student-group-count') }}
+</h2>
+<p class="muted text-sm student-group-sub">{% if is_own_profile %}{{ t('Merge requests authored by others that you reviewed - your feedback, threaded.') }}{% else %}{{ t('Merge requests authored by other students that this member reviewed - their feedback, threaded.') }}{% endif %}</p>
+<div class="rg-card-list">
+  {% for entry in reviews_given %}
+    {{ reviews_given_card(entry, username_map=username_map, student_url_map=student_url_map) }}
+  {% endfor %}
+</div>
+{% endif %}
+
+{# ============================================================
+   ISSUES - one list of the issues this member is on.
+   ============================================================ #}
+{% set ct %}{% if is_own_profile %}{{ t('Your Issues') }}{% else %}{{ t('Issues') }}{% endif %}{% endset %}
+{# Authored and assigned were two tabs over the same table of the same entity,
+   with the same five columns, differing in ONE: "Assigned to" on the authored
+   tab, "Opened by" on the assigned tab - each hiding the half the other showed.
+   An issue this member both opened and was assigned appeared in both tabs, in
+   two rows carrying the SAME `id="issue-N"`, which is also what the in-page
+   issue<->MR links resolve against.
+
+   One table, both sides on the row, and the split is a filter - the same shape
+   the Users page and the Event Pipeline use. #}
+{# The switch and its count ride in the card HEADER, beside the title - the
+   same place every other table here keeps its controls. They used to sit in the
+   body above the rows, which is the one place a reader does not look. #}
+{% set issues_views %}
+{% if issues_involving %}
+  {{ filter_tabs([
+       {'value': 'all', 'label': t('All'), 'icon': 'list'},
+       {'value': 'author', 'label': t('Authored'), 'icon': 'edit'},
+       {'value': 'assignee', 'label': t('Assigned'), 'icon': 'user-check'}
+     ], active='all', aria_label=t('Filter issues'), class='issues-side-filter') }}
+{% endif %}
+{% endset %}
+{% call card(title=ct, icon_name='alert-circle', header_actions=table_count(id='issuesCount'), data_attrs={'data-tour': 'student-issues'}) %}
+  {% if not issues_involving %}
+  {% if _is_teacher_profile and not is_own_profile %}{{ block_empty(t('This ' ~ _role|lower ~ ' is not on any issues. This is expected - teachers typically manage issues rather than create them in student repositories.')) }}{% elif is_own_profile %}{{ block_empty(t("You are not on any issues yet.")) }}{% else %}{{ block_empty(t('No issues found.')) }}{% endif %}
+  {% else %}
+  {{ table_controls(filters=issues_views) }}
+  {% call data_table(headers=[], sortable=true, class='table-scrollable', reserve_rows=issues_involving|length) %}
+      {# Columns declared so the browser does not size them from whichever rows
+               happen to be visible - that set changes on every load, and the whole
+               table slides sideways and back. Measured at 1440px. #}
+      <colgroup>
+        <col class="col-si-issue">
+        <col class="col-si-title">
+        <col class="col-si-status">
+        <col class="col-si-opened">
+        <col class="col-si-assigned">
+        <col class="col-si-updated">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>{{ t('Issue') }}</th>
+          {{ sortable_header(t('Title'), 'title') }}
+          {{ sortable_header(t('Status'), 'status') }}
+          <th>{{ t('Opened by') }}</th>
+          <th>{{ t('Assigned to') }}</th>
+          {{ sortable_header(t('Updated'), 'updated', sort_type='date', tooltip=t('Last modification time from GitLab')) }}
+        </tr>
+      </thead>
+      <tbody id="issuesBody">
+        {% for row in issues_involving %}
+        {% set issue = row.issue %}
+        <tr id="issue-{{ issue.gitlab_iid }}" data-side="{{ 'author' if row.is_author else '' }}{{ ' ' if row.is_author and row.is_assignee }}{{ 'assignee' if row.is_assignee else '' }}">
+          <td class="nowrap"><a href="{{ gitlab_url }}/{{ row.project_path }}/-/issues/{{ issue.gitlab_iid }}" target="_blank" rel="noopener" data-tippy-content="{{ t('Open in GitLab') }}">#{{ issue.gitlab_iid }}</a>{% if mr_iid_by_issue_iid.get(issue.gitlab_iid) %} {% set _mr = mr_iid_by_issue_iid[issue.gitlab_iid] %}{{ badge('!' ~ _mr, variant='info', icon_name='git-merge', href='#mr-' ~ _mr, data_attrs={'scroll-to-mr': _mr, 'tippy-content': t('Jump to the merge request linked to this issue')}) }}{% endif %}</td>
+          <td>{{ issue.title or "-" }}</td>
+          <td>{{ state_pill(issue.state, kind='issue') }}</td>
+          <td>
+            {% if row.author_name %}
+              {{ badge(row.author_name, variant='info' if row.author_is_teacher else 'secondary', size='sm', data_attrs={'tippy-content': t('Teacher') if row.author_is_teacher else t('Peer student')}) }}
+            {% else %}<span class="muted">-</span>{% endif %}
+          </td>
+          <td>
+            {% if row.assignee_name %}
+              {{ badge(row.assignee_name, variant='info' if row.assignee_is_teacher else 'secondary', size='sm', data_attrs={'tippy-content': t('Teacher') if row.assignee_is_teacher else t('Peer student')}) }}
+            {% else %}<span class="muted">-</span>{% endif %}
+          </td>
+          <td class="muted">{{ local_time(issue.updated_at) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+  {% endcall %}
+  <div id="issuesPagination" class="pagination-controls mt-3"></div>
+  {% endif %}
+{% endcall %}
+
+{# ============================================================
+   COMMIT HISTORY - full authored-commit timeline (collapsed).
+   ============================================================ #}
+{% if commits_authored %}
+{% set ct %}{% if is_own_profile %}{{ t('Your Commit History') }}{% else %}{{ t('Commit History') }}{% endif %}{% endset %}
+{% set ha %}{{ table_count(id='commitsCountLabel', class='commits-count') }}{% endset %}
+{% call card(title=ct, icon_name='git-commit', header_actions=ha, data_attrs={'data-tour': 'student-commits'}) %}
+    {% if commits_out_of_scope_count > 0 %}
+    {{ alert(t('Older repository history is hidden from this course view.') ~ ' ' ~ commits_out_of_scope_count ~ ' ' ~ t('commit(s) outside the active course window were excluded from the table and totals.'), variant='info', class='mb-1') }}
+    {% endif %}
+    <details>
+      <summary class="summary-toggle">{{ icon('git-commit', size='sm', class='summary-icon') }} {{ t('Show all commits') }}</summary>
+      <div class="mt-3">
+      {% call data_table(headers=[], sortable=true, class='table-scrollable tbl-fixed') %}
+          {# The branch is its OWN column. It used to be a badge trailing the
+             message inside the message cell, and a cell is only as wide as its
+             row's text, so the badges landed at a different x on every line -
+             `game_parameters` here, `master` 30px further left, `Merge commit`
+             120px further left again. A column is the one thing that is aligned
+             across rows by definition. #}
+          <colgroup>
+            <col class="col-commit-message">
+            <col class="col-commit-branch">
+            <col class="col-commit-stats">
+            <col class="col-commit-date">
+          </colgroup>
+          <thead>
+            <tr>
+              {{ sortable_header(t('Message'), 'message', default_sort='asc') }}
+              {{ sortable_header(t('Branch'), 'branch', class='col-commit-branch') }}
+              {{ sortable_header(t('Stats'), 'stats') }}
+              {{ sortable_header(t('Date'), 'date', sort_type='date') }}
+            </tr>
+          </thead>
+          <tbody id="commitsBody">
+            {% for row in commits_authored %}
+            {% set commit = row.commit %}
+            <tr data-branch="{{ commit.ref or '' }}">
+              <td>
+                {# Three fixed tracks (ci slot / message / badges). The CI slot is
+                   always rendered, even with no pipeline, so the message never
+                   shifts left; the badges are pinned to the cell's right edge
+                   instead of trailing a message of arbitrary length. #}
+                {% set _commit_title = commit.title or (commit.message[:80] if commit.message else "-") %}
+                <div class="commit-message-cell">
+                  <span class="commit-ci-slot">{{ commit_pipeline_icon((commit_pipeline_status or {}).get(commit.sha)) }}</span>
+                  <a href="{{ gitlab_url }}/{{ row.project_path }}/-/commit/{{ commit.sha }}" target="_blank" rel="noopener" class="commit-message-link" data-tippy-content="{{ _commit_title }}"><strong class="font-09rem">{{ _commit_title }}</strong></a>
+                </div>
+              </td>
+              <td class="col-commit-branch commit-branch-cell">
+                <span class="commit-branch-wrapper">
+                  {% if commit.is_merge_commit %}{{ badge(t('Merge'), variant='secondary', size='sm', data_attrs={'tippy-content': t('Merge commit')}) }}{% endif %}
+                  {% if commit.ref %}{{ badge(commit.ref, variant='info', size='sm') }}{% else %}<span class="muted">-</span>{% endif %}
+                </span>
+              </td>
+              <td class="muted font-085rem nowrap"><span class="color-green">+{{ commit.additions }}</span> <span class="color-red">-{{ commit.deletions }}</span></td>
+              <td class="muted font-085rem">{{ local_time(commit.committed_at) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      {% endcall %}
+      <div id="commitsPagination" class="pagination-controls mt-3"></div>
+      </div>
+    </details>
+{% endcall %}
+{% endif %}
+
+{# ============================================================
+   METRICS & PROGRESS
+   ============================================================ #}
+{% if snapshot and has_any_activity|default(true) %}
+{# Latest Metrics removed - weighted score / traffic light / checks now live in
+   the profile score chip; this card just duplicated them. #}
+{% include "partials/student/_diagnostics.html" %}
+
+{% include "partials/student/_compliance_history.html" %}
+
+{% if can_edit and snapshot.checks_detail %}
+{# Uses the shared disclosure card pattern (`<details class="card">` +
+   `<summary class="card-header">`), matching Service Accounts. #}
+<details class="card">
+  <summary class="card-header card-header--interactive">
+    <div class="card-heading">
+      {{ icon('file-code', size='sm') }}
+      <h3 class="card-title">{{ t('Raw Check Details (JSON)') }}</h3>
+    </div>
+    <span class="card-header-note">{{ t('Developer Info') }}</span>
+    {{ icon('chevron-down', size='sm', class='card-details-chevron') }}
+  </summary>
+  <div class="card-body">
+    <pre class="code-block-dark">{{ snapshot.checks_detail | pretty_json }}</pre>
+  </div>
+</details>
+{% endif %}
+
+{% elif snapshot and not has_any_activity|default(true) %}
+{% if _is_teacher_profile %}
+{% call card(title=t('Compliance Metrics'), icon_name='shield') %}
+    {% call alert(variant='info') %}
+      {% if is_own_profile %}{{ t('You have') }} <strong>{{ _role|lower }}</strong> {{ t('access to this group. Since you have no commits, merge requests, or issues here, compliance metrics are not computed. This is expected for teachers.') }}
+      {% else %}{{ t('This') }} <strong>{{ _role|lower }}</strong> {{ t('has no commits, merge requests, or issues in this group. Compliance metrics are not computed for members without activity - this is expected for teachers who only review student work.') }}{% endif %}
+    {% endcall %}
+{% endcall %}
+{% else %}
+{{ empty_state(t('No Activity Data'), t('This member has no commits, merge requests, or issues in the synced repositories. Compliance metrics will appear once activity is recorded.'), illustration='empty-chart') }}
+{% endif %}
+
+{% else %}
+{% if can_edit %}
+{{ empty_state(t('No Metrics Yet'), t('Click "Sync" on the group page to load metrics from GitLab.'), illustration='empty-chart') }}
+{% else %}
+{{ empty_state(t('No Metrics Yet'), t('Metrics will appear after your teacher syncs data from GitLab.'), illustration='empty-chart') }}
+{% endif %}
+{% endif %}
+
+{# -- Run Checks modal (shared partial; checks run for the whole group) -- #}
+{% if can_edit and team and not _is_teacher_profile %}
+  {% set btn_data_attrs = {'team-id': team.id|string, 'student-id': student.id|string, 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id} %}
+  {% include "partials/_run_checks_modal.html" %}
+{% endif %}
+
+{{ page_config({
+  'studentId': student.id | string,
+  'courseId': course.id | string if course else '',
+  'teamId': team.id | string,
+  'isOwnProfile': true if is_own_profile else false,
+}, csp_nonce, id='gp-student-detail-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/student-detail.js') }}"></script>

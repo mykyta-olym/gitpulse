@@ -1,0 +1,300 @@
+{# Course groups and project tree, rendered inline. #}
+{% from "components/buttons.html" import btn, btn_icon, btn_icon_only, btn_link_icon_only %}
+{% from "components/badges.html" import badge, traffic_light %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/modals.html" import modal %}
+{% from "components/forms.html" import text_input, checkbox, search_input %}
+{% from "components/alerts.html" import alert, top_banner, stale_data_banner %}
+{% from "components/tables.html" import table_controls, data_table, pagination_controls %}
+{% from "components/table_heads.html" import teams_table_head with context %}
+{% from "components/import_helpers.html" import import_status_box, import_modal_footer %}
+{% from "components/icons.html" import icon %}
+{% from "components/lifecycle.html" import restore_actions, deleted_toggle, deleted_note with context %}
+{% from "components/layout.html" import page_config with context %}
+{% from "components/time.html" import localized_time %}
+
+{# The course's actions - the role badge, Add Group, Import, Sync All, Run
+   Checks - are rendered by the page shell now, beside the title, where GitLab
+   puts a group's own actions. They were a loose row here, between the tab strip
+   and the Groups card, belonging to neither. See course_detail.html. #}
+
+{% if sync_failed_count %}
+{% call top_banner(dismiss_key='sync-failed:' ~ course.id ~ ':' ~ sync_failed_count, variant='danger', icon_name='alert-circle', class='js-sync-failed-banner') %}
+  <strong>{{ t('Some sync jobs failed') }}</strong> · {{ sync_failed_count }} {{ t('group(s) failed to sync. You can retry using the Sync action for those groups.') }}
+{% endcall %}
+{% endif %}
+{% if sync_cancelled_count %}
+{% call top_banner(dismiss_key='sync-cancelled:' ~ course.id ~ ':' ~ sync_cancelled_count, variant='warning', icon_name='x-circle') %}
+  <strong>{{ t('Sync cancelled') }}</strong> · {{ sync_cancelled_count }} {{ t('group(s) were cancelled. You can retry using the Sync action for those groups.') }}
+{% endcall %}
+{% endif %}
+
+{# An ARCHIVED course is read-only: Sync All is blocked, and its data being old
+   is the expected consequence of archiving it, not something to act on. The
+   freshness banners below were shown anyway, so an archived course stacked
+   "Data may be outdated ... Try running Sync All to refresh the data" directly
+   under the strip that had just said the course is read-only - advice the
+   reader cannot take, under the reason they cannot take it. The archived strip
+   already explains the state; these two say nothing true that it does not. #}
+{% set _course_archived = course is defined and course and not course.is_active %}
+
+{% if can_edit and not _course_archived and (data_stale_days or never_synced_count) and not (sync_running_count or sync_queued_count) %}
+{% call top_banner(dismiss_key='data-outdated:' ~ course.id, variant='warning', icon_name='alert-triangle') %}
+  <strong>{{ t('Data may be outdated') }}</strong>
+  {% if data_stale_days %} · {{ t('Some group data has not been updated for') }} <strong>{{ data_stale_days }} {{ t('days') }}</strong>.{% endif %}
+  {% if never_synced_count %} · {{ never_synced_count }} {{ t('group(s) have never been synced.') }}{% endif %}
+  {% if not has_webhook %} · <strong>{{ t('Webhooks are not configured') }}</strong> {{ t('and automatic data updates are disabled.') }}{% elif has_webhook and not has_recent_webhook_activity %} · {{ t('Webhooks are configured but no events have been received recently.') }}{% endif %}
+  · {{ t('Try running') }} <strong>{{ t('Sync All') }}</strong> {{ t('to refresh the data.') }}
+{% endcall %}
+{% endif %}
+
+{# Freshness note shown to everyone (incl. students/viewers) when the editor-only
+   "Data may be outdated" banner above is not shown - keeps this main course tab
+   consistent with the Activity/Analytics tabs without stacking two banners. #}
+{% set _outdated_banner_shown = can_edit and not _course_archived and (data_stale_days or never_synced_count) and not (sync_running_count or sync_queued_count) %}
+{{ stale_data_banner(is_stale=data_is_stale|default(false) and not _outdated_banner_shown and not _course_archived, latest_snapshot_at=latest_snapshot_at|default(none), days_old=data_days_old|default(none), current_week_groups=current_week_groups|default(0), total_active_groups=total_active_groups|default(0), class='js-top-banner') }}
+
+<!-- Teams Table -->
+{# How many child projects an expanded group shows before "View all". Only the
+   server needs the number: it stamps `tree-row-extra` on the rows past it, so
+   the client paints by class and never has to agree on a constant. #}
+{% set tree_child_limit = 3 %}
+{% set _deleted_teams = teams | rejectattr('is_active') | list %}
+{# The card the Users page builds, built the same way: a title on the left, the
+   row count on the right, and search + the view switch in `table_controls` -
+   the band between the header and the rows that every other table already has.
+   This one had the title INSIDE header_actions next to the search box, so the
+   header carried three unrelated things in one row and the search sat where
+   other pages put their buttons.
+
+   The "N group(s)" chip next to the search is gone with it: the paginator
+   already writes "Showing 1-25 of 40" into the header slot, so the same number
+   was on screen twice, in two wordings. #}
+{% set _active_teams_count = (teams | selectattr('is_active') | list | length) if (can_edit and _deleted_teams) else (teams | length) %}
+{% set teams_title %}
+  {{ t('Groups') }}
+{% endset %}
+{% set teams_search %}
+{{ search_input(id='teamSearchInput', placeholder=t('Filter groups...')) }}
+{% endset %}
+{% set teams_filters %}
+{% if can_edit and _deleted_teams %}
+{{ deleted_toggle('toggleDeletedTeams', _deleted_teams | length, t('Show or hide deleted groups')) }}
+{% endif %}
+{% endset %}
+{% call card(title=teams_title, icon_name='users',
+             info_tip=t('Student teams and assignments enrolled in this course. Expand a group to view member metrics, compliance scores, and repositories.'),
+             data_attrs={'data-tour': 'my-team teams-list'}) %}
+  {% if can_edit and _deleted_teams %}
+  {{ deleted_note(t('Some groups are deleted. They stay hidden from students; use the "Deleted" toggle to review and restore them.')) }}
+  {% endif %}
+  {% if teams %}
+  {{ table_controls(search=teams_search, filters=teams_filters) }}
+  {% call data_table(headers=[], id='teamsTable', sortable=true, paginated=true, class='teams-table table-scrollable table-sticky-actions' ~ (' gp-hide-deleted' if can_edit and _deleted_teams else '')) %}
+      {{ teams_table_head(sort_by_status=sort_by_status) }}
+        {% for team in teams %}
+        {% set tm = team_metrics.get(team.id) %}
+        {% set sync_state = sync_status_by_team.get(team.id) %}
+        {% set _tl = (tm.overall_traffic_light or '')|upper if tm else '' %}
+        {% set projects = team_projects.get(team.id, []) %}
+        <tr data-team-id="{{ team.id }}" data-search="{{ team.name|lower }} {{ (tm.overall_traffic_light or '')|lower }}" class="{% if projects %}tree-row-parent {% endif %}{% if not team.is_active %}row-inactive gp-deleted-row{% endif %}"{% if projects %} data-tree-children="{{ projects|length }}"{% endif %}{% if not team.is_active %} data-team-inactive="true"{% endif %}>
+          <td class="col-tree-toggle col-hide-sm">
+            {% if projects %}
+            <button type="button" class="tree-toggle-btn btn btn-default btn-sm btn-icon-only" data-action="toggleTreeRow" aria-expanded="false"
+                    aria-label="{{ t('Expand') }}" data-tippy-content="{{ t('Expand') }}">
+              <svg class="tree-toggle-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.75 4.75L10 8L6.75 11.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            {% endif %}
+          </td>
+          <td><a href="/dashboard/teams/{{ team.id }}" class="text-bold">{{ team.name }}</a></td>
+          <td>{{ team_contributors.get(team.id, 0) }}</td>
+          <td>{% if tm and tm.avg_weighted_score is not none %}{{ "%.0f"|format(tm.avg_weighted_score * 100) }}%{% else %}-{% endif %}</td>
+          <td class="text-center" data-sort-value="{{ 3 if not team.is_active or sync_state == 'cancelled' else (4 if sync_state in ('running', 'enqueued') else {'RED': 0, 'YELLOW': 1, 'AMBER': 1, 'GREEN': 2}.get(_tl, 3)) }}">
+            {% if not team.is_active %}
+              {{ badge(t('Deleted') if can_edit else t('Archived'), variant='danger' if can_edit else 'secondary') }}
+            {% elif sync_state == 'running' %}
+              {{ badge(t('SYNCING'), variant='info') }}
+            {% elif sync_state == 'enqueued' %}
+              {{ badge(t('QUEUED'), variant='info') }}
+            {% elif sync_state == 'cancelled' %}
+              {{ badge(t('CANCELLED'), variant='warning') }}
+            {% elif tm %}
+              {{ traffic_light(tm.overall_traffic_light or 'GRAY') }}
+            {% elif sync_state == 'completed' %}
+              {{ badge(t('DONE'), variant='success') }}
+            {% elif sync_state == 'failed' %}
+              {{ badge(t('FAILED'), variant='danger') }}
+            {% else %}
+              {{ badge(t('N/A'), variant='gray') }}
+            {% endif %}
+          </td>
+          <td class="muted col-hide-md" data-sort-value="{{ tm.computed_at.strftime('%Y-%m-%dT%H:%M:%SZ') if tm and tm.computed_at else '' }}">
+            {% if tm and tm.computed_at %}
+              {{ localized_time(tm.computed_at) }}
+            {% elif sync_state == 'running' %}
+              {{ t('Sync in progress...') }}
+            {% elif sync_state == 'enqueued' %}
+              {{ t('Sync queued...') }}
+            {% elif sync_state == 'completed' %}
+              {{ t('Sync completed') }}
+            {% elif sync_state == 'failed' %}
+              {{ t('Sync failed') }}
+            {% elif sync_state == 'cancelled' %}
+              {{ t('Sync cancelled') }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td class="text-right">
+            <div class="gl-row-actions" data-tour="team-row-actions">
+              {% if not team.is_active %}
+                {% if can_edit %}
+                {{ restore_actions('team', team.id, entity_name=team.name, icon_only=true,
+                                   lock_scope='course:' ~ course.id ~ ' team:' ~ team.id,
+                                   restore_label=t('Restore')) }}
+                {% endif %}
+              {% elif can_edit %}
+              {{ btn_icon_only('link', variant='secondary', size='sm', aria_label=t('Link Project'), data_attrs={'action': 'openLinkProjectModal', 'action-args': [team.id|string, team.name]|tojson_attr, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id ~ ' team:' ~ team.id, 'tippy-content': t('Link Project'), 'tour': 'link-project'}) }}
+              {{ btn_icon_only('refresh', variant='secondary', size='sm', aria_label=t('Sync'), data_attrs={'action': 'triggerSync', 'action-args': [team.id|string, team.name, '$event']|tojson_attr, 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ course.id ~ ' team:' ~ team.id, 'tippy-content': t('Sync'), 'tour': 'sync-row'}) }}
+              {{ btn_icon_only('trash', variant='danger', size='sm', aria_label=t('Delete Group'), data_attrs={'action': 'deleteTeam', 'action-args': [team.id|string, team.name, '$event']|tojson_attr, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id ~ ' team:' ~ team.id, 'tippy-content': t('Delete Group'), 'tour': 'delete-row'}) }}
+              {% endif %}
+              {{ btn_link_icon_only('eye', '/dashboard/teams/' ~ team.id, t('Open the group: members, projects and their checks'), size='sm') }}
+            </div>
+          </td>
+        </tr>
+        {# Detect duplicate display names within this team so we can append
+           the GitLab path slug to disambiguate (real-world: two repos share
+           the same name but live at different paths). #}
+        {% set _proj_name_counts = namespace(map={}) %}
+        {% for _p in projects %}
+          {% set _n = (_p.gitlab_project_name or _p.gitlab_project_path.split('/')|last) %}
+          {% set _ = _proj_name_counts.map.update({_n: (_proj_name_counts.map.get(_n, 0) + 1)}) %}
+        {% endfor %}
+        {# GitLab's group tree reveals only the first few children and puts the
+           rest behind "View all (N more items)" - a group with 15 projects
+           otherwise pushes every row below it off the screen. #}
+        {% for proj in projects %}
+        {% set _pname = proj.gitlab_project_name or proj.gitlab_project_path.split('/')|last %}
+        {% set _pslug = proj.gitlab_project_path.split('/')|last %}
+        <tr class="tree-row-child d-none{% if loop.index0 >= tree_child_limit %} tree-row-extra{% endif %}{% if not proj.is_active %} row-inactive gp-deleted-row{% endif %}" data-parent-team="{{ team.id }}">
+          <td class="col-tree-toggle col-hide-sm"></td>
+          <td colspan="5">
+            <div class="tree-project-row">
+              <span class="tree-project-icon">{{ icon('folder', size='sm') }}</span>
+              <a href="/dashboard/projects/{{ proj.id }}" class="tree-project-name">{{ _pname }}</a>
+              {% if not proj.is_active %}<span class="ml-2">{{ badge(t('Unlinked'), variant='secondary') }}</span>{% endif %}
+              {% if _proj_name_counts.map.get(_pname, 0) > 1 and _pslug and _pslug != _pname %}
+                <span class="muted text-xs ml-2" data-tippy-content="{{ proj.gitlab_project_path }}">/{{ _pslug }}</span>
+              {% endif %}
+            </div>
+          </td>
+          <td class="text-right">
+            {% if not proj.is_active and can_edit %}
+            {{ restore_actions('project', proj.id, icon_only=true,
+                               lock_scope='course:' ~ course.id ~ ' team:' ~ team.id ~ ' project:' ~ proj.id) }}
+            {% endif %}
+            <a href="{{ gitlab_url }}/{{ proj.gitlab_project_path }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm btn-icon-only" data-tippy-content="{{ t('Open in GitLab') }}">
+              {{ icon('external-link', size='sm') }}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if projects|length > tree_child_limit %}
+        <tr class="tree-row-child tree-row-more d-none" data-parent-team="{{ team.id }}">
+          {# Cell structure mirrors the child rows above so the label lands in
+             the same column as the project names, not in the actions column. #}
+          <td class="col-tree-toggle col-hide-sm"></td>
+          <td colspan="5">
+            {{ btn_icon(t('View all (%s more items)')|replace('%s', projects|length - tree_child_limit), 'chevron-down', variant='ghost', size='sm', data_attrs={'action': 'expandTreeRow', 'no-click-lock': 'true'}) }}
+          </td>
+          <td></td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+  {% endcall %}
+  <!-- Pagination Controls (populated by ClientPaginator) -->
+  {{ pagination_controls(id='teamPaginationControls', total=teams | length, page_size=default_page_size | default('50')) }}
+  {% else %}
+    {% if can_edit %}
+    {% call empty_state(t('No Groups Yet'), t('Add your first group to get started'), illustration='empty-user') %}
+      {{ btn(t('Add Group'), data_attrs={'modal-open': 'addTeamModal', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id}) }}
+    {% endcall %}
+  {% elif is_student %}
+    {{ empty_state(t('No Groups Yet'), t('Your teacher has not added any groups to this course yet.'), illustration='empty-user') }}
+  {% else %}
+    {{ empty_state(t('No Groups Yet'), t('No groups have been added to this course yet'), illustration='empty-user') }}
+  {% endif %}
+  {% endif %}
+{% endcall %}
+
+{# -- Modals -- #}
+{% if can_edit %}
+<!-- Import from GitLab Modal -->
+{% call modal('importGitlabCourseModal', t('Import from GitLab into') ~ ' ' ~ course.code) %}
+<form id="importGitlabCourseForm" data-submit-action="importGitlabIntoCourse">
+  <p class="muted mb-3">{{ t('Paste any GitLab URL - group or single project. Groups, students, projects, and teacher mappings are imported automatically.') }}</p>
+  {{ text_input('group_url', label=t('GitLab URL (group or project)'), id='importGroupUrl', placeholder=gitlab_url ~ '/namespace/project-or-group', required=true, autocomplete='off') }}
+  <p class="form-help form-help-spacing">
+    {{ t('Structure is auto-detected from GitLab: subgroups become groups, projects are linked automatically.') }}
+  </p>
+  <!-- Hidden fields - auto-detection handles these -->
+  <input type="hidden" id="importIncludeSubgroups" name="include_subgroups" value="true">
+  <input type="hidden" id="importOneTeamPerProject" name="one_team_per_project" value="false">
+  {{ checkbox('auto_sync', label=t('Auto-sync data after import'), checked=true, id='importAutoSync', help_text=t('Pulls issues, merge requests, comments, and pipelines right away.')) }}
+  {{ import_status_box() }}
+  {{ import_modal_footer('sync import run_checks', 'course:' ~ course.id) }}
+</form>
+{% endcall %}
+
+<!-- Add Team Modal -->
+{% call modal('addTeamModal', t('Add Group to') ~ ' ' ~ course.code) %}
+<form id="addTeamForm" data-submit-action="addTeam">
+  <div class="form-group">
+    <label class="form-label" for="teamGitLabUrl">{{ t('GitLab URL') }} {{ badge(t('Auto-fill'), variant='info', size='sm', class='ml-2') }}</label>
+    {{ text_input('gitlab_url', id='teamGitLabUrl', class='gitlab-url-input', placeholder=t('Paste GitLab group/project URL to auto-fill...'), help_text=t('Paste a GitLab URL to automatically fill group details'), autocomplete='off') }}
+  </div>
+  {{ text_input('name', label=t('Group Name'), id='teamName', placeholder=t('e.g., Group Alpha'), required=true, autocomplete='off') }}
+  {{ text_input('gitlab_namespace', label=t('GitLab Namespace'), id='gitlabNamespace', placeholder=t('e.g., group/subgroup'), help_text=t('Optional: GitLab group or namespace for the group'), autocomplete='off') }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'addTeamModal'}) }}
+    {{ btn(t('Add Group'), type='submit', id='addTeamBtn', data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id}) }}
+  </div>
+</form>
+{% endcall %}
+
+<!-- Link Project Modal -->
+{% set _linkProjectTitle %}{{ t('Link Project to') }} <span id="projectTeamName"></span>{% endset %}
+{% call modal('linkProjectModal', _linkProjectTitle) %}
+<form id="linkProjectForm" data-submit-action="linkProject">
+  <input type="hidden" id="projectTeamId" name="team_id">
+  <div class="form-group">
+    <label class="form-label" for="projectGitLabUrl">{{ t('GitLab URL') }} {{ badge(t('Auto-fill'), variant='info', size='sm', class='ml-2') }}</label>
+    {{ text_input('gitlab_url', id='projectGitLabUrl', class='gitlab-url-input', placeholder=t('Paste GitLab project URL to auto-fill...'), help_text=t('Paste a GitLab project URL to automatically fill all fields'), autocomplete='off') }}
+  </div>
+  {{ text_input('gitlab_project_id', label=t('GitLab Project ID'), type='number', id='projectGitlabId', placeholder=t('e.g., 12345'), required=true, autocomplete='off') }}
+  {{ text_input('gitlab_project_path', label=t('Project Path'), id='projectPath', placeholder=t('e.g., group/project-name'), required=true, autocomplete='off') }}
+  {{ text_input('gitlab_project_name', label=t('Display Name'), id='projectDisplayName', placeholder=t('e.g., Group Project'), autocomplete='off') }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'linkProjectModal'}) }}
+    {{ btn(t('Link Project'), type='submit', id='linkProjectBtn', data_attrs={'process-lock-when': 'sync import run_checks'}) }}
+  </div>
+</form>
+{% endcall %}
+
+
+{% endif %}
+
+{# -- Run Checks modal (course scope: fans out to every active group) -- #}
+{% if can_edit %}
+  {% set btn_data_attrs = {'course-id': course.id|string, 'process-lock-scope': 'course:' ~ course.id} %}
+  {% include "partials/_run_checks_modal.html" %}
+{% endif %}
+
+{# -- Page scripts (executed after HTMX swap) -- #}
+{{ page_config({
+  'courseId': course.id | string,
+  'courseName': course.name,
+  'hasActiveSyncOnLoad': (sync_running_count or sync_queued_count) | default(0) | int > 0,
+  'initialRenderedTeamCount': teams | length,
+}, csp_nonce, id='gp-course-detail-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/course-detail.js') }}"></script>

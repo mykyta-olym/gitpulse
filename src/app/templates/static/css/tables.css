@@ -1,0 +1,1475 @@
+/* ============================================
+   TABLES - GitLab Pajamas Design System (1:1)
+   ============================================ */
+
+/* Localizing a timestamp must not resize its column when only digits change. */
+.data-table time[data-localize-time] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Non-scrolling positioning wrapper around .table-responsive (added by the
+   data_table macro). It hosts the horizontal-scroll affordance: a right-edge
+   fade that signals "more columns this way". Because the fade lives on this
+   wrapper (which does NOT scroll) it stays pinned to the visible right edge and
+   paints above the scrolling cells. table-scroll.js toggles is-scrollable-x /
+   at-scroll-end based on the inner viewport's scroll position, so the fade
+   appears only while there is more content to the right and disappears at the
+   end. Nothing is pinned on the left, so the fade marks the only edge that can
+   hide content. */
+.table-scroll {
+  position: relative;
+  /* The query container for the rule above. inline-size only, so the wrapper
+     still takes its height from the table. */
+  container-type: inline-size;
+}
+.table-scroll::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  background: linear-gradient(to left, var(--gl-background-color-default), transparent);
+  z-index: 2;
+}
+.table-scroll.is-scrollable-x:not(.at-scroll-end)::after {
+  opacity: 1;
+}
+/* Not over a pinned actions column. The fade sat on top of the sticky cells
+   (z-index 2, above them) and darkened the column on every row - a striped
+   row looked cut where the column began, and the column read as "outlined".
+   That column marks its left edge with the shared separator below;
+   nothing is hidden under it to fade. When the column is too wide to stay
+   pinned (`sticky-column-off`, see table-scroll.js) it scrolls with the row,
+   nothing separates the visible columns from the hidden ones, and the fade is
+   the only hint that the table continues - so it stays. */
+.table-scroll:not(.sticky-column-off):has(> .table-responsive > .table-sticky-actions)::after {
+  display: none;
+}
+/* There is deliberately no bottom fade. It painted a 28px gradient over the
+   last visible row of any table taller than its box, which read as the row
+   being cut off rather than as "more below" - the wrapper's own scrollbar
+   already says that. */
+
+@media (prefers-reduced-motion: reduce) {
+  .table-scroll::after { transition: none; }
+}
+
+.table-responsive {
+  position: relative;
+  overflow-x: auto;
+  /* Vertical: only LONG tables scroll inside their own viewport (the cap), which
+     is what lets the sticky header row (.data-table th) pin - the thead's scroll
+     container must itself scroll, and the page scroller is past this overflow-x
+     box. A table shorter than the cap never reaches it, gets no internal
+     scrollbar, and behaves exactly like before. `auto` + a stable max-height
+     means no scrollbar flashes during client-side sort. */
+  overflow-y: auto;
+  max-height: min(78vh, 820px);
+  -webkit-overflow-scrolling: touch;
+  /* A sideways swipe must stop at the table edge. `contain` still allows
+     native rubber-banding/stretch, including the pinned Actions cells. */
+  overscroll-behavior-x: none;
+}
+/* Tables with pagination controls are bounded by page size (e.g. 25 rows)
+   and must not have an internal vertical scrollbar that traps scrolling
+   or causes the vertical scrollbar to double in size on load. */
+.card-body:has(.pagination-controls) .table-responsive,
+.card-body:has(> .pagination-controls) .table-responsive,
+[data-paginator] .table-responsive {
+  max-height: none;
+  overflow-y: visible;
+}
+/* On a phone the page is the only vertical scroller. A long table capped at
+   78vh became a second scroll box nested inside the page's, and a finger on
+   it scrolled sometimes the rows and sometimes the page - the Course Teachers
+   table (54 rows) could not be scrolled to its end. The rows run to their
+   full height and the page scrolls past them; the header row gives up its
+   pin, which a phone never had room to use anyway. */
+@media (max-width: 768px) {
+  .table-responsive {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+/* Until the paginator takes over, a paginated table draws its first page only -
+   at the reader's Rows per page (html[data-page-size], 50 when unset), the page
+   the server-rendered pager bar (pagination_controls) already reports. It was a
+   fixed 50 here and a fixed 25 for the Users table, so the Users page opened
+   with 25 rows and grew to 50 when the script ran - 1265px under the reader.
+   Only tables the ClientPaginator works (a `data-paginator` wrapper, or
+   `data_table(paginated=true)`): a pager fed by fetch never marks its table
+   ready, and Job History lost every row past the 50th to this rule. */
+html:not([data-page-size="25"]):not([data-page-size="100"]):not([data-page-size="all"])
+  :is([data-paginator] table, table[data-paginated]):not(.paginator-ready) > tbody > tr:nth-child(n+51),
+html[data-page-size="25"]
+  :is([data-paginator] table, table[data-paginated]):not(.paginator-ready) > tbody > tr:nth-child(n+26),
+html[data-page-size="100"]
+  :is([data-paginator] table, table[data-paginated]):not(.paginator-ready) > tbody > tr:nth-child(n+101) {
+  display: none !important;
+}
+.data-table {
+  --table-action-size: 24px;
+  width: 100%;
+  /* Separate, not collapsed. Collapsed borders belong to the TABLE, so a cell
+     that is `position: sticky` (the header row, the actions column) leaves its
+     bottom line behind when it moves - the header lost its rule on scroll and
+     the pinned actions column showed the row line stepping up at its edge, or
+     a line under the last row where the rest of the row had none. With
+     separate borders each cell paints its own line and carries it along. */
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--font-size-base);
+  border-top: 1px solid var(--border-color);
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  /* Centred, not top-aligned. `pages/admin.css` already set `vertical-align:
+     middle` on `.data-table tbody td` - an UNSCOPED rule for every table in the
+     app, written in one page's stylesheet - so whether a row's contents sat at
+     the top or the middle depended on whether that page's sheet happened to be
+     loaded. A badge next to a two-line cell landed in a different place on the
+     Users page than on the course page. The decision belongs here, once. */
+  vertical-align: middle;
+  line-height: var(--gl-line-height-20);
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast);
+}
+.data-table th.text-center,
+.data-table td.text-center,
+.th-center-50,
+th.th-center-50 { text-align: center; }
+.data-table th.text-center .sort-link,
+.data-table th.th-center-50 .sort-link,
+th.text-center .sort-link,
+th.th-center-50 .sort-link { justify-content: center; }
+.data-table td.text-nowrap { white-space: nowrap; }
+.data-table td .btn + .btn { margin-left: var(--gl-spacing-2); }
+@media (hover: none) and (pointer: coarse) {
+  .data-table { --table-action-size: 36px; }
+  .data-table td .btn { min-height: var(--table-action-size); }
+  .data-table td .btn-icon-only { min-width: var(--table-action-size); }
+}
+/* One row state, inherited by every cell including pinned actions. Keeping
+   stripe specificity low lets hover, press and selection win without page
+   overrides or !important. Expanded detail rows own their content surface. */
+.data-table > tbody > tr {
+  --table-row-bg: var(--gl-background-color-default);
+}
+.data-table > tbody > tr > :is(td, th) {
+  background: var(--table-row-bg);
+}
+.data-table > tbody > tr:where(:nth-child(even of :not(.d-none):not(.table-empty-row):not(.table-detail-row):not([data-parent-team]))) {
+  --table-row-bg: var(--gl-table-row-stripe-bg);
+}
+.data-table > tbody > tr:where([data-parent-team], .member-excluded, .expanded, .table-detail-row) {
+  --table-row-bg: var(--gl-background-color-subtle);
+}
+@media (hover: hover) {
+  .data-table > tbody > tr:where(:hover:not(.table-detail-row):not(.table-empty-row)) {
+    --table-row-bg: var(--gl-table-row-hover-bg);
+  }
+}
+.data-table > tbody > tr:is(.is-selected, .is-nav-busy-tint, [aria-selected="true"]) {
+  --table-row-bg: var(--gl-table-row-selected-bg);
+}
+
+/* No radius on the last row's cells. The scroll wrapper clips the table to
+   its own corners (see `.table-responsive:last-child` below), so the row's
+   hover and stripe already end at the rounded edge. A cell radius of its own
+   was inert under collapsed borders and, once the borders became separate,
+   painted a corner of its own inside the wrapper's - a notch of card ground
+   at both bottom corners of every striped last row. The wrapper's corners are
+   `--gl-card-inner-radius`, the card body's own, for the same reason. */
+
+/* Sticky actions column.
+   A wide table (.table-scrollable) scrolls sideways inside its viewport, which
+   pushed the last (actions) column off the right edge - on anything narrower
+   than the full table you could not reach the row buttons without noticing the
+   horizontal scroll. .table-sticky-actions pins the last column to the right so
+   its buttons are always visible. */
+.data-table.table-sticky-actions > thead > tr > th:last-child:not([colspan]),
+.data-table.table-sticky-actions > tbody > tr > td:last-child:not([colspan]) {
+  position: sticky;
+  right: 0;
+  text-align: right;
+}
+.data-table.table-sticky-actions > tbody > tr > td:last-child:not([colspan]) {
+  z-index: 2;
+}
+.data-table.table-sticky-actions > thead > tr > th:last-child:not([colspan]) {
+  z-index: 4;                 /* above the sticky header (2) and sticky body cell (2) */
+  background: var(--gl-table-header-bg, var(--gl-background-color-subtle));
+}
+
+/* Let sticky cells keep the browser's native compositor constraints.
+   will-change:transform creates a transform node instead: Chrome then updates
+   the pinned position on the main thread, lagging behind a touch pan. */
+
+/* table-scroll.js lets the column go when less than one identity column's
+   width remains beside it: it scrolls with the row like any other cell,
+   so the columns before it are actually readable. */
+.table-scroll.sticky-column-off .data-table.table-sticky-actions > thead > tr > th:last-child:not([colspan]),
+.table-scroll.sticky-column-off .data-table.table-sticky-actions > tbody > tr > td:last-child:not([colspan]) {
+  position: static;
+  box-shadow: none;
+}
+
+/* A theme border marks content passing beneath Actions. Keep the separator
+   on the cell, rather than over its buttons, and fade its opacity when the
+   column reaches its natural position at the right end of the table. */
+.table-scroll:not(.sticky-column-off) .data-table.table-sticky-actions > :is(thead, tbody) > tr > :last-child:not([colspan])::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--gl-border-color-default);
+  box-shadow: -3px 0 6px var(--gl-shadow-color-default);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.table-scroll.is-scrollable-x:not(.at-scroll-end):not(.sticky-column-off) .data-table.table-sticky-actions > :is(thead, tbody) > tr > :last-child:not([colspan])::before {
+  opacity: 1;
+}
+
+/* Full-width row details, with labels and values aligned to the reading edge. */
+.table-detail-list {
+  display: grid;
+  grid-template-columns: fit-content(12rem) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--gl-spacing-3) var(--gl-spacing-5);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  max-width: min(100%, calc(100cqi - var(--gl-spacing-5) * 2));
+}
+.table-detail-list dt {
+  color: var(--gl-text-color-subtle);
+  font-weight: var(--font-weight-medium);
+}
+.table-detail-list dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+[data-table-detail-toggle] svg {
+  transition: transform var(--transition-fast);
+}
+[data-table-detail-toggle][aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* Ensure inner flex/inline-flex elements also center vertically */
+.data-table td > .flex-center,
+.data-table td > .d-flex,
+.data-table td > .badge,
+.data-table td > .count-badge {
+  vertical-align: middle;
+}
+
+/* GitLab table headers: normal-case, semibold, subtle background.
+   Pajamas spec: header AND body cells both use gl-p-5 (16px) padding - the
+   header is NOT tighter than the body. Keep the full 16px vertical padding so
+   the row rhythm matches the official GitLab table component 1:1. */
+/* Measured on the real Pajamas table component (design.gitlab.com/components/
+   table, `table b-table gl-table`): header cells are 14px/600 over a 1px
+   bottom border - not 13px over 2px. The background stays opaque here on
+   purpose (see the sticky note below); GitLab's header is transparent because
+   theirs does not pin. */
+/* Rounded PER EDGE, because each edge has its own owner. A table can have a note
+   above it and a pagination bar below it at the same time, and each of those is
+   the real edge of the block on its side:
+     - top    rounded unless a note sits above  (the note takes the top instead)
+     - bottom rounded unless a pagination bar follows (it takes the bottom)
+   Rounding by "does this block contain pagination" - which is what the previous
+   attempt did - squared off the TOP too, which is not what anybody wanted. */
+.table-responsive,
+.table-scrollable {
+  border-radius: 0;
+}
+/* The <table> inside a scroll viewport takes its corners FROM the viewport,
+   always. It has no say in the matter: the rules below square or round the
+   wrapper according to what sits above it, and the wrapper is what the reader
+   sees the edge of.
+   Without this the table rounded itself: `data_table(class=...)` puts
+   `table-scrollable` on the <table>, so `.table-scrollable:first-child` above
+   matched the table (always the first child of its viewport) and gave it 12px
+   top corners. Invisible while the wrapper rounds too - and a 12px notch of
+   card ground under every square header the moment the wrapper is squared,
+   which is the "unlit corner" seen when a row highlight stops short of the
+   corner. Measured at 1440x900 before this rule: wrapper 0 / table 12 on the
+   Users table, Job History, Feature Flags, Recent Events, the student page's
+   issue tables and Group Members - six of the nine tables walked.
+   Written to out-rank `.table-scrollable:first-child` (0,2,0): element plus two
+   classes is (0,2,1). A plain `.table-responsive > table` reads better and
+   loses. */
+.table-responsive > table.table-scrollable {
+  border-radius: inherit;
+}
+.table-responsive:first-child,
+.table-scrollable:first-child {
+  border-start-start-radius: var(--gl-card-inner-radius);
+  border-start-end-radius: var(--gl-card-inner-radius);
+}
+/* ...unless ANYTHING sits above it. This used to enumerate the note classes -
+   `.gitlab-alert`, `.table-note`, `.gp-deleted-note`, `.member-api-note` - and every
+   element that was not on the list rounded the table underneath it while
+   staying square itself. A `<details>` toolbar ("Show all commits") sitting on
+   a table is exactly that case.
+   The question is not "which component is above me", it is "is anything above
+   me", so ask that. `:first-child` covers the flat shape; the second selector
+   covers the wrapped one, where the table is first inside `.table-scroll` but
+   `.table-scroll` itself is not first. */
+/* NOTE: the leading `*` is load-bearing. A selector that begins with a
+   pseudo-class is dropped by the CSS minifier, so `:not(.d-none) + x` was
+   written here and never reached the bundle - the rule looked right in the
+   source and did nothing in the browser. Always anchor with an element or `*`.
+
+   `:not(:first-child)` is not the test either: a HIDDEN sibling still makes the
+   table "not first", so a `.d-none` panel that nobody can see took the rounding
+   away from the table below it. The adjacent-sibling form with `:not(.d-none)`
+   asks the real question - is there a VISIBLE block immediately above me. */
+/* `~`, not `+`: a HIDDEN block can sit between the visible one and the table
+   (a `.d-none` panel swapped out by a filter), and the adjacent combinator then
+   sees only the hidden neighbour and lets the table round under something that
+   is plainly above it. The general sibling combinator asks the question that
+   matters - is there ANY visible block earlier in this stack. */
+*:not(.d-none):not(p):not(h1):not(h2):not(h3):not(h4):not(h5):not(.muted):not(.text-sm) ~ :is(.table-responsive, .table-scrollable),
+*:not(.d-none):not(p):not(h1):not(h2):not(h3):not(h4):not(h5):not(.muted):not(.text-sm) ~ .table-scroll > :is(.table-responsive, .table-scrollable) {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.table-scroll > :is(.table-responsive, .table-scrollable):first-child {
+  border-start-start-radius: var(--gl-card-inner-radius);
+  border-start-end-radius: var(--gl-card-inner-radius);
+}
+*:not(.d-none):not(p):not(h1):not(h2):not(h3):not(h4):not(h5):not(.muted):not(.text-sm) ~ .table-scroll > :is(.table-responsive, .table-scrollable):first-child {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+/* A disclosure's own body. The sibling rules above cannot see this case: the
+   table is the first child of the panel `<div>` INSIDE the <details>, so it is
+   `:first-child` and rounds, while the <summary> that plainly sits above it is
+   a sibling of the panel, not of the table. "Show all commits" on the student
+   page is exactly that - a rounded table top tucked under a square toolbar.
+   Anything after a <summary>, at any depth, has something above it. */
+details > summary ~ :is(.table-responsive, .table-scrollable),
+details > summary ~ * :is(.table-responsive, .table-scrollable) {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+/* The rule above LOSES to `.table-responsive:first-child` (0,2,0 beats 0,1,2),
+   and the disclosure's table IS the first child of its panel wrapper - so it
+   kept rounding under the "Show all commits" toolbar despite the rule. Match the
+   same first-child table at a specificity that wins (0,2,2). Measured 12px ->
+   0px in scratchpad/repro_table_round.py. */
+details > summary ~ * :is(.table-responsive, .table-scrollable):first-child {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+/* ...and (0,2,2) is still not enough. The same element has a THIRD claim on it:
+   `.table-scroll > :is(...):first-child` above is (0,3,0), which outranks both
+   attempts - and that is the shape EVERY `data_table` renders, so the fix above
+   never reached a single one of them. Measured on the student page: "Assigned
+   Issues" and "Show all commits" both drew a 12px top corner under a square
+   toolbar, which is the notch of dark ground at the corner of the header row.
+   Same question as above, asked where it wins. */
+details > summary ~ .table-scroll > :is(.table-responsive, .table-scrollable):first-child,
+details > summary ~ * .table-scroll > :is(.table-responsive, .table-scrollable):first-child {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+/* A tab panel's table. Exactly the <details> case in a different shape: the tab
+   strip is plainly above the table, but it is not the table's SIBLING - it is
+   the panel's - so none of the rules above can see it, and a table that is the
+   first thing in its panel rounded its top corners underneath the strip. That
+   is the notch of card ground at the corner of the header row that was reported
+   as an unlit corner. Measured after the Users, System and student Issues cards
+   grew tabs: 12px on three of the new panels, 0px on the two that happen to
+   have a toolbar above the table.
+   Specificity is load-bearing again: `.table-scroll > :is(...):first-child` is
+   (0,3,0), so the panel selector has to carry four to win. */
+/* ...and the same table one wrapper deeper: a paginated table sits in its
+   `[data-paginator]` div inside the panel (the Activity card's Groups and
+   Merge requests views), which is the first thing in the panel and rounded
+   under the strip exactly as the bare one did. */
+[data-tab-panel] > :is(.table-responsive, .table-scrollable):first-child,
+[data-tab-panel] > .table-scroll > :is(.table-responsive, .table-scrollable):first-child,
+[data-tab-panel] > [data-paginator]:first-child > .table-scroll > :is(.table-responsive, .table-scrollable):first-child {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.card-body:not(:has(.pagination-controls)) .table-responsive:last-child,
+.card-body:not(:has(.pagination-controls)) .table-scrollable:last-child {
+  border-end-start-radius: var(--gl-card-inner-radius);
+  border-end-end-radius: var(--gl-card-inner-radius);
+}
+
+/* Whatever sits at the top of a card body owns the block's TOP corners -
+   whichever component it happens to be. This was a list of note classes, and
+   anything not on it stayed square while rounding the table below it. The
+   table's own scroll wrapper is excluded: it is handled by the rules above,
+   which also cover the `.table-scroll` shape. */
+/* The OWNER side does need a list, and this is the one place where it cannot be
+   positional. "First visible child" is not the same as "the first thing that
+   paints a top edge": a card body usually opens with a bare <p> of explanatory
+   text, which has no background, so rounding it rounds nothing while the
+   surface below it - the note, the toolbar - stays square.
+   CSS cannot ask "do you paint a background", so the components that do are
+   named. The TABLE side above stays positional, which is the half that was
+   actually broken: anything not on a list rounded the table under it. */
+:is(.gitlab-alert, .gp-deleted-note, .member-api-note, .table-toolbar):not(.d-none) {
+  border-start-start-radius: var(--gl-card-inner-radius);
+  border-start-end-radius: var(--gl-card-inner-radius);
+}
+/* ...unless something visible is already above them, in which case that one
+   owns the edge and these are mid-stack. */
+*:not(.d-none):not(p):not(h1):not(h2):not(h3):not(h4):not(h5):not(.muted):not(.text-sm) ~ :is(.gitlab-alert, .gp-deleted-note, .member-api-note, .table-toolbar) {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+/* The pagination bar below a table owns the block's BOTTOM corners. */
+.card-body > .pagination-controls:last-child,
+.pagination-controls:last-child {
+  border-end-start-radius: var(--gl-card-inner-radius);
+  border-end-end-radius: var(--gl-card-inner-radius);
+}
+
+.data-table thead,
+.data-table thead tr {
+  background: var(--gl-table-header-bg, var(--gl-background-color-subtle));
+}
+
+.data-table th {
+  /* Semibold. A column label is a heading, and at the corrected `bold` (700) a
+     table header out-weighted every page heading on the screen. */
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-default);
+  font-size: var(--font-size-sm);
+  background: var(--gl-table-header-bg, var(--gl-background-color-subtle));
+  border-bottom: 1px solid var(--border-color);
+  padding-top: var(--gl-spacing-3);
+  padding-bottom: var(--gl-spacing-3);
+  /* Pin the header while a long table scrolls inside its .table-responsive
+     viewport (max-height). Opaque background above so rows don't bleed through. */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.data-table th.text-right,
+.data-table td.text-right {
+  text-align: right;
+}
+
+/* Inline code / badges in table cells - prevent clipping */
+.data-table td code {
+  display: inline-block;
+  vertical-align: middle;
+  /* `overflow-wrap: anywhere` already breaks a SHA or a path that cannot fit;
+     `word-break: break-word` beside it only added breaking inside one that
+     could. */
+  overflow-wrap: anywhere;
+}
+.data-table td .badge {
+  vertical-align: middle;
+}
+
+/* NOTE: .table-striped and .table-hover are generated by the data_table()
+   macro but intentionally have no extra rules - the base .data-table class
+   already provides uniform striping and hover for every table in the system.
+   This keeps all tables visually identical without per-page overrides. */
+
+/* Condensed variant (Pajamas): body + header cell padding cut exactly in half
+   (16px -> 8px, uniform) for data-heavy, text-only tables. */
+.table-compact th,
+.table-compact td {
+  padding: var(--gl-spacing-3);
+}
+
+.table-bordered {
+  border: 1px solid var(--border-color);
+}
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid var(--border-color);
+}
+
+/* -- Shared fixed-layout class for any colgroup table -- */
+.tbl-fixed { table-layout: fixed; }
+/* `overflow-wrap`, never `word-break: break-word`. The latter breaks INSIDE a
+   word as soon as the line is full, so a username wrapped as "mykyta.oly / m"
+   in a 114px column it would otherwise have fitted. The correction below (see
+   "All fixed-layout data tables") set `word-break: normal` on the TABLE and was
+   meant to cover this, but a declaration on the cell beats one inherited from
+   its table - so every `.tbl-fixed` table went on shredding its own text. */
+.tbl-fixed td, .tbl-fixed th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+/* HEADERS must stay fully readable: a fixed layout with narrow columns was
+   clipping header labels to "Priority ...", "Category ...", "Acti..." because
+   `.sort-link` forces `white-space: nowrap`. Let header text WRAP within its
+   column instead of truncating (cells still truncate). Scoped to .tbl-fixed so
+   non-fixed tables are untouched. */
+/* Scoped to `.data-table`, not `.tbl-fixed`: `.users-table` is fixed-layout
+   too but carries its own class, so it never got this and its headers kept
+   overflowing their columns - "GitLab User ID" needs 117px in an 87px column
+   and the neighbouring header's own background paints over the spill, which
+   reads as a hard clip mid-word ("GitLab User I"). Every data table wraps its
+   headers now; one mechanic rather than one per table family. A table with
+   room to spare is unaffected, because there is nothing to wrap. */
+.data-table th { text-overflow: clip; white-space: normal; vertical-align: middle;
+  /* Wrap headers at WORD boundaries, not mid-word - on tablet widths the
+     inherited `` was shredding labels into "Sub mitte d
+     By" / "Prior ity". */
+  word-break: normal; overflow-wrap: break-word; hyphens: none; }
+.data-table th .sort-link { white-space: normal; word-break: normal; }
+/* ...but NOT where the table can scroll sideways instead. Auto layout sizes a
+   column to its widest cell, so an unwrapped label simply takes the width it
+   needs and the reader reaches it the same way they reach the columns past the
+   right edge. Wrapping bought nothing there and cost three lines of header:
+   measured on the users table, "GitLab User ID" over an 80px column made the
+   header row 92px tall while the table was ALREADY 75px wider than its viewport.
+   A fixed-layout table keeps the wrap: its columns cannot grow, so there the
+   label really would be cut. The users table is fixed too, but its columns are
+   sized to their labels in both languages (pages/admin.css), so it is under
+   this rule - it used to wrap "Používateľské meno" and stand 56px tall. */
+.table-responsive .data-table:not(.tbl-fixed) th { white-space: nowrap; }
+.table-responsive .data-table:not(.tbl-fixed) th .sort-link { white-space: nowrap; }
+/* Header checkboxes keep their alignment inside disabled-control tooltips. */
+.data-table th .form-check-input { margin-top: 0; vertical-align: middle; }
+/* Dense fixed-layout tables in the SCROLL range (≤1024px: phones + the
+   sidebar-squeezed tablet band) switch to the users-table model wholesale:
+   content-sized auto layout, single-line cells, and horizontal scroll in the
+   .table-scroll wrapper. The previous "keep fixed %-columns and let headers
+   wrap at word boundaries" produced exactly the mush users reported -
+   "Event ID"/"Dead Since" headers on two lines, "Ac tio ns", dates wrapped
+   to three lines - because %-columns at a 780px floor are narrower than
+   their own headers. Auto layout sizes every column to max(header, content),
+   so nothing wraps and nothing clips; unboundedly long text cells (ticket/MR
+   titles, descriptions) are capped per-table with an ellipsis.
+   Band ends at 1439px, not 1024: with the 240px sidebar a 1280px window
+   leaves ~980px of content, and the dense tables' HEADERS ALONE need more
+   (tickets: ~1010px for 8 unwrapped labels) - the fixed %-contract only
+   truly fits from ~1440px windows up, where it returns untouched. */
+/* Keyed on the table's OWN container, not the window. The band used to end at
+   1439px of viewport, which is the right threshold only for a full-width
+   table: the two Activity cards each hold one of these tables in a half-width
+   card, so at a 1440px window they got ~540px, kept the fixed %-columns meant
+   for 1180px, and clipped everything - "Projects" cut to "Projec", the date
+   broken over three lines, the State badge sliced by the card edge. 1180px is
+   the same threshold expressed as content width (a 1440px window minus the
+   240px sidebar and the page padding), so a full-width table behaves exactly
+   as it did. */
+@container (max-width: 1180px) {
+  .data-table.tbl-fixed.table-scrollable {
+    table-layout: fixed;
+    width: 100%;
+    min-width: 780px;
+  }
+  .data-table.tbl-fixed.table-scrollable colgroup { display: table-column-group; }
+  .data-table.tbl-fixed.table-scrollable th,
+  .data-table.tbl-fixed.table-scrollable td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .data-table.tbl-fixed.table-scrollable th .sort-link { white-space: nowrap; }
+
+  /* The cap the rule above says these tables need. Single-line cells are right
+     for a date or a badge; a column of PROSE has no natural width, so with
+     `nowrap` it takes whatever its longest sentence needs - the Feature Flags
+     description ran to 2 531px and carried the table to 3 205px inside a
+     1 092px card, so reading one description meant scrolling two thousand
+     pixels sideways.
+     It wraps instead of being clipped: this is the only place that text
+     appears, so an ellipsis would put it out of reach entirely. The other
+     columns keep their single line. */
+  .data-table.tbl-fixed.table-scrollable th.col-prose,
+  .data-table.tbl-fixed.table-scrollable td.col-prose {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 46ch;
+  }
+}
+
+/* Closed dropdown menus inside tables must not leak into scrollable overflow */
+.data-table .gl-dropdown:not(.open) .gl-dropdown-menu {
+  display: none;
+}
+.data-table .gl-dropdown.open .gl-dropdown-menu {
+  display: block;
+}
+
+/* -- All fixed-layout data tables: prevent text overflow --
+   At WORD boundaries, not mid-word - the same correction the headers above
+   already carry, and for the same reason. `word-break: break-word` breaks
+   inside a word whenever the line is full, so a fixed %-column shredded cell
+   text the way it shredded the labels: names split as "Mykyta Ol / ym",
+   emails broken at an arbitrary letter. `overflow-wrap: break-word` wraps
+   between words and only breaks inside one when that single word cannot fit
+   its column on its own, which is what GitLab's tables do.
+
+   Headers and cells were on two different rules here, which is why the header
+   fix never reached the thing underneath it. */
+.data-table[style*="table-layout"],
+.data-table.tbl-fixed,
+.data-table.teams-table,
+.data-table.users-table {
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+/* -- Sortable header - Premium animated sort indicators -- */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+@media (hover: hover) {
+  .sortable-header:hover {
+    background: var(--surface-moderate);
+  }
+}
+.sortable-header:active {
+  background: var(--surface-strong);
+}
+.sort-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+/* GlTable's sort mark (@gitlab/ui table.vue): a TEXT arrow - ↑ ascending,
+   ↓ descending - in a 16px slot 4px after the label, drawn only on the sorted
+   column and, under the pointer, on the column a click would sort (in the
+   direction that click would take: numbers and dates start descending). The
+   slot is always there, so showing the arrow never moves the label.
+   Works for sortable-table.js (.sort-arrow.asc/.desc) and Alpine.js
+   (th.sorted.asc / th.sorted.desc). */
+.sort-arrow {
+  display: inline-flex;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1rem;
+  margin-left: var(--gl-spacing-2);
+  user-select: none;
+  visibility: hidden;
+}
+.sort-arrow::before { content: '\2191'; }
+/* :where() keeps the hover hint below every real direction in specificity. */
+:where(.sortable-header[data-sort-type="number"], .sortable-header[data-sort-type="date"]) .sort-arrow::before { content: '\2193'; }
+.sort-arrow.desc::before,
+th.sorted.desc .sort-arrow::before,
+th[aria-sort="descending"] .sort-arrow::before { content: '\2193'; }
+.sort-arrow.asc::before,
+th.sorted.asc .sort-arrow::before,
+th[aria-sort="ascending"] .sort-arrow::before { content: '\2191'; }
+.sorted .sort-arrow,
+th[aria-sort="ascending"] .sort-arrow,
+th[aria-sort="descending"] .sort-arrow { visibility: visible; }
+@media (hover: hover) {
+  .sortable-header:hover .sort-arrow { visibility: visible; }
+}
+/* Sorted header text gets accent color */
+.sorted .sort-link,
+th.sorted .sort-link {
+  color: var(--primary);
+}
+/* Focus-visible for keyboard accessibility */
+.sortable-header:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-inset);
+}
+
+/* -- Table empty state -- */
+.table-empty-row td {
+  padding: 0;
+}
+.table-empty-state {
+  padding: var(--gl-spacing-9) var(--gl-spacing-7);
+  text-align: center;
+  /* The empty row spans the whole table, which on a phone is wider than its
+     scroller - so a centred "No events recorded yet" sat half off screen. Pinned
+     to the scroller's left edge at the scroller's width (`.table-scroll` is the
+     inline-size container), it centres in what is visible. */
+  position: sticky;
+  left: 0;
+  max-width: 100cqw;
+}
+.table-empty-icon {
+  color: var(--text-tertiary);
+  margin-bottom: var(--gl-spacing-5);
+  /* The slot is the height of the LARGER thing that can sit in it - the 72px
+     GitLab illustration an empty or failed state leads with - so the loading
+     state's 28px spinner centres in the same box and loading -> empty moves
+     nothing. */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 72px;
+}
+/* The failure twin. Same layout as the empty state so a table does not change
+   shape between "nothing here" and "this did not load"; only the illustration
+   (status-fail-sm) and the alert role say which one it is. */
+.table-empty-state--error .gp-retry-btn { margin-top: var(--gl-spacing-3); }
+.table-empty-message {
+  color: var(--text-secondary);
+  margin: 0 0 var(--gl-spacing-5);
+}
+/* Loading is the SAME box as empty - identical padding, identical centring,
+   identical height - so a table that goes loading -> empty never changes shape
+   underneath the reader. The only difference is what sits in the icon slot and
+   what the message says.
+
+   No min-height of its own. Every table that renders this row server-side has
+   its first page inlined, so the height the rows will take is already reserved
+   on the scroll viewport (`data_table(reserve_rows=...)`) and the rule below
+   makes the row fill it. When that first page is EMPTY nothing is reserved,
+   and what lands is the empty state - the same box as this one. The
+   `min-height: min(78vh, 820px)` that stood here claimed a screenful in exactly
+   that case: the Events page with no events painted a 700px blank box that
+   collapsed to the 170px empty state the moment the script ran - the "table
+   stretches to double and snaps back while loading" report. */
+.table-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The reservation data_table(reserve_rows=) hands over: the rows' height,
+   held while the body is still empty or shows only the loader. Anything else
+   in the body - the rows, the empty state - is the height from then on. As an
+   inline min-height it outlived the rows of every table that drew them on its
+   first render, until a re-render happened to clear it: 41px of blank space
+   under the student's two issues, 47px under the Events table on a phone.
+   Registered so it stays on the wrapper instead of riding down to every cell. */
+@property --table-reserve {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+.table-responsive[data-reserve]:not(:has(> table > tbody > tr:not(.table-loading-row))) {
+  min-height: min(var(--table-reserve), 78vh, 820px);
+}
+
+/* While a table is loading its container holds the height it already had
+   (reserved by data_table(reserve_rows=) or set inline by GP.tableLoading), and
+   the loader centres inside that space rather than sitting at the top of an
+   otherwise empty box. `height: 100%` on the table did nothing here: a
+   percentage resolves against a definite height, and `min-height` is not one -
+   so the 52px loading row sat at the top of a 130px box (Job History, the
+   Events table, every reserved table). The box is a flex column for exactly as
+   long as the loading row is in it; the table grows to the box and Chrome
+   hands the extra height to the tbody row, not the head (measured: head 35px,
+   row 264px in a 300px box). Once the rows land the box is theirs again. */
+.table-responsive:is([style*="min-height"], [data-reserve]):has(.table-loading-state) {
+  display: flex;
+  flex-direction: column;
+}
+.table-responsive:is([style*="min-height"], [data-reserve]):has(.table-loading-state) > table {
+  flex: 1 0 auto;
+}
+/* Inside a RESERVED box the mark lies in one line - spinner beside label, a
+   52px row - so it never asks for more than the rows it stands in for. The
+   stacked box (48px of padding above and below) is 176px, taller than a
+   one- or two-row table: the student's Weekly Breakdown reserved 103px for
+   its one row, held a 228px loading table, and shrank by 125px when the row
+   landed. The reservation is the box; the mark centres inside it. */
+.table-responsive:is([style*="min-height"], [data-reserve]) .table-loading-state {
+  display: flex;
+  flex-direction: row;
+  gap: var(--gl-spacing-3);
+  align-items: center;
+  justify-content: center;
+  padding: var(--gl-spacing-3);
+  min-height: inherit;
+}
+.table-responsive:is([style*="min-height"], [data-reserve]) .table-loading-state .table-empty-icon,
+.table-responsive:is([style*="min-height"], [data-reserve]) .table-loading-state .table-empty-message {
+  margin: 0;
+  min-height: 0;
+}
+
+.pagination,
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+}
+.pagination-btn {
+  text-decoration: none;
+  color: var(--gl-text-color-subtle);
+  /* No `transition` here on purpose. A pagination button IS a .btn in the
+     markup, and redeclaring the timing overrode the button contract with a
+     shorter one that covered `color` alone - so these two buttons eased at a
+     different speed from every other button, and their background snapped
+     while their text faded. */
+}
+.pagination-btn:hover:not(.disabled) {
+  color: var(--primary);
+}
+.pagination-btn.disabled {
+  color: var(--text-tertiary);
+  pointer-events: none;
+}.pagination-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: var(--gl-spacing-3);
+  /* Same radius as the prev/next buttons it sits between - those are .btn and
+     round at 8px, so a 4px page number read visibly squarer than its arrows. */
+  border-radius: var(--gl-action-border-radius);
+  font-size: var(--font-size-base);
+  color: var(--gl-text-color-subtle);
+  text-decoration: none;
+  transition: background var(--transition-normal),
+              color var(--transition-normal),
+              border-color var(--transition-normal);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  /* GlPagination's page-link: p-3 on a 16px line, 32px square. */
+  line-height: 1rem;
+}
+.pagination-page:hover {
+  background: var(--surface-moderate);
+}
+/* The current page is a selected action, and GitLab paints those neutral. */
+.pagination-current {
+  background: var(--gl-action-selected-bg-default);
+  color: var(--gl-action-selected-text);
+}
+.pagination-current:hover {
+  background: var(--gl-action-selected-bg-hover);
+}
+.pagination-ellipsis {
+  padding: 0 var(--gl-spacing-1);
+  color: var(--text-tertiary);
+}
+/* -- Dropdown (uses unified .gl-dropdown from dropdowns.css) -- */
+.dropdown {
+  position: relative;
+}
+
+/* -- GitLab List Items - project/group/issue row style -- */
+.gl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.gl-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  border-bottom: 1px solid var(--gl-list-border);
+  background: transparent;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+}
+
+button.gl-list-item {
+  width: 100%;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.gl-list-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-inset);
+}
+
+/* Multi-line list items (with description) should top-align */
+.gl-list-item-stacked,
+.gl-list-item--multiline,
+.gl-list-item:has(.gl-list-item-description) {
+  align-items: flex-start;
+}
+.gl-list-item:last-child {
+  border-bottom: none;
+}
+a.gl-list-item:hover,
+.gl-list-item:hover,
+.gl-list-item.cursor-pointer:hover {
+  background: var(--gl-list-hover-bg);
+  text-decoration: none;
+}
+
+/* Clickable list item (GitLab style - whole row is a link) */
+.gl-list-item[onclick],
+.gl-list-item[role="button"],
+.gl-list-item.cursor-pointer,
+a.gl-list-item {
+  cursor: pointer;
+}
+.gl-list-item[onclick]:active,
+.gl-list-item[role="button"]:active,
+.gl-list-item.cursor-pointer:active,
+a.gl-list-item:active {
+  background: var(--gl-active-subtle);
+}
+.gl-list-item[onclick]:focus-visible,
+.gl-list-item[role="button"]:focus-visible,
+.gl-list-item.cursor-pointer:focus-visible,
+a.gl-list-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-inset);
+}
+
+.gl-list-item[aria-current="true"] {
+  background: var(--gl-action-selected-bg-default);
+  color: var(--gl-action-selected-text);
+}
+.gl-list-item-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--surface-moderate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--gl-text-color-subtle);
+  overflow: hidden;
+}
+.gl-list-item-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gl-list-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.gl-list-item-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-default);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+.gl-list-item-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+.gl-list-item-title a:hover {
+  color: var(--gl-text-color-link);
+  text-decoration: none;
+}
+
+.gl-list-item-description {
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+  margin: var(--gl-spacing-1) 0 0;
+  line-height: var(--line-height-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.gl-list-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.gl-list-item:hover .gl-list-item-actions {
+  opacity: 1;
+}
+/* On touch devices, always show actions */
+@media (hover: none) {
+  .gl-list-item-actions {
+    opacity: 1;
+  }
+}
+
+/* -- List variants -- */
+.gl-list-flush {
+  border: none;
+  border-radius: 0;
+}
+.gl-list-compact .gl-list-item {
+  padding: var(--gl-spacing-2) var(--gl-spacing-4);
+  gap: var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+}
+.gl-list-compact .gl-list-item-title {
+  font-size: var(--font-size-sm);
+}
+.gl-list-compact .gl-list-item-avatar {
+  width: 24px;
+  height: 24px;
+}
+/* Avatar icon variant (no background, just icon) */
+.gl-list-item-avatar-icon {
+  background: transparent;
+  color: var(--gl-text-color-subtle);
+}
+
+/* Avatar color variants */
+.gl-list-item-avatar-blue {
+  background: var(--gl-feedback-info-bg);
+  color: var(--gl-text-color-link);
+}
+/* Left colored border (for violations, severity) */
+.gl-list-item-border-red    { border-left: 2px solid var(--gl-feedback-danger-icon); }
+.gl-list-item-border-orange { border-left: 2px solid var(--gl-feedback-warning-icon); }
+.gl-list-item-border-blue   { border-left: 2px solid var(--gl-feedback-info-icon); }
+.gl-list-item-border-gray   { border-left: 2px solid var(--border-color-strong); }
+/* ============================================
+   UNIVERSAL RESPONSIVE TABLE UTILITIES
+   ============================================
+   Apply these classes to BOTH the <th> AND every matching <td> for
+   the column you want to control. They replace per-table fragile
+   nth-child(N) rules - adding/removing a column never breaks the
+   layout because each cell carries its own visibility class.
+
+   Breakpoints (deliberately conservative - prefer horizontal scroll on
+   phones/tablets over hiding data; cells only hide on truly cramped
+   screens where scroll alone is not enough):
+
+     .col-hide-xs  -> hidden when viewport width  ≤ 360px
+     .col-hide-sm  -> hidden when viewport width  ≤ 480px
+     .col-hide-md  -> hidden when viewport width  ≤ 640px
+     .col-hide-lg  -> hidden when viewport width  ≤ 900px
+
+   Tables that benefit from horizontal scroll on phones can opt in
+   with `.table-scrollable` on the <table> (forces a sensible
+   min-width), and with `.table-sticky-actions` to keep the row's
+   buttons against the right edge while the rest scrolls under them.
+   There is no pinned FIRST column: 84c8ac3b dropped it to match
+   GitLab, where a wide table simply scrolls.
+
+   Visually-hidden table headers (when a card-stack mobile pattern
+   is desired) can use `.table-stack-mobile` - see usage notes below.
+*/
+
+/* xs: very small phones (≤ 360px) */
+@media (max-width: 360px) {
+  .data-table .col-hide-xs,
+  .data-table th.col-hide-xs,
+  .data-table td.col-hide-xs,
+  .data-table col.col-hide-xs { display: none !important; }
+}
+
+/* sm: small phones (≤ 480px) */
+@media (max-width: 480px) {
+  .data-table .col-hide-sm,
+  .data-table th.col-hide-sm,
+  .data-table td.col-hide-sm,
+  .data-table col.col-hide-sm { display: none !important; }
+}
+
+/* md: phones (≤ 640px) - wider phones still see all columns via scroll */
+@media (max-width: 640px) {
+  .data-table .col-hide-md,
+  .data-table th.col-hide-md,
+  .data-table td.col-hide-md,
+  .data-table col.col-hide-md { display: none !important; }
+}
+
+/* lg: large phones / portrait tablets (≤ 900px) */
+@media (max-width: 900px) {
+  .data-table .col-hide-lg,
+  .data-table th.col-hide-lg,
+  .data-table td.col-hide-lg,
+  .data-table col.col-hide-lg { display: none !important; }
+}
+
+/* Horizontal-scroll opt-in: ensures the table keeps a readable minimum width
+   so the wrapper's overflow-x: auto kicks in cleanly instead of squeezing
+   columns. Covers the WHOLE ≤1024px range, not just phones: on tablets the
+   fixed 240px sidebar pushes the content column down to ~480-736px - often
+   NARROWER than a phone where the sidebar overlays - which is exactly where
+   tables crammed worst (same reasoning as the .tbl-fixed floor above). */
+@media (max-width: 1024px) {
+  .data-table.table-scrollable { min-width: 540px; }
+  .data-table.table-scrollable-lg { min-width: 720px; }
+}
+
+/* Sticky first column - styling removed to match GitLab layout where tables scroll freely */
+
+/* ============================================
+   DEACTIVATED / SOFT-DELETED ROWS (admin only)
+   ============================================
+   Admins keep unlinked projects and deleted groups visible (dimmed) so
+   they can review and restore them. Teachers and students never receive
+   these rows from the server. `.row-inactive` (opacity) is defined in
+   pages/admin.css and shared via the global bundle; here we add the
+   hover affordance and the "Show deleted" toggle behaviour. */
+/* No `transition` here: timing comes from the baseline row contract. Restating
+   it made a deleted row fade at a different speed from the row above it. */
+.row-inactive:hover { opacity: 0.85; }
+
+/* The "Show deleted" toggle: a container marked `.gp-hide-deleted` keeps
+   its deactivated rows collapsed until the admin opts in. Rows that
+   represent a soft-deleted entity carry `.gp-deleted-row`. */
+.gp-hide-deleted .gp-deleted-row { display: none !important; }
+
+/* Deleted-rows filter toggle button in a card header. */
+.gp-deleted-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+  background: transparent;
+  border: 1px solid var(--gl-control-border-default);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-1) var(--gl-spacing-3);
+  cursor: pointer;
+  transition: background var(--transition-normal), color var(--transition-normal),
+              border-color var(--transition-normal);
+}
+.gp-deleted-toggle:hover {
+  background: var(--gl-btn-default-bg-hover);
+  color: var(--gl-text-color-default);
+}
+.gp-deleted-toggle[aria-pressed="true"] {
+  background: var(--gl-feedback-info-bg);
+  color: var(--primary);
+  border-color: var(--gl-feedback-info-icon);
+}
+.gp-deleted-toggle-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+}
+
+/* Inline notice shown above a table that contains restorable rows. */
+.gp-deleted-note {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+  background: var(--gl-background-color-subtle);
+  border-bottom: 1px solid var(--border-color);
+}
+.gp-deleted-note .gp-deleted-note-icon { color: var(--gl-feedback-warning-icon); flex-shrink: 0; }
+
+/* Responsive card-table mode was removed: all data tables now use a single
+   horizontal-scroll model (.table-scrollable + .table-sticky-actions + the
+   .table-scroll right-edge fade affordance), so there is no .table-cards. */
+
+/* ============================================
+   MOBILE TABLE COMPACTION
+   ============================================
+   On small screens, reduce cell padding and font sizes for better
+   space efficiency. This applies to ALL data-tables globally. */
+@media (max-width: 640px) {
+  .data-table th {
+    padding-top: var(--gl-spacing-2);
+    padding-bottom: var(--gl-spacing-2);
+  }
+  /* Prevent table-responsive from exceeding viewport width. No height cap:
+     on a phone the table runs its full height and the page scrolls (see the
+     768px rule above). */
+  .table-responsive {
+    max-width: 100vw;
+  }
+}
+@media (max-width: 480px) {
+  .data-table td {
+    line-height: 1.4;
+  }
+}
+
+/* -- Bulk actions above a table with row checkboxes (components/bulk_actions.html)
+   The tally that follows a bulk button. It was a bare `font-sm` span written by
+   hand at each of three call sites; as a component it also gets to line up with
+   the button rather than sit on the text baseline. */
+.bulk-actions {
+  flex-wrap: wrap;
+}
+.bulk-count {
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* -- The controls band: search on the left, views on the right --
+   Its own line with its own bottom edge, so a reader can see three separate
+   things instead of one crowded row: the card header is what you can DO to the
+   table, this band is how you NARROW it, and the table is the rows. Before
+   this, the same two controls were in the card header on one page, in a
+   `.table-toolbar` on another, in both on a third, and in a bespoke strip with
+   private class names on a fourth. */
+/* First thing in the card body, so the body's own 24px already spaces it from
+   the header - pull the band up so the search input and controls sit compactly
+   below the card header with balanced top and bottom clearance. */
+.card-body > .table-controls:first-child {
+  margin-top: 0;
+}
+/* The body's own top padding gives way to the band's room when the band
+   opens the body - directly, or as the first thing in the `[data-tabs]`
+   wrapper a band with tab panels needs (course Activity), which put that
+   band 8px lower than every other one. */
+.card-body:has(> .table-controls:first-child),
+.card-body:has(> [data-tabs]:first-child > .table-controls:first-child) {
+  padding-top: var(--table-band-room);
+}
+.table-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-3);
+  /* ONE band, whatever it holds: rows of 43px - the height of the tab strip
+     it carries on Users - with the controls centred in each and the line
+     directly under the last (44px with the line). A band with tabs used to lay
+     itself out by its own rule while a band with only a search or dropdowns
+     kept 16px under them, so the same band put its controls 16px from the
+     body's top and 17px over the line on Job History, 22px and 7px on Users.
+     The row height sits on the two groups below, not on the band: a band that
+     wraps on a phone then gives its second row the same air over the line as
+     its first, instead of setting the dropdowns on it. */
+  padding: 0;
+  border-bottom: 1px solid var(--gl-border-color-default);
+  margin-bottom: var(--gl-spacing-4);
+  min-width: 0;
+}
+/* The search runs from the left edge to wherever the filters begin. It was
+   capped at 28rem, so on a wide table it stopped a third of the way across and
+   left a gap between it and the filters that belonged to neither - and the gap
+   was a different width on every page, because it was whatever the filters did
+   not use. One rule, one band: search on the left, filters on the right, and
+   nothing loose in between. */
+.table-controls-search {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 43px;
+}
+.table-controls-search:empty {
+  display: none;
+}
+.table-controls-search > div,
+.table-controls-search [data-tour],
+.table-controls-search .search-box,
+.table-controls-search .form-group {
+  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+/* ...down to the input itself. The slot stretched and the field inside it did
+   not, so a 699px slot held a 261px box and the 438px between it and the
+   filters belonged to nothing. */
+.table-controls-search .search-box input,
+.table-controls-search .form-input,
+.table-controls-search .form-input-sm {
+  width: 100%;
+}
+/* The filters sit against the right edge - BUT only when there is a search on
+   the left to sit opposite. On a table with no search (the Event Pipeline, Job
+   History, the config table) `margin-left: auto` pushed two dropdowns to the
+   far right of an otherwise empty 1200px band, so the band read as a mistake:
+   a wide grey strip with a pair of controls hiding in the corner. With no
+   search they start at the left edge, under the card's own text, where the eye
+   already is. */
+.table-controls-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 43px;
+}
+.table-controls-search:not(:empty) ~ .table-controls-filters {
+  margin-left: auto;
+}
+/* -- The band places its controls; each keeps its own size --
+   A `.form-group` wrapper keeps no bottom margin inside the flex row. The
+   compact size of a tab strip standing beside the controls is the tabs'
+   own (layout.css), as it is in a card header. */
+.table-controls .form-group {
+  margin-bottom: 0;
+}
+.table-controls-filters:empty {
+  display: none;
+}
+/* A tab strip in the band rests directly on the band's bottom border line,
+   giving the same connected indicator effect as the main course navigation tabs
+   - the one thing a strip does differently from the controls beside it. */
+.table-controls-filters:has(> .filter-tabs) {
+  margin-bottom: -1px;
+  align-self: flex-end;
+}
+.table-controls .filter-tabs {
+  margin-bottom: 0;
+  align-self: flex-end;
+}
+/* Narrow: the two stack, each taking its own full line, in that order. */
+@media (max-width: 768px) {
+  .table-controls-search,
+  .table-controls-filters {
+    flex: 1 1 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+  /* Dropdown filters split their line evenly; a long label ellipsizes. A select
+     is as wide as its longest option, so one long option (Job History's task
+     names) pushed the next filter onto a row of its own, and the two stacked
+     flush against each other with no air over the band's line. */
+  .table-controls-filters .form-group:has(> .form-control-wrapper > .gl-form-dropdown) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .table-controls-filters .gl-dropdown.gl-form-dropdown {
+    min-width: 0;
+  }
+}
+
+/* -- A person in a table row: an avatar, a name over a handle --
+   Written for the Teachers table as `.teacher-identity` in that page's own
+   stylesheet, which is the wrong place for it: it describes a shape any table
+   of people needs, and two other tables already draw the same thing by hand.
+   The avatar sizes itself (`avatar(..., size=32)`). */
+.table-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  min-width: 0;
+}
+.table-identity .member-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.table-identity .member-name {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-identity .member-username {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* ===============================================================
+   Groups table column widths
+   ---------------------------------------------------------------
+   `teams_table_head()` is shared by the course page and the dashboard and none
+   of its columns declared a width, so the table re-solved every time rows were
+   hidden or shown - paging, filtering, the deleted-groups toggle. These are the
+   widths it already settles at, measured at 1440px. Here rather than in a page
+   stylesheet because the table belongs to no single page.
+   =============================================================== */
+#teamsTable .col-tree-toggle  { width: 28px; }
+#teamsTable .col-team-name    { width: 203px; }
+#teamsTable .col-contributors { width: 173px; }
+#teamsTable .col-avg-score    { width: 151px; }
+#teamsTable .col-status       { width: 122px; }
+#teamsTable .col-last-updated { width: 205px; }
+#teamsTable .col-actions      { width: 209px; }
+
+/* -- Dashboard: archived courses -- */
+.data-table .col-arch-code     { width: 101px; }
+.data-table .col-arch-name     { width: 278px; }
+.data-table .col-arch-year     { width: 190px; }
+.data-table .col-arch-archived { width: 120px; }
+.data-table .col-arch-actions  { width: 129px; }
+
+/* -- Student: issues involving this student -- */
+.data-table .col-si-issue    { width: 124px; }
+.data-table .col-si-title    { width: 303px; }
+.data-table .col-si-status   { width: 146px; }
+.data-table .col-si-opened   { width: 147px; }
+.data-table .col-si-assigned { width: 157px; }
+.data-table .col-si-updated  { width: 215px; }
+
+/* -- Student: the compliance trend, which arrives from a fetch. Its columns
+      were sized by whatever the first response happened to contain. -- */
+.data-table .col-tr-week    { width: 121px; }
+.data-table .col-tr-date    { width: 167px; }
+.data-table .col-tr-overall { width: 217px; }
+.data-table .col-tr-mrs     { width: 108px; }
+.data-table .col-tr-review  { width: 138px; }
+.data-table .col-tr-ci      { width: 95px; }
+.data-table .col-tr-issues  { width: 130px; }
+.data-table .col-tr-delta   { width: 117px; }
+
+/* -- The row count in a card header --
+   The same sentence the pagination bar shows at the BOTTOM of the table, where
+   a reader has to scroll past every row to reach it. Never wraps and never
+   takes part in the header's wrap: it is a note about the table, not a
+   control. */
+.table-count {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
+.table-count:empty {
+  display: none;
+}
+/* Never duplicate row counts in both card header and pagination bar:
+   the count belongs in the header ONLY when the table has NO pagination controls. */
+.card:has(.pagination-controls) .card-header .table-count,
+.card-body:has(.pagination-controls) ~ .card-header .table-count,
+[data-paginator]:has(.pagination-controls) .card-header .table-count {
+  display: none !important;
+}
+
+/* One row-action layout for server-rendered and dynamically loaded tables. */
+.gl-row-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gl-spacing-2);
+  white-space: nowrap;
+}
+.gl-row-actions > .btn {
+  flex: 0 0 auto;
+}
+.data-table .gl-row-actions > .btn + .btn {
+  margin-left: 0;
+}

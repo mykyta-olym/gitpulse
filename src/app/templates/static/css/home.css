@@ -1,0 +1,859 @@
+/* ============================================
+   DASHBOARD HOME - GitLab-style home page
+   ============================================ */
+
+/* -- Greeting (floating, no card bg) -- */
+.gl-home-greeting {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-7);
+  margin-top: var(--gl-spacing-5);
+  padding-top: 0;
+}
+
+.gl-home-greeting-text {
+  min-width: 0;
+}
+
+/* GitLab's own home greeting, measured on gitlab.example.com (2026-09-22):
+   a 64px avatar, the name at 20px/600 (Pajamas heading-scale-500: 20px on a
+   desktop, 18px on a phone), the sentence at 16px, the pair centred on the
+   avatar with a 16px gap - the same on the PC and on the phone. The name
+   was a 30px page title here, and on a phone it shrank and re-aligned on
+   its own. */
+.gl-home-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-heading);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.gl-home-subtitle {
+  /* The fallback's metadata line: role, then the date. 14px is the size the
+     rest of the app gives to metadata. */
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin: var(--gl-spacing-2) 0 0 0;
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+/* The phrase that stands in for the greeting is a sentence, not metadata: one
+   line of prose under a 30px name, so it takes the reading size (16px) and a
+   colour with more contrast than the date beside a role would want. Same place,
+   same single line - only the weight of the voice changes. */
+.gl-home-phrase {
+  font-size: var(--font-size-md);
+  color: var(--gl-text-color-subtle, var(--text-secondary));
+}
+
+/* -- Layout: Main + Sidebar --
+   GitLab's own content + right-sidebar grid, taken from
+   layouts/detail_layout.scss:
+
+     $detail-layout-sidebar-width: px-to-rem(290px);   // 18.125rem
+     $detail-layout-sidebar-min-width: 13rem;
+     $detail-layout-gap: 2rem;
+     grid-template-columns: minmax(67%, 1fr) minmax(13rem, 18.125rem);
+
+   The difference that showed was the second track. Ours was
+   `minmax(280px, 1fr)`, which GROWS with the window - measured at ~395px on a
+   1210px layout - where GitLab caps the sidebar at 290px and gives every extra
+   pixel to the content. That is why the right column read as too wide next to
+   GitLab's. The 67% floor on the content column is GitLab's too; it happens to
+   match the old 2fr/1fr split at the narrow end, and holds the content column
+   at two-thirds once the sidebar has hit its cap.
+
+   Stacking below 1024px / 1199px is handled further down and in the responsive
+   parts, so only the wide-screen tracks are stated here. */
+.gl-home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--gl-home-sidebar-width, 320px);
+  gap: var(--gl-spacing-6);
+  align-items: start;
+}
+
+.gl-home-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-6);
+  min-width: 0;
+}
+
+.gl-home-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-6);
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* -- Stats Cards Row (two-layer, GitLab-identical) -- */
+.gl-home-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gl-spacing-5);
+}
+
+.gl-home-stat {
+  position: relative;
+  background: var(--gl-background-color-strong);
+  /* GitLab's own classes for this card, read off their DevTools:
+       shell  gl-rounded-[1rem]   = 16px, gl-p-2
+       inner  gl-rounded-[.75rem] = 12px, gl-p-4
+       head   gl-mx-4 gl-my-3
+     GitLab's spacing scale is Pajamas', NOT Tailwind's default, and it maps 1:1
+     onto this app's tokens: -2 = 4px, -3 = 8px, -4 = 12px, -5 = 16px. Reading
+     them as Tailwind (p-2 = 8, p-4 = 16) is what bloated these cards; the only
+     value genuinely wrong was the inner RADIUS, 8px where GitLab sets 12px. */
+  border-radius: var(--radius-xl);
+  padding: var(--gl-spacing-2);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none !important;
+  color: inherit;
+  transition: background var(--motion-duration-normal) var(--motion-ease-standard),
+              box-shadow var(--motion-duration-normal) var(--motion-ease-standard),
+              border-color var(--motion-duration-normal) var(--motion-ease-standard),
+              transform var(--motion-duration-normal) var(--motion-ease-standard);
+  border: 1px solid transparent;
+}
+
+/* Only cards with a real navigation target look and behave clickable. */
+.gl-home-stat--link {
+  cursor: pointer;
+}
+
+.gl-home-stat--link:hover {
+  background: var(--gl-background-color-strong);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--gl-border-color-strong);
+  /* Colour only on hover - GitLab's whole transition inventory carries no
+     transform outside animated icons (@gitlab/ui 136.3.0). The lift was
+     already removed from the course cards once; it survived here. */
+}
+
+.gl-home-stat--link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--primary);
+}
+
+.gl-home-stat-arrow {
+  position: absolute;
+  right: var(--gl-spacing-3);
+  bottom: var(--gl-spacing-3);
+  color: var(--gl-text-color-link);
+  opacity: 0;
+  /* It fades in; it does not slide. Parking it 4px left just to slide it back
+     is the transform GitLab's inventory does not have. */
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
+}
+.gl-home-stat-arrow .icon { width: 16px; height: 16px; }
+.gl-home-stat--link:hover .gl-home-stat-arrow {
+  opacity: 1;
+}
+
+.gl-home-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* A label as long as the tile ("Automatic checks") ran into the icon. */
+  gap: var(--gl-spacing-3);
+  /* GitLab `gl-my-3 gl-mx-4` = 8px vertical, 12px horizontal on Pajamas' scale. */
+  margin: var(--gl-spacing-3) var(--gl-spacing-4);
+}
+
+.gl-home-stat-label {
+  min-width: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  color: var(--gl-text-color-subtle);
+  margin: 0;
+}
+
+.gl-home-stat-icon {
+  color: var(--gl-text-color-subtle);
+}
+.gl-home-stat-icon .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.gl-home-stat-inner {
+  background: var(--gl-background-color-default);
+  /* `gl-rounded-[.75rem]` = 12px (an explicit rem, so this one really was wrong
+     at 8px); `gl-p-4` = 12px on Pajamas' scale, which is what it already was. */
+  border-radius: var(--gl-card-border-radius);
+  padding: var(--gl-spacing-4);
+  flex-grow: 1;
+}
+
+.gl-home-stat-value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-heading);
+  line-height: 1.25;
+  margin: 0;
+  transition: color var(--transition-normal);
+  /* Outside the dashboard these tiles sit 5-7 to a row and the figure is often
+     a phrase - "Week 3 / 13", "11.9 d" - not a number. Let it wrap inside the
+     inset block rather than run out of it. */
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+/* -- State-aware cards --
+   A stat card should say what the number MEANS, not only what it is. The state
+   comes from the server (`_apply_states` / `_compliance_state` in
+   api/dashboard/home_stats.py) so a teacher and their student read the same
+   score the same way, and it uses the SAME bands as the traffic lights on the
+   course pages - a card must never look calm about a score a table calls red.
+   Colour only, the way GitLab signals status: no borders, badges or motion. */
+.gl-home-stat[data-state="danger"]  { --stat-tone: var(--gl-text-color-danger); }
+.gl-home-stat[data-state="info"]    { --stat-tone: var(--gl-feedback-info-text); }
+.gl-home-stat[data-state="warning"] { --stat-tone: var(--gl-text-color-warning); }
+.gl-home-stat[data-state="success"] { --stat-tone: var(--gl-text-color-success); }
+/* Nothing behind the number yet: a 0 with no data is a situation, not a
+   reading. Dim it so it reads as "nothing here" rather than a real result. */
+.gl-home-stat[data-state="empty"]   { --stat-tone: var(--gl-text-color-subtle); }
+
+.gl-home-stat[data-state] .gl-home-stat-value,
+.gl-home-stat[data-state] .gl-home-stat-icon {
+  color: var(--stat-tone);
+}
+
+/* A link's hover colour still wins - the card is clickable and must say so. */
+.gl-home-stat--link:hover .gl-home-stat-value {
+  color: var(--gl-text-color-link);
+}
+
+.gl-home-stat-desc {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  color: var(--gl-text-color-default);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.gl-home-stat-time {
+  font-size: var(--font-size-xs);
+  color: var(--gl-text-color-subtle);
+  margin-top: var(--gl-spacing-1);
+}
+
+/* -- Sections -- */
+/* .gl-home-section: no rule needed - spacing handled by parent .gl-home-main gap */
+
+.gl-home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-4);
+  margin-bottom: var(--gl-spacing-5);
+  flex-wrap: wrap;
+}
+
+.gl-home-section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-heading);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.gl-home-section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  /* One row while it fits. It did not at 1280px: the period selector, a search
+     that will not go below 140px and the three buttons need 763px of a 646px
+     row, and with `nowrap` "New course" ran 101px out of it, over the Quick
+     access card. The buttons are one group, so they wrap under the search
+     together and the search takes the rest of its line. */
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.gl-home-section-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex: 0 0 auto;
+}
+
+.gl-home-section-actions .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.gl-home-section-actions .search-box-inline {
+  flex: 1 1 200px;
+  min-width: 140px;
+}
+
+.gl-home-section-actions .search-box-inline input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* -- Card component (title inside card, GitLab-identical) -- */
+.gl-home-card {
+  /* Match the page surface; the border defines the card. */
+  background: var(--gl-background-color-default);
+  border: 1px solid var(--gl-border-color-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--gl-spacing-5);
+  overflow: hidden;
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.gl-home-card:hover {
+  border-color: var(--gl-border-color-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.gl-home-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+  margin-bottom: var(--gl-spacing-3);
+}
+
+.gl-home-card-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.25;
+  flex-grow: 1;
+}
+
+/* .gl-home-card-body: no rule needed - content sits directly inside card padding */
+
+/* .gl-home-card-content: no rule needed - activity items handle their own padding */
+
+.gl-activity-item {
+  position: relative;
+  display: flex;
+  /* Top-aligned: the row is now an avatar beside stacked lines (who / what /
+     detail), so centring would float the avatar against a tall entry. */
+  align-items: flex-start;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-4) var(--gl-spacing-3);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+/* GitLab-style timeline rail: a vertical connector through the icon-node
+   centers, sitting behind the icons. Each item paints a full-height segment at
+   the icon-column center; consecutive segments join into one continuous line.
+   The first node trims the rail above it, the last node trims below it. */
+.gl-activity-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--gl-spacing-3) + 16px);   /* the middle of the 32px avatar */
+  width: 2px;
+  margin-left: -1px;
+  background: var(--gl-border-color-section);
+  z-index: 0;
+  pointer-events: none;
+}
+.gl-activity-item:first-child::before { top: 50%; }
+.gl-activity-item:last-child::before { bottom: 50%; }
+
+.gl-activity-item:hover {
+  background: var(--gl-action-neutral-bg-hover);
+}
+a.gl-activity-item--link,
+a.gl-attention-item--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gl-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.gl-activity-text {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.gl-activity-detail {
+  font-size: var(--font-size-xs);
+  color: var(--gl-text-color-link);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gl-activity-time {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+/* The sidebar panels are narrow: an empty one keeps its art and its line and
+   drops the page-sized air. */
+.gl-home-sidebar-panel .table-empty-state {
+  padding: var(--gl-spacing-5) 0;
+}
+
+/* Show more / show less lives in utilities.css - it is not activity-specific. */
+
+/* -- Attention section -- */
+.gl-attention-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-5);
+  padding: var(--gl-spacing-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.gl-attention-item:hover {
+  background: var(--gl-action-neutral-bg-hover);
+  border-color: var(--gl-border-color-default);
+  box-shadow: var(--shadow-sm);
+}
+
+/* GitLab's mark for a system to-do (todos/components/todo_item_body.vue): a
+   32px circle in the FEEDBACK background with a 16px icon in the STATUS
+   colour - gl-h-7 gl-w-7 gl-rounded-full gl-bg-feedback-* / gl-fill-status-*. */
+.gl-attention-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gl-attention-icon--warning {
+  background: var(--gl-feedback-warning-bg);
+  color: var(--gl-status-warning-icon);
+}
+
+.gl-attention-icon--danger {
+  background: var(--gl-feedback-danger-bg);
+  color: var(--gl-status-danger-icon);
+}
+
+.gl-attention-icon--info {
+  background: var(--gl-feedback-info-bg);
+  color: var(--gl-status-info-icon);
+}
+
+/* Nothing needs attention: GitLab's to-do widget "Good job!" row -
+   status-success-sm at gl-h-11 (64px) beside one inline line, gl-gap-5
+   gl-p-4. */
+.gl-attention-done {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-5);
+  padding: var(--gl-spacing-4);
+}
+.gl-attention-done svg {
+  display: block;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.gl-attention-content {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.gl-attention-content strong {
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.gl-attention-item + .gl-attention-item {
+  border-top: 1px solid var(--border-color);
+}a.gl-attention-item--link:hover {
+  background: var(--gl-action-neutral-bg-hover);
+}
+a.gl-attention-item--link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.gl-attention-arrow {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  margin-left: auto;
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-normal);
+}
+a.gl-attention-item--link:hover .gl-attention-arrow {
+  color: var(--text-secondary);
+}
+
+/* -- Archived card inside section -- */
+.gl-home-archived {
+  /* Bottom breathing room so the last dashboard section is never flush against
+     the viewport edge (read as "cut off"). */
+  margin: 0 0 var(--gl-spacing-5);
+  /* No `border-color` override. This card used to set
+     `--gl-border-color-subtle`, which in DARK mode is #3a383f - the exact value
+     of `--gl-background-color-strong`, the card's own background. So the rule
+     could never be seen as a rule; its only effect was at the corners, where a
+     1px ring and the background are rasterised separately around the 12px
+     radius and leave a faint stepped seam - the dark notch reported on this
+     card's corner. In light mode it was visible (#dcdcde on #ececef), which is
+     why the two themes disagreed about whether this card has an edge at all.
+     `.card` states the intent: a card is told apart from the page by its STRONG
+     background, not by a rule. This one now follows it, like every other. */
+}
+
+/* -- Sidebar Panels (GitLab style - border only, no bg) -- */
+.gl-home-sidebar-panel {
+  background: var(--gl-background-color-default);
+  border: 1px solid var(--gl-border-color-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--gl-spacing-5);
+  overflow: hidden;
+  min-width: 0;
+  transition: border-color var(--transition-normal),
+              box-shadow var(--transition-normal);
+}
+
+.gl-home-sidebar-panel:hover {
+  border-color: var(--gl-border-color-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.gl-home-panel-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-heading);
+  margin: 0 0 var(--gl-spacing-4);
+  line-height: 1.25;
+}
+
+.gl-home-panel-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--gl-spacing-3);
+  line-height: var(--line-height-normal);
+}
+
+.gl-home-panel-link {
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-link);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+
+.gl-home-panel-link:hover {
+  color: var(--gl-text-color-link);
+  text-decoration: underline;
+}
+
+/* -- Student Progress Panel -- */
+.gl-student-progress,
+.gl-admin-health {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+}
+
+.gl-progress-item,
+.gl-health-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  margin: 0 calc(-1 * var(--gl-spacing-3));
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--gl-border-color-subtle);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+.gl-progress-item:hover,
+.gl-health-item:hover {
+  background: var(--gl-action-neutral-bg-hover);
+}
+
+.gl-progress-item:last-child,
+.gl-health-item:last-child {
+  border-bottom: none;
+}
+
+.gl-progress-label,
+.gl-health-label {
+  color: var(--gl-text-color-subtle);
+}
+
+.gl-progress-value,
+.gl-health-value {
+  font-weight: var(--font-weight-bold);
+  color: var(--gl-text-color-heading);
+}
+
+.gl-traffic-green { color: var(--gl-text-color-success); }
+.gl-traffic-yellow { color: var(--gl-text-color-warning); }
+.gl-traffic-red { color: var(--gl-text-color-danger); }
+
+/* -- Changelog Timeline Widget (GitHub-style) -- */
+.gl-changelog-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: var(--gl-spacing-5);
+}
+.gl-changelog-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--gl-border-color-subtle);
+  border-radius: 1px;
+}
+.gl-changelog-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-2) 0;
+  position: relative;
+}
+.gl-changelog-dot {
+  position: absolute;
+  left: calc(-1 * var(--gl-spacing-5) + 2px);
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gl-feedback-neutral-icon);
+  flex-shrink: 0;
+  z-index: 1;
+}
+.gl-changelog-dot--feat    { background: var(--gl-green-400); }
+.gl-changelog-dot--fix,
+.gl-changelog-dot--fixed   { background: var(--gl-orange-400); }
+.gl-changelog-dot--ui      { background: var(--gl-blue-400); }
+.gl-changelog-dot--ux      { background: var(--gl-purple-400); }
+.gl-changelog-dot--changed { background: var(--gl-blue-400); }
+.gl-changelog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.gl-changelog-title {
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-default);
+  line-height: 1.35;
+  word-break: break-word;
+}
+.gl-changelog-date {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0;
+}
+.gl-changelog-viewall {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+  margin-top: var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-link);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+.gl-changelog-viewall:hover {
+  color: var(--gl-text-color-link);
+  text-decoration: underline;
+}
+
+/* -- Utility -- */
+.gl-hidden {
+  display: none !important;
+}
+
+/* -- Responsive -- */
+@media (max-width: 1024px) {
+  .gl-home-layout {
+    grid-template-columns: 1fr;
+  }
+  .gl-home-main {
+    grid-column: auto;
+  }
+  .gl-home-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .gl-home-sidebar-panel {
+    flex: 1;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .gl-home-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* GitLab keeps the 64px avatar and the 16px gap on a phone; only the name
+     steps down one size (heading-scale-500's phone value). */
+  .gl-home-title {
+    font-size: var(--font-size-lg);
+  }
+  .gl-home-section-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  /* Search takes its own row; the actions wrap under it KEEPING their words.
+     They used to be squeezed onto the search row as three 42px icons, which is
+     the one place in the app where a button's label disappeared - "Import",
+     "Import JSON" and "New course" are not guessable from a glyph, and every
+     other toolbar in the app just wraps. */
+  .gl-home-section-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .gl-home-section-actions .search-box-inline {
+    flex: 1 0 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .gl-home-section-buttons {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .gl-home-stats {
+    /* Match GitLab's mobile dashboard: keep a 2-up grid of stat cards on
+       phones instead of stacking to a single oversized column. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--gl-spacing-3);
+  }
+  .gl-home-stat-value {
+    font-size: var(--font-size-2xl);
+  }
+  /* The tile measured 160px on a phone for the same four pieces GitLab fits in
+     roughly two thirds of that - label, figure, caption, timestamp. The content
+     is right; the padding was stacked three deep (4px shell + 8px head margin +
+     12px inner). Drop each by one step on Pajamas' scale, which is the same
+     scale GitLab uses, and keep every line. */
+  .gl-home-stats { grid-auto-rows: 1fr; }
+  .gl-home-stat-head {
+    margin: var(--gl-spacing-2) var(--gl-spacing-3);
+  }
+  .gl-home-stat-inner {
+    padding: var(--gl-spacing-3);
+  }
+  /* The chevron repeats what tapping the tile already does. */
+  .gl-home-stat-arrow { display: none; }
+  .gl-home-sidebar {
+    flex-direction: column;
+  }
+  .gl-home-sidebar-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* -- Dashboard filter highlight -- */
+
+/* `.dashboard-filter-highlight` and its `dashboard-highlight-pulse` keyframe
+   are gone: highlighting a target the reader was just sent to is
+   GP.motion.highlight(), which already replaced five class+setTimeout copies of
+   the same idea. */
+
+/* -- Quick link disabled (no-course toast trigger) -- */
+.gl-quicklink-disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* -- Quick access sidebar panel (GitLab-style) -- */
+.gl-qa-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--gl-spacing-3); }
+.gl-qa-list { display:flex; flex-direction:column; gap:var(--gl-spacing-1); min-width:0; overflow:hidden; }
+.gl-qa-list > div { min-width:0; overflow:hidden; }
+.gl-qa-item { display:flex; align-items:center; gap:var(--gl-spacing-3); padding:var(--gl-spacing-2) 0; border-radius:var(--radius-sm); text-decoration:none; color:inherit; transition:background var(--transition-fast); min-width:0; overflow:hidden; }
+.gl-qa-item:hover { background:var(--gl-hover-faint); margin:0 calc(-1*var(--gl-spacing-5)); padding:var(--gl-spacing-2) var(--gl-spacing-5); }
+.gl-qa-text { width:0; flex-grow:1; overflow:hidden; }
+.gl-qa-name { display:block; font-size:var(--font-size-sm); font-weight:var(--font-weight-medium); color:var(--gl-text-color-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gl-qa-path { display:block; font-size:var(--font-size-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gl-qa-dot { display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:middle; margin:0 var(--gl-spacing-1); background:var(--gl-feedback-neutral-icon); }
+.gl-qa-dot--green  { background:var(--gl-green-400); }
+.gl-qa-dot--yellow { background:var(--gl-orange-400); }
+.gl-qa-dot--red    { background:var(--gl-red-400); }
+.gl-qa-dot--gray   { background:var(--gl-feedback-neutral-icon); }
+
+/* -- Health item link variant -- */
+.gl-health-item--link { text-decoration:none; color:inherit; }
+.gl-health-item--link:hover { background:var(--gl-hover-faint); }
+
+/* Fixed 3-column data table base rules -> tables.css */
+
+/* -- Activity row, GitLab Activity-feed layout --
+   Avatar, then who on the first line with the time pushed to the right, what
+   they did on the second, and the detail under it. The row used to be one flat
+   "Actor - Action" string beside an icon, which read as a log line rather than
+   an activity entry. */
+/* The shared avatar on a plate of the card's colour: the identicon's fill is
+   translucent, as GitLab's is, and the timeline rail must not show through
+   it. The ring in the same colour lets the rail pass cleanly behind. */
+.gl-activity-avatar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--gl-background-color-default);
+  box-shadow: 0 0 0 3px var(--gl-background-color-default);
+}
+.gl-activity-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+}
+.gl-activity-actor {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.gl-activity-head .gl-activity-time {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.gl-activity-text {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  color: var(--text-secondary);
+}
+.gl-activity-action-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}

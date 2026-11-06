@@ -1,0 +1,60 @@
+/* Tabbed content */
+
+.tab-block-wrapper {
+
+  .gl-tabs-nav {
+    margin-top: 0;
+  }
+
+  .nav-item {
+    border-bottom: 0;
+    margin: 0 !important;
+  }
+
+  .nav-item:first-of-type {
+    margin-left: 0.5rem;
+  }
+
+  /*
+  removes border and color applied to all anchor elements in main
+  transparent border prevents vertical shift when changing tabs
+  */
+  .gl-tab-nav-item {
+    border-bottom: 1px solid transparent;
+    color: var(--gl-action-neutral-foreground-color-default);
+  }
+
+  /*
+  Override gl-font-bold on active tabs so labels don't widen
+  on select
+  */
+  .gl-tab-nav-item-active {
+    font-weight: inherit;
+    background-color: var(--gl-action-neutral-background-color-hover);
+  }
+
+  .gl-tab-nav-item:active {
+    background-color: var(--gl-action-neutral-background-color-hover);
+  }
+
+  .gl-tab-content {
+    font-size: 1rem;
+    line-height: 1.5em;
+    margin: 1.25rem;
+    padding: 0;
+    p,
+    ul,
+    ol,
+    code,
+    pre {
+      margin-top: 0;
+    }
+
+    ol {
+      list-style-type: decimal;
+      ol {
+        list-style-type: lower-alpha;
+      }
+    }
+  }
+}

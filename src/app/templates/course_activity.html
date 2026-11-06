@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_label with context %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/layout.html" import tab_content with context %}
+{% from "components/badges.html" import course_role_badge %}
+
+{% block title %}{{ t('Activity') }} - {{ course.code }}{% endblock %}
+
+{% set nav_active = 'course' %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'href': '/dashboard/courses/' ~ course.id, 'label': course.code}, {'label': t('Activity')}] %}
+
+{% block extra_head %}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/chart-4.4.7.min.js') }}"></script>
+{% endblock %}
+  
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{% set _badge = course_role_badge('owner') if course_role == 'owner' else (course_role_badge('teacher') if course_role == 'teacher' else '') %}
+{{ page_header(course.code ~ ' - ' ~ (course.name or ''), period_label(course.academic_year, course.semester), badge=_badge) }}
+
+{% if course.description %}
+<p class="course-description muted">{{ course.description }}</p>
+{% endif %}
+
+{% set active_tab = 'activity' %}
+{% include "partials/course/_course_nav.html" %}
+
+{% call tab_content(course) %}
+  {{ content_html|safe }}
+{% endcall %}
+{% endblock %}

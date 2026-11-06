@@ -1,0 +1,259 @@
+{# Server-rendered group projects and members. #}
+{% from "components/buttons.html" import btn, btn_link_icon_only %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, empty_state, info_card %}
+{% from "components/icons.html" import icon %}
+{% from "components/modals.html" import modal %}
+{% from "components/alerts.html" import alert %}
+{% from "components/tables.html" import table_count, data_table, sortable_header, pagination_controls %}
+{% from "components/table_heads.html" import team_members_head_basic, team_members_head_summary with context %}
+{% from "components/members.html" import member_name_cell with context %}
+{% from "components/lifecycle.html" import restore_actions, deleted_toggle, deleted_note with context %}
+{% from "components/layout.html" import page_config with context %}
+
+{# -- Archived/deleted group banner (all roles) -- #}
+{% if not team.is_active %}
+{% call alert(variant='warning', icon_name='archive', dismissible=false, class='mb-4') %}
+  {% if can_edit %}
+  <strong>{{ t('This group is deleted.') }}</strong>
+  {{ t('It is hidden from students and excluded from rankings, syncs and checks until you restore it.') }}
+  <div class="gp-alert-actions">
+    {{ restore_actions('team', team.id, entity_name=team.name,
+                       lock_scope='course:' ~ team.course_id ~ ' team:' ~ team.id) }}
+  </div>
+  {% else %}
+  <strong>{{ t('This group has been archived.') }}</strong>
+  {{ t('Your scores below are shown for reference. New activity is no longer being tracked - contact your teacher if this is unexpected.') }}
+  {% endif %}
+{% endcall %}
+{% endif %}
+
+{# -- No-data notices. The "Data may be outdated" staleness/webhook warning is a
+   COURSE-level concern and already shown on the course page, so it is NOT
+   duplicated per group here. -- #}
+{% if can_edit and not team_metric and projects %}
+{% call info_card(title=t('No activity data yet'), variant='info', icon_name='info', class='mb-4') %}
+  {{ t('This group has been imported but no commits or merge requests have been found. If students have not started working yet, data will appear after the next sync.') }}
+{% endcall %}
+{% elif can_edit and not team_metric %}
+{% call info_card(title=t('No data synced yet'), variant='info', icon_name='info', class='mb-4') %}
+  {{ t('This group has not been synced with GitLab yet. Click') }} <strong>{{ t('Sync') }}</strong> {{ t('above to import data from GitLab.') }}
+{% endcall %}
+{% endif %}
+
+{# -- Projects (component-based table) -- #}
+{% set _deleted_projects = projects | rejectattr('is_active') | list %}
+{% set _active_projects_count = (projects | selectattr('is_active') | list | length) if (can_edit and _deleted_projects) else (projects | length) %}
+{% set ha_projects %}
+  {{ table_count(id='projectsCount', count=_active_projects_count, total=projects|length) }}
+  {% if can_edit and _deleted_projects %}
+  {{ deleted_toggle('toggleDeletedProjects', _deleted_projects | length, t('Show or hide unlinked projects')) }}
+  {% endif %}
+{% endset %}
+{# No `p-0`: this card carries a note and a table exactly like Group Members, and that one keeps the body's padding. With p-0 the note and table ran flush to the card edge while the identical card beside it was inset - the same content, two layouts. #}
+{% call card(title=t('Subgroups and Projects'), icon_name='folder', header_actions=ha_projects, data_attrs={'data-tour': 'team-projects'}) %}
+    {% if can_edit and _deleted_projects %}
+    {{ deleted_note(t('Some projects are unlinked. They stay hidden from students; use the "Deleted" toggle to review and restore them.')) }}
+    {% endif %}
+    {% if projects %}
+    {% call data_table(headers=[], id='projectsTable', sortable=true, class='projects-table table-scrollable table-sticky-actions' ~ (' gp-hide-deleted' if can_edit and _deleted_projects else '')) %}
+        <colgroup>
+          <col class="col-project-name">  {# Project #}
+          <col class="col-project-path col-hide-sm">  {# Path #}
+          <col class="col-project-branch col-hide-sm">  {# Branch #}
+          <col class="col-project-status">  {# Status #}
+          <col class="col-project-actions">  {# Actions #}
+        </colgroup>
+        <thead>
+          <tr>
+            {{ sortable_header(t('Project'), 'project', default_sort='asc') }}
+            {{ sortable_header(t('Path'), 'path', class='col-hide-sm') }}
+            {{ sortable_header(t('Branch'), 'branch', class='col-hide-sm') }}
+            {{ sortable_header(t('Status'), 'status') }}
+            <th class="text-right">{{ t('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for project in projects %}
+          <tr class="{{ 'row-inactive gp-deleted-row' if not project.is_active }}"
+              data-project-id="{{ project.id }}"
+              {% if not project.is_active %}data-project-inactive="true"{% endif %}>
+            <td>
+              <div class="project-name-cell">
+                <span class="tree-project-icon">{{ icon('folder', size='sm') }}</span>
+                <a href="/dashboard/projects/{{ project.id }}" class="font-weight-500">{{ project.gitlab_project_name or t('Unnamed Project') }}</a>
+              </div>
+            </td>
+            <td class="muted font-sm text-truncate col-hide-sm" data-tippy-content="{{ project.gitlab_project_path }}">{{ project.gitlab_project_path.split('/')|last }}</td>
+            <td class="font-sm col-hide-sm"><code>{{ project.default_branch }}</code></td>
+            <td>
+              {% if not project.is_active %}
+              {{ badge(t('Inactive'), variant='secondary') }}
+              {% elif project.id in template_project_ids %}
+              {{ badge(t('Template'), variant='warning', data_attrs={'tippy-content': t('All commits are from non-student authors (template/instructor). Student activity tracked via Issues and MRs.')}) }}
+              {% else %}
+              {{ badge(t('Active'), variant='success') }}
+              {% endif %}
+            </td>
+            <td class="text-right">
+              <div class="gl-row-actions">
+                {% if not project.is_active and can_edit %}
+                {{ restore_actions('project', project.id, icon_only=true,
+                                   lock_scope='course:' ~ team.course_id ~ ' team:' ~ team.id ~ ' project:' ~ project.id) }}
+                {% endif %}
+                {{ btn_link_icon_only('eye', '/dashboard/projects/' ~ project.id, t('View Details'), size='sm') }}
+                {{ btn_link_icon_only('external-link', gitlab_url ~ '/' ~ project.gitlab_project_path, t('Open in GitLab'), size='sm', target='_blank') }}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+    {% endcall %}
+    {% else %}
+    <div class="p-2">
+    {% if can_edit %}
+    {% call empty_state(t('No Projects Yet'), t('Link a GitLab project to this group to track progress'), illustration='empty-projects') %}
+      {{ btn(t('Link Project'), data_attrs={'modal-open': 'linkProjectModal', 'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id}) }}
+    {% endcall %}
+    {% elif is_student %}
+    {{ empty_state(t('No Projects Yet'), t('No GitLab projects have been linked to your group yet. Your teacher will set this up.'), illustration='empty-projects') }}
+    {% else %}
+    {{ empty_state(t('No Projects Yet'), t('Link a GitLab project to this group to track progress'), illustration='empty-projects') }}
+    {% endif %}
+    </div>
+    {% endif %}
+{% endcall %}
+
+{# -- Team Members -- #}
+{% if students %}
+{% set ha_members %}{{ table_count(id='teamMembersCount', count=students|length, total=students|length) }}{% endset %}
+{% call card(title=t('Group Members'), icon_name='users', header_actions=ha_members, data_attrs={'data-tour': 'team-members'}) %}
+    <div class="member-api-note">
+      {{ icon('info', size='sm') }}
+      {{ t('Members with expired GitLab access are not shown - the GitLab API only returns active members.') }}
+    </div>
+    {% if is_student and not can_edit %}
+    {# -- Student view: names and roles only (privacy) -- #}
+    {% call data_table(headers=[], id='teamMembersTable', sortable=true, paginated=true, class='team-members-table table-scrollable') %}
+        {{ team_members_head_basic() }}
+        <tbody>
+          {% for s in students | sort(attribute='full_name') %}
+          <tr>
+            <td class="text-nowrap">{{ s.full_name or s.gitlab_username or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+    {% endcall %}
+    {% else %}
+    {# -- Teacher / Admin view: full metrics table -- #}
+    {% call data_table(headers=[], id='teamMembersTable', sortable=true, paginated=true, class='team-members-table table-scrollable') %}
+        {{ team_members_head_summary() }}
+        <tbody>
+          {% for s in students | sort(attribute='full_name') %}
+          {% set snap = snapshots.get(s.id) %}
+          {% set m = memberships.get(s.id) if memberships is defined else none %}
+          {% set u_role = user_roles.get(s.gitlab_username | lower) if user_roles is defined and s.gitlab_username else none %}
+          {% set is_teacher = (m and m.is_teacher) or u_role in ('teacher', 'admin') %}
+          {% set is_excluded = m and m.excluded_from_scoring %}
+          {% set is_mentor = (m and m.is_mentor) and not is_teacher and not is_excluded %}
+          {% set gl_role = (m.gitlab_access_role or '') if m else '' %}
+          {% set m_source = (m.membership_source or '') if m else '' %}
+          {% set course_role = course_roles.get(s.gitlab_username | lower, '') if course_roles is defined and s.gitlab_username else '' %}
+          {% if is_teacher %}
+            {% set member_base_cat = 'teacher' %}
+          {% elif m and m.is_mentor %}
+            {% set member_base_cat = 'mentor' %}
+          {% elif m_source == 'inherited' %}
+            {% set member_base_cat = 'inherited' %}
+          {% else %}
+            {% set member_base_cat = 'direct' %}
+          {% endif %}
+          {% set member_cat = 'excluded' if is_excluded else member_base_cat %}
+          {% set _s_project_id = student_project_map.get(s.id) if student_project_map is defined else none %}
+          {% set _s_nav_url = '/dashboard/students/' ~ s.id ~ '/team/' ~ team.id ~ ('?from_project=' ~ _s_project_id if _s_project_id else '') %}
+          <tr class="{% if is_teacher %}member-role-teacher {% endif %}{% if is_excluded %}member-excluded {% endif %}{% if is_mentor %}member-role-mentor{% endif %}"
+              data-student-updated-at="{{ s.updated_at.isoformat() if s.updated_at else '' }}"
+              data-student-id="{{ s.id }}"
+              data-member-role="{{ gl_role }}"
+              data-member-source="{{ m_source }}"
+              data-member-category="{{ member_cat }}"
+              data-member-base-category="{{ member_base_cat }}"
+              {% if is_teacher %}data-member-teacher="1"{% endif %}
+              {% if is_excluded %}data-member-excluded="1"{% endif %}
+              {% if is_mentor %}data-member-mentor="1"{% endif %}>
+            <td class="text-nowrap" data-sort-value="{{ (s.full_name or s.gitlab_username or '')|lower }}">
+              {{ member_name_cell(s, u_role, is_teacher, gl_role, m_source, snap, course_role, is_excluded, is_mentor=is_mentor, detail_url=_s_nav_url) }}
+              {# Mentors are not part of the group score by default (same as teachers/admins),
+                 so the include/exclude toggle would be meaningless for them - hide it. #}
+              {% if can_edit and not is_teacher and not is_mentor %}
+              <button type="button"
+                      class="btn btn-icon-only btn-sm btn-secondary ml-2 btn-toggle-exclusion"
+                      data-action="toggleExclusion"
+                      data-action-args='{{ [s.id|string, team.id|string]|tojson }}'
+                      data-team-id="{{ team.id }}"
+                      data-process-lock-when="sync run_checks"
+                      data-process-lock-scope="course:{{ team.course_id }} team:{{ team.id }}"
+                      data-tippy-content="{{ t('Include in scoring') if is_excluded else t('Exclude from scoring') }}"
+                      aria-label="{{ t('Include in scoring') if is_excluded else t('Exclude from scoring') }}"
+>
+                {#- What the press does, not an eye: the eye is View everywhere else. -#}
+                {{ icon('user-plus' if is_excluded else 'user-minus', size='sm') }}
+              </button>
+              {% endif %}
+            </td>
+            {# Show metrics if: (a) regular student with a snapshot, or
+               (b) teacher/mentor who has any non-zero activity.
+               Otherwise show dashes. #}
+            {% set has_activity = snap and (snap.mrs_created or snap.issues_assigned or snap.pipeline_total_count or snap.checks_passed) %}
+            {% set show_metrics = snap and ((not is_teacher and not is_mentor) or has_activity) %}
+            {% if show_metrics %}
+            {% set score = (snap.weighted_score * 100)|round|int %}
+            {% set _v = 'green' if score >= (green_pct|default(DEFAULT_GREEN_PCT)) else ('amber' if score >= (yellow_pct|default(DEFAULT_YELLOW_PCT)) else 'red') %}
+            <td class="text-center member-badge-cell" data-sort-value="{{ score }}">
+              {{ badge(score ~ '%', variant=_v) }}
+            </td>
+            <td class="text-center col-hide-lg">{{ snap.checks_passed }}/{{ snap.checks_total }}</td>
+            <td class="text-center">{{ snap.mrs_created }}</td>
+            <td class="text-center">{{ snap.issues_assigned }}</td>
+            <td class="text-center">
+              {% if snap.pipeline_total_count > 0 %}
+                {% if snap.pipeline_success_count == snap.pipeline_total_count %}
+                  <span class="text-success" data-tippy-content="{{ t('All pipelines completed successfully') }}">{{ snap.pipeline_success_count }}/{{ snap.pipeline_total_count }}</span>
+                {% else %}
+                  <span class="text-danger font-semibold" data-tippy-content="{{ t('Some pipelines failed') }}">{{ snap.pipeline_success_count }}/{{ snap.pipeline_total_count }}</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            {% else %}
+            <td class="text-center member-badge-cell text-muted" data-sort-value="-1">-</td>
+            <td class="text-center text-muted col-hide-lg">-</td>
+            <td class="text-center text-muted">-</td>
+            <td class="text-center text-muted">-</td>
+            <td class="text-center text-muted">-</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+    {% endcall %}
+    {{ pagination_controls(id='tmPaginationControls', total=students | length, page_size=default_page_size | default('50')) }}
+    {% endif %}
+{% endcall %}{# is_student #}
+{% endif %}{# students #}
+
+{# -- Run Checks modal (shared partial) -- #}
+{% set btn_data_attrs = {'team-id': team.id, 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id} %}
+{% include "partials/_run_checks_modal.html" %}
+
+{% include "partials/team/_modals.html" %}
+
+{{ page_config({
+  'teamId': team.id | string,
+  'teamName': team.name,
+  'courseId': team.course_id | string,
+  'llmEnabled': feature_llm_suggestions | default(false),
+  'greenPct': green_pct | default(DEFAULT_GREEN_PCT),
+  'yellowPct': yellow_pct | default(DEFAULT_YELLOW_PCT),
+}, csp_nonce, id='gp-team-detail-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/team-detail.js') }}"></script>

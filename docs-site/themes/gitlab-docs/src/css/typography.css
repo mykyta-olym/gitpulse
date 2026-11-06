@@ -1,0 +1,117 @@
+/*
+ * Font-face declarations copied from GitLab:
+ * https://gitlab.com/gitlab-org/gitlab/-/blob/master/app/assets/stylesheets/fonts.scss
+ *
+ * Usage:
+ * html { font-family: 'GitLab Sans', sans-serif; }
+ */
+ @font-face {
+  font-family: 'GitLab Sans';
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+  /* stylelint-disable-next-line property-no-unknown */
+  font-named-instance: 'Regular';
+  src: url('../gitlab_ui/fonts/GitLabSans.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'GitLab Sans';
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: italic;
+  /* stylelint-disable-next-line property-no-unknown */
+  font-named-instance: 'Regular';
+  src: url('../gitlab_ui/fonts/GitLabSans-Italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'GitLab Mono';
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+  src: url('../gitlab_ui/fonts/GitLabMono.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'GitLab Mono';
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: italic;
+  src: url('../gitlab_ui/fonts/GitLabMono-Italic.woff2') format('woff2');
+}
+
+* {
+  font-variant-ligatures: none;
+}
+
+body {
+  line-height: 1.6;
+}
+
+:root {
+  /* maximum 40, minimum 32 */
+  --gl-text-size-h1: clamp(2rem, 1.6496rem + 0.9889vw, 2.5rem);
+  /* maximum 32, minimum 24 */
+  --gl-text-size-h2: clamp(1.5rem, 1.1496rem + 0.9889vw, 2rem);
+  /* maximum 24, minimum 20 */
+  --gl-text-size-h3: clamp(1.25rem, 1.0748rem + 0.4944vw, 1.5rem);
+  /* 18 */
+  --gl-text-size-h4: 1.125rem;
+  /* 16 */
+  --gl-text-size-h5: 1rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-bottom: 1.25rem;
+  font-weight: 600;
+  text-wrap-style: balance;
+}
+
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin-top: 2.5rem;
+    /* Leave space for the anchor link icon */
+    max-width: calc(100% - 1ch - .25em);
+}
+
+h1 {
+  font-size: var(--gl-text-size-h1);
+  line-height: 1.15;
+}
+h2 {
+  font-size: var(--gl-text-size-h2);
+  line-height: 1.25;
+}
+h3 {
+  font-size: var(--gl-text-size-h3);
+  line-height: 1.25;
+}
+h4 {
+  font-size: var(--gl-text-size-h4);
+  line-height: 1.25;
+}
+h5 {
+  font-size: var(--gl-text-size-h5);
+  line-height: 1.4;
+}
+
+/* prevent overly heavy font-weight for bold text within headlines */
+h1 strong, h2 strong, h3 strong, h4 strong, h5 strong {
+  font-weight: 700;
+}
+
+p:not(:first-child) {
+  margin-top: 1.25rem;
+}
+p:not(:last-child) {
+  margin-bottom: 0.5rem;
+}
+p:last-child {
+  margin-bottom: 0;
+}

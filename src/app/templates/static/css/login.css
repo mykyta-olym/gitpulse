@@ -1,0 +1,560 @@
+@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&family=Red+Hat+Text:ital,wght@0,300..700;1,300..700&display=swap');
+
+/* ===============================================================
+   LOGIN PAGE - shared GitLab-aligned color modes
+   Extracted from inline <style> for zero-inline-style compliance.
+   Uses design-system tokens from tokens.css where possible;
+   Page-specific aliases stay semantic so the shared theme switcher
+   updates the complete surface without a reload.
+   =============================================================== */
+
+/* -- Login page aliases --
+   The login is a FIXED branded surface (like the TUKE Keycloak page in the
+   reference): a dark textured backdrop with a WHITE card and dark text, the
+   same in every appearance mode. So these use the constant gl-gray-* palette
+   (which never swaps per theme) instead of the theme-dependent semantic
+   tokens - the card stays white and readable whether the app is in Light or
+   Dark mode. Only the brand title sits ON the dark backdrop, so it stays light. */
+:root {
+  /* Matches the average tone of keycloak-bg.png (#3d3d3d). Using the darker
+     gl-gray-1000 here made the page flash near-black before the backdrop image
+     finished loading (most visible on the /dashboard/logout interstitial); a
+     matching fallback colour means the texture now fades in seamlessly. */
+  --login-bg: #3d3d3d;
+  --login-text: var(--gl-gray-900);
+  --login-text-light: var(--gl-gray-950);
+  --login-brand-text: var(--gl-gray-0);
+  --login-text-muted: var(--gl-gray-500);
+  --login-text-subtle: var(--gl-gray-600);
+  --login-card-bg: var(--gl-gray-0);
+  --login-primary: var(--gl-blue-500);
+  --login-primary-hover: var(--gl-blue-600);
+  --login-primary-alpha-8: rgba(31, 117, 203, 0.08);
+  --login-primary-alpha-25: rgba(31, 117, 203, 0.25);
+  --login-input-text: var(--gl-gray-900);
+  --login-input-border: var(--gl-gray-200);
+  --login-input-bg-muted: var(--gl-gray-50);
+  --login-gitlab-orange: #fc6d26;
+  --login-gitlab-orange-hover: #e24329;
+  --login-footer-border: var(--gl-gray-200);
+  --login-footer-link: var(--gl-blue-700);
+  --login-shadow: var(--shadow-lg);
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background-color: var(--login-bg);
+  background-image: url('/static/img/keycloak-bg.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  padding: 0 var(--gl-spacing-5) var(--gl-spacing-7);
+  color: var(--login-text);
+  font-family: 'Red Hat Text', 'RedHatText', 'Overpass', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Override bundle's navbar.css body rules - login has no sidebar/scroll lock */
+  overflow: auto !important;
+  position: relative;
+}
+
+.login-page > main {
+  width: 100%;
+  max-width: 500px;
+  min-width: 0;
+  margin-bottom: 40px;
+}
+
+.login-shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .login-shell-header {
+    /* 110px, not 62px. Measured against the Keycloak page this shell is modelled
+       on (gitlab.example.com, 1920x1000): its title sits at y=104 and its card
+       at y=188, while ours sat at 62 and 137 - the whole block rode ~48px high,
+       which is what makes a centred sign-in card look pinned to the top edge
+       rather than placed. Ours now measures 110 and 185. Only the desktop branch
+       moves: a phone does not have the room to spend on it. */
+    padding: 110px 10px 20px;
+  }
+}
+
+.login-brand-block {
+  min-width: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.login-brand-title {
+  color: #ededed;
+  font-family: 'Red Hat Text', 'RedHatText', 'Overpass', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 29px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-align: center;
+  margin: 0;
+  text-transform: uppercase;
+  line-height: 1.2em;
+}
+
+/* -- Card container -- */
+.login-container {
+  width: 100%;
+  max-width: 500px;
+  min-width: 0;
+}
+
+.login-card {
+  min-width: 0;
+  background: var(--login-card-bg);
+  /* Keycloak/PatternFly signature: a thin accent bar across the top of an
+     almost-square card. This surface exists to hand off to the faculty SSO
+     (the Keycloak sign-in at gitlab.example.com), so it mirrors THAT card
+     rather than the app's softer Pajamas one - the two pages read as one flow.
+     The accent uses --login-primary (a token), never a hard-coded hex, and the
+     sign-in button stays the app's neutral confirm colour. */
+  border-top: 3px solid var(--login-primary);
+  border-radius: var(--radius);
+  box-shadow: 0 0.5rem 1rem 0 rgba(3,3,3,0.16), 0 0 0.375rem 0 rgba(3,3,3,0.08);
+  padding: 0 20px 20px 20px;
+}
+
+/* No entrance animation on the auth card: a fade/rise here left the dark
+   backdrop visible for a frame on logout (read as a "dark flash / lag"), and
+   the rise was unwanted. The card paints immediately. */
+
+/* -- "Sign in to your account" heading -- */
+.login-heading {
+  font-size: 24px;
+  font-weight: 300;
+  font-family: 'Red Hat Display', 'RedHatDisplay', 'Overpass', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #151515;
+  text-align: center;
+  margin: 24px 0 20px 0;
+  line-height: 1.3;
+}
+
+
+
+/* -- Form labels -- */
+.login-form .form-group {
+  min-width: 0;
+  margin-bottom: var(--gl-spacing-5);
+}
+
+.login-form .form-help {
+  overflow-wrap: anywhere;
+}
+
+.login-form .form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: #151515;
+  margin-bottom: 8px;
+}
+
+/* -- Inputs (Keycloak: white bg, light gray border, sharp corners, 36px height) -- */
+.login-form .form-input {
+  display: block;
+  width: 100%;
+  height: 36px;
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  font-size: var(--font-size-md);
+  color: var(--login-input-text);
+  background: var(--login-card-bg);
+  border: none;
+  border-bottom: 1px solid var(--login-input-border);
+  border-radius: 0;
+  outline: none;
+  transition: border-color var(--transition-control),
+              box-shadow var(--transition-control),
+              background var(--transition-control);
+  box-sizing: border-box;
+}
+.login-form .form-input:hover {
+  border-bottom-color: var(--gl-control-border-hover);
+}
+.login-form .form-input:focus {
+  border-bottom: 2px solid var(--login-primary);
+  box-shadow: none;
+}
+
+/* -- Role select -- */
+.role-select {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gl-spacing-3);
+}
+
+.role-option {
+  position: relative;
+}
+
+.role-option input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.role-option label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  padding: var(--gl-spacing-4) var(--gl-spacing-3);
+  background: var(--login-input-bg-muted);
+  border: 1.5px solid var(--login-input-border);
+  border-radius: 0;
+  cursor: pointer;
+  /* Colour only, like GitLab's own controls - no transform lift, no shadow
+     bloom on hover/select. Those were motion Keycloak and Pajamas both lack. */
+  transition: background-color var(--transition-normal),
+              border-color var(--transition-normal);
+  text-align: center;
+}
+
+.role-option label:hover {
+  border-color: var(--gl-control-border-hover);
+  background: var(--login-card-bg);
+}
+
+.role-option input:checked + label {
+  border-color: var(--login-primary);
+  background: var(--login-primary-alpha-8);
+}
+
+.role-option .role-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--login-text-muted);
+}
+
+.role-option input:checked + label .role-icon {
+  color: var(--login-primary);
+}
+
+.role-option .role-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--login-text-subtle);
+}
+
+.role-option input:checked + label .role-name {
+  color: var(--login-primary);
+}
+
+/* -- Submit button (Keycloak: primary, full width, 36px height, sharp corners) -- */
+.btn-signin {
+  display: block;
+  width: 100%;
+  margin-top: var(--gl-spacing-4);
+  /* Geometry stays Keycloak's (full width, 36px, square corners); the colour
+     follows GitLab's confirm button so sign-in is not the one blue primary
+     action left in the product. */
+  background: var(--gl-btn-confirm-bg);
+  color: var(--gl-btn-confirm-text);
+  border: 0;
+  border-radius: 0;
+  padding: var(--gl-spacing-2) var(--gl-spacing-4);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  cursor: pointer;
+  transition: background var(--transition-normal),
+              color var(--transition-normal),
+              box-shadow var(--transition-normal);
+  height: 36px;
+  box-sizing: border-box;
+}
+.btn-signin:hover {
+  background: var(--gl-btn-confirm-bg-hover);
+}
+.btn-signin:focus {
+  box-shadow: var(--focus-ring);
+}
+.btn-signin:active {
+  box-shadow: none;
+}
+.btn-signin.loading {
+  cursor: progress;
+}
+.btn-signin[disabled] {
+  cursor: not-allowed;
+}
+
+/* -- GitLab OAuth button (Aligned with Sign In button) -- */
+/* This is `.btn .btn-confirm .btn-block` in the template now - the app's own
+   button, so height, radius, padding, focus ring, hover and motion all come
+   from buttons.css instead of being re-declared here (they were: 36px tall,
+   radius 0, its own transition list).
+
+   The fill used to be #fc6d26 with white text, which measured 2.9:1 - under the
+   4.5:1 floor. In @gitlab/ui 136.2.0 that hex is `--gl-color-brand-orange-02p`
+   and it is applied to NO component: it exists for the tanuki. Their primary
+   action is the confirm button, `--gl-button-confirm-primary-*`: neutral-0 on
+   neutral-800 (#fff on #3a383f), which is what `--gl-btn-confirm-*` already
+   resolves to here, and it measures 10.5:1.
+
+   So the brand colour stays exactly where GitLab puts it - on the mark. */
+.btn-gitlab {
+  /* `.btn-block` sets display:block, which cancels `.btn`'s flex centring and
+     drops the fox icon + label at the left edge (text-align:start). Re-flex it
+     so the icon and label sit centred together, like the submit button. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--gl-spacing-3);
+}
+
+.btn-gitlab svg {
+  width: 18px;
+  height: 18px;
+  color: var(--login-gitlab-orange);
+}
+
+.login-gitlab-url {
+  margin-top: var(--gl-spacing-3);
+  font-size: var(--font-size-xs);
+  color: var(--login-text-muted);
+  text-align: center;
+}
+
+.login-separator {
+  text-align: center;
+  color: var(--login-text-muted);
+  font-size: var(--font-size-sm);
+  margin: var(--gl-spacing-5) 0;
+}
+
+.login-rbac-note {
+  margin-bottom: var(--gl-spacing-5);
+  font-size: var(--font-size-sm);
+  padding: var(--gl-spacing-4);
+}
+
+.login-unconfigured {
+  text-align: center;
+  color: var(--login-text-muted);
+}
+
+/* -- Footer (external users info) -- */
+.login-footer {
+  margin-top: var(--gl-spacing-5);
+  padding-top: var(--gl-spacing-5);
+  border-top: 1px solid var(--login-footer-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+}
+
+.login-footer p {
+  font-size: var(--font-size-xs);
+  color: var(--login-text-muted);
+  margin: 0;
+  text-align: center;
+}
+.login-thesis-note {
+  font-size: var(--font-size-xs);
+  opacity: 1;
+  color: var(--gl-text-color-subtle);
+}
+.login-footer a {
+  color: var(--login-footer-link);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+.login-footer a:hover {
+  color: var(--login-primary);
+  text-decoration: underline;
+}
+
+/* .mb-1 removed - conflicted with utilities.css; login page doesn't use this class */
+
+/* Centre the language selector with the rest of the authentication footer. */
+.login-lang-switch {
+  display: flex;
+  justify-content: center;
+}
+
+/* .logout-card: no rule needed - inherits standard login-card padding to match Keycloak */
+
+.logout-prompt {
+  margin: 0 0 var(--gl-spacing-5);
+  color: var(--login-text-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.logout-form .btn-signin {
+  margin-top: 0;
+}
+
+.logout-cancel {
+  display: block;
+  width: max-content;
+  margin: var(--gl-spacing-4) auto 0;
+  color: var(--login-footer-link);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.logout-cancel:hover {
+  text-decoration: underline;
+}
+/* A 21px line of text; on a touch screen the room round it is the target too. */
+@media (pointer: coarse) {
+  .logout-cancel {
+    position: relative;
+  }
+  .logout-cancel::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+}
+
+/* The alerts above the heading are the shared GlAlert; the auth pages lock
+   the light theme (data-color-scheme-lock), so it has the light tokens the
+   white card needs. Only the placement is the card's. */
+.login-alert-region {
+  margin: var(--gl-spacing-5) 0 var(--gl-spacing-2);
+}
+
+/* The logged-out notice is server-rendered and permanent, so it gets no
+   entrance - GP.motion animates only alerts that actually arrive. */
+
+/* No exit motion on the auth card. Clicking Logout used to lift it 4px
+   (measured: card top 137px -> 133px) and hold the page for 140ms so the lift
+   could play - a hop to nowhere, since the accompanying `opacity: 0` never
+   applied: `.login-card` carries `animation: fadeIn ... both` (loaders.css),
+   and a filled animation outranks a plain declaration, so the card stayed
+   fully opaque and only the transform was ever visible. The entrance fade is
+   deliberate and stays; the lift and its delay are gone. */
+
+@media (max-width: 767px) {
+  /* Mobile mirrors the GitLab / Keycloak sign-in that GitPulse redirects to:
+     ONE full-screen WHITE sheet with the brand and form inside it in dark
+     text - no dark textured backdrop, no floating centered card - so the
+     hand-off (GitPulse sign-in -> GitLab sign-in) looks like a single flow. */
+  body {
+    display: block !important;
+    padding: 0 !important;
+    overflow: auto !important;
+    background-image: none !important;
+    background-color: var(--login-card-bg) !important;
+    color: var(--login-text);
+  }
+  .login-page > main {
+    width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--login-card-bg);
+    padding:
+      max(var(--gl-spacing-6), env(safe-area-inset-top))
+      max(var(--gl-spacing-5), env(safe-area-inset-right))
+      max(var(--gl-spacing-6), env(safe-area-inset-bottom))
+      max(var(--gl-spacing-5), env(safe-area-inset-left));
+  }
+  /* Brand block now sits on white -> dark text instead of the on-backdrop light. */
+  .login-brand-title {
+    color: #72767b;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0;
+    text-align: left;
+  }
+  .login-shell-header {
+    align-items: center;
+    margin-bottom: var(--gl-spacing-6);
+    padding: 20px 60px 0 0;
+  }
+  .login-container { max-width: 100%; width: 100%; }
+  /* The card is no longer a floating box - it dissolves into the white sheet. */
+  .login-card {
+    background: transparent;
+    box-shadow: none;
+    border-top: 0;
+    padding: 0;
+  }
+  .login-heading {
+    text-align: center;
+    font-size: var(--font-size-xl);
+  }
+  .login-footer { align-items: center; }
+  .login-footer p { text-align: center; }
+  .role-select {
+    grid-template-columns: 1fr;
+    gap: var(--gl-spacing-2);
+  }
+  .role-option label {
+    flex-direction: row;
+    padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  }
+}
+
+/* -- Server health banner -- */
+.login-health-banner {
+  width: 100%; max-width: 500px;
+  background: var(--gl-orange-500);
+  color: var(--login-card-bg);
+  display: flex; align-items: center; gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+}
+.login-health-banner .login-health-text {
+  animation: pulse var(--gl-anim-loop) var(--motion-ease-loop) infinite;
+}
+.login-health-banner[hidden] { display: none; }
+.login-health-icon { flex-shrink: 0; }
+/* -- Server status dot (in heading) -- */
+.login-server-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-left: var(--gl-spacing-2);
+  vertical-align: middle;
+  background: var(--login-text-muted);
+  transition: background var(--transition-normal);
+}
+.login-server-dot.status-online { background: var(--gl-green-500); box-shadow: 0 0 4px var(--gl-green-500); }
+.login-server-dot.status-offline { background: var(--gl-red-500); box-shadow: 0 0 4px var(--gl-red-500); animation: pulse var(--gl-anim-loop) var(--motion-ease-loop) infinite; }
+
+/* -- Card restored flash -- */
+.login-card-restored { box-shadow: rgba(16, 133, 72, 0.35) 0px 0px 0px 3px, var(--login-shadow); transition: box-shadow var(--transition-normal); }
+
+/* -- Disabled button while offline -- */
+.btn-disabled-offline { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* -- Role icon: colour transition only, no scale-in pop on check -- */
+.role-option .role-icon {
+  transition: color var(--transition-normal);
+}
+
+/* -- Button active / focus states (matches main app .btn) -- */
+.btn-gitlab:focus {
+  box-shadow: var(--focus-ring);
+}
+.btn-gitlab:active {
+  box-shadow: none;
+}
+
+/* -- Reduced motion: disable status and interaction animations -- */
+@media (prefers-reduced-motion: reduce) {
+  .login-health-banner {
+    animation: none !important;
+  }
+  .login-health-banner .login-health-text {
+    animation: none;
+  }
+}

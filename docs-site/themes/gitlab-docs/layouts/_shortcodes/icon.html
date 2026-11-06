@@ -1,0 +1,9 @@
+{{- $iconData := $.Site.Data.icons -}}
+{{- $allowedIcons := $iconData.icons -}}
+{{- $name := .Get "name" -}}
+{{- $iconsSVG := "gitlab_ui/svgs-latest/icons.svg" | relURL -}}
+
+{{- partial "functions/validate-shortcode.html" (dict "shortcodeName" "icon" "allowedValues" $allowedIcons "paramName" "name" "paramValue" $name "sourceFile" .Position.Filename "lineNumber" .Position.LineNumber "errorLevel" "warning") -}}
+
+<!-- The safeHTML function tells Hugo that the content is safe to render as HTML. This helps to prevent unexpected escaping, extra <span> tags etc. -->
+{{- safeHTML (printf `<span> <svg role="img" aria-label="%s" class="gl-icon s16"><use href="%s#%s"/><title>%s</title></svg> </span>` $name $iconsSVG $name $name) -}}

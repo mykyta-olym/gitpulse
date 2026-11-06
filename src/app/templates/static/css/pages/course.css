@@ -1,0 +1,1804 @@
+/* ============================================
+   COURSE DETAIL
+   ============================================ */
+.course-description {
+  margin-top: calc(-1 * var(--gl-spacing-4));
+  margin-bottom: var(--gl-spacing-6);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+
+/* ============================================
+   COURSE SETTINGS
+   ============================================ */
+.settings-grid {
+  display: grid;
+  /* Always single-column: a full-width card keeps every input row on one line
+     and sizes each card to its own content, instead of stretching a short card
+     to match a taller neighbour. */
+  grid-template-columns: 1fr;
+  gap: var(--gl-spacing-7);
+  align-items: start;
+}
+
+.settings-grid>.card {
+  display: flex;
+  flex-direction: column;
+  /* Inside the grid the parent gap handles spacing; the default
+     `.card { margin-bottom }` would otherwise extend the card outside
+     the grid track and break alignment. */
+  margin-bottom: 0;
+}
+
+.settings-grid>.card>.card-body {
+  flex: 1;
+}
+
+/* -- Course settings form - reliable vertical card spacing --
+   We use margin-bottom (not flex gap) on direct .card children because
+   the form contains several `.modal-backdrop` divs as siblings between
+   the Webhook Configurations card and the Compliance Checks card. They
+   are display:none + position:fixed, but their presence still confuses
+   flex `gap` calculations in some browsers, collapsing the visible
+   space between adjacent cards to ~0. Explicit per-card margin-bottom
+   sidesteps this entirely. -- */
+#courseSettingsForm {
+  /* No flex layout - let cards stack as block-level so margin-bottom
+     reliably separates them, regardless of how many display:none
+     modal siblings sit between them. */
+  display: block;
+}
+
+/* Every direct .card child gets the same vertical rhythm. */
+#courseSettingsForm>.card,
+#courseSettingsForm>.settings-grid {
+  margin-bottom: var(--gl-spacing-7);
+}
+
+#courseSettingsForm>.card:last-of-type {
+  margin-bottom: var(--gl-spacing-7);
+}
+
+/* Modal-backdrop divs sit between cards as form siblings; force them
+   out of the document flow entirely so they can never contribute to
+   layout (defensive - they're already position:fixed when active). */
+#courseSettingsForm>.modal-backdrop {
+  margin: 0;
+}
+
+/* Compliance Checks card uses the standard rhythm. */
+.compliance-checks-card {
+  margin-top: 0;
+}
+
+/* -- Weight Presets -- */
+.weight-presets {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  background: transparent;
+}
+
+.weight-presets .form-label-sm {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--gl-spacing-2);
+}
+
+.weight-preset-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-3);
+}
+/* The preset buttons are plain `btn-secondary btn-sm`: the transparent
+   background, own border and own hover this file gave them made the one row
+   of secondary buttons on the page that looked unlike the rest. */
+
+.th-center-60 {
+  text-align: center;
+  width: 60px;
+}
+
+.th-center-80 {
+  text-align: center;
+  width: 80px;
+}
+
+.th-w-60 {
+  width: 60px;
+}
+
+.th-w-80 {
+  width: 80px;
+}
+
+.th-w-100 {
+  width: 100px;
+}
+
+/* -- Unified Compliance Checks -- */
+/* (checks-table base removed - use .data-table .table-compact from tables.css) */
+#checksTable {
+  table-layout: fixed;
+}
+
+#checksTable td:nth-child(3) {
+  overflow: hidden;
+}
+
+.check-name {
+  display: block;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check-desc {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: var(--gl-spacing-1);
+  /* A rule description is a full sentence, and it is how a teacher tells two
+     checks apart. Clipping it to one line cut off exactly the half that
+     distinguishes them - "Did teammates actually review their MR b..." needed
+     552px in a 436px cell. It was ALSO being cut to 80 characters in JS, so
+     the same text was truncated twice. Let it wrap. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.check-active-toggle {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.check-weight-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+}
+
+.check-weight-total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Total Active Weight summary band (below the checks table) -- */
+.checks-weight-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-4);
+  flex-wrap: wrap;
+  margin-top: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.checks-weight-summary .cws-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.checks-weight-summary .cws-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.checks-weight-summary .cws-label .icon {
+  color: var(--text-tertiary);
+}
+
+.checks-weight-summary .cws-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.checks-weight-summary .cws-value {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Check Editor Modal -- */
+.ce-panel {
+  margin-top: var(--gl-spacing-5);
+  padding-top: var(--gl-spacing-5);
+  border-top: 1px solid var(--border-color);
+}
+
+.ce-panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-top: var(--gl-spacing-3);
+  margin-bottom: var(--gl-spacing-4);
+  font-size: var(--font-size-base);
+  overflow-wrap: break-word;
+}
+
+/* Check parameter rows now use the shared `.gl-setting-row` component
+   (forms.css) - the bespoke .ce-config-* row here duplicated it. */
+.ce-active-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  cursor: pointer;
+}
+
+/* -- Threshold preview bar -- */
+.threshold-preview {
+  user-select: none;
+}
+
+.threshold-bar {
+  display: flex;
+  height: 28px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.threshold-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #fff;
+  transition: flex var(--transition-normal);
+}
+
+/* Scoped to the bar, for the same reason the pill's are scoped in
+   analytics.css: a saturated fill under the white text .threshold-segment
+   sets, which is wrong for a chip that carries dark text. */
+.threshold-segment.threshold-red {
+  background: var(--danger);
+}
+
+/* White like the other two segments: gl-gray-900 on --warning measures
+   3.13:1, under the 4.5 floor for text this size, where white measures
+   4.73:1 - the same as green (4.70) and red (4.74). One foreground for
+   the bar, and the only one of the three that passes. */
+.threshold-segment.threshold-yellow {
+  background: var(--warning);
+}
+
+.threshold-segment.threshold-green {
+  background: var(--success);
+}
+
+.threshold-labels {
+  position: relative;
+  height: 1.3em;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.threshold-labels span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.threshold-labels span:first-child {
+  left: 0;
+  transform: none;
+}
+
+.threshold-labels span:last-child {
+  left: 100%;
+  transform: translateX(-100%);
+}
+
+/* -- Semester status display -- */
+.semester-status-display {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  row-gap: var(--gl-spacing-2);
+  padding: var(--gl-spacing-2) 0;
+}
+
+.semester-status-display .muted {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* -- Weekly deadlines summary table -- */
+.weekly-deadlines-summary .data-table th:first-child,
+.weekly-deadlines-summary .data-table td:first-child {
+  width: 60px;
+  white-space: nowrap;
+}
+
+.weekly-deadlines-summary .data-table th:nth-child(2),
+.weekly-deadlines-summary .data-table td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.weekly-deadlines-summary .data-table th:last-child,
+.weekly-deadlines-summary .data-table td:last-child {
+  white-space: nowrap;
+  width: 100px;
+  min-width: 100px;
+}
+
+/* Expected-check codes are a chip cluster: flex-wrap gives even horizontal AND
+   vertical spacing so a 10-code week reads as a tidy grid instead of a cramped
+   nowrap run that forces the row wide on a phone. */
+.weekly-check-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-2);
+  align-content: flex-start;
+}
+
+.wd-toggle-btn {
+  background: none;
+  border: none;
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+}
+
+.wd-toggle-title {
+  color: var(--gl-text-color-heading);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Phones: let the Label wrap instead of forcing the table wider than the screen
+   (the Week badge stays pinned, the codes wrap, so the card fits with no scroll). */
+@media (max-width: 600px) {
+  .weekly-deadlines-summary .data-table th:nth-child(2),
+  .weekly-deadlines-summary .data-table td:nth-child(2) {
+    white-space: normal;
+  }
+}
+
+/* Course page details: chevron is handled by the opt-in .details-accordion
+   rules in navbar.css.  We only keep marker suppression here so stray
+   <details> don't show the native triangle. */
+details>summary {
+  list-style: none;
+}
+
+details>summary::-webkit-details-marker {
+  display: none;
+}
+
+/* -- Responsive: Checks table --
+   Every column, on every phone. The desktop layout is fixed with per-column
+   widths; on a phone the table sizes its columns to their content, keeps a
+   minimum width and scrolls sideways under the pinned Actions column - the
+   single model every table in the app uses. This used to hide Category and
+   Source below 768px and then Active, Code and Weight below 480px, leaving
+   Name + Actions: a teacher on a phone could neither toggle a check nor see
+   its weight, which is what the table is for. */
+@media (max-width: 768px) {
+  #checksTable {
+    table-layout: auto;
+    min-width: 720px;
+  }
+
+  #checksTable colgroup {
+    display: none;
+  }
+
+  #checksTable .th-center-60,
+  #checksTable .th-w-80,
+  #checksTable .th-center-80,
+  #checksTable .th-w-100 {
+    width: auto;
+  }
+
+  /* The description line under a check's name is the one thing the phone
+     does without: with it every row was three lines tall. */
+  #checksTable td:nth-child(3) .check-desc {
+    display: none;
+  }
+
+  #checksTable td:nth-child(3),
+  #checksTable .col-chk-name {
+    min-width: 200px;
+  }
+}
+
+.form-row {
+  display: grid;
+  /* 280px floor: 3-input rows only stay side-by-side when the card is
+     ≥900px; below that the row collapses to 2-col then 1-col so each
+     input has breathing room (no truncated regex / pattern values). */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--gl-spacing-5);
+  /* Own the vertical rhythm so a form-row sits exactly one --gl-spacing-5 above
+     the next field, the SAME gap as a standalone .form-group. Without this the
+     spacing came from the child .form-group margins, which DOUBLED up (grid gap
+     + child margin) once a row collapsed to a single column on narrow screens -
+     the uneven "squished here, far there" spacing between Description / Category
+     / Weight. */
+  margin-bottom: var(--gl-spacing-5);
+}
+
+.form-row>.form-group {
+  margin-bottom: 0;
+}
+
+.code-textarea {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+/* -- Webhook Configurations table - actions column -- */
+#webhookConfigsTable .actions-th,
+#webhookConfigsTable .actions-cell {
+  width: 1%;
+  min-width: 8rem;
+  white-space: nowrap;
+}
+
+/* -- Webhook Configurations table - Name column (responsive) --
+   Long display names + descriptions previously exploded the Name column
+   on narrow viewports, pushing Scope/Status off-screen. Cap the column,
+   wrap long names by word, and clamp the muted description to 2 lines. */
+#webhookConfigsTable th:first-child,
+#webhookConfigsTable td:first-child {
+  max-width: 18rem;
+}
+
+#webhookConfigsTable td:first-child .muted.small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  #webhookConfigsTable th:first-child,
+  #webhookConfigsTable td:first-child {
+    max-width: 12rem;
+  }
+
+  #webhookConfigsTable td:first-child .muted.small {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+}
+
+/* -- One-time webhook secret reveal modal -- */
+.secret-reveal-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-5);
+}
+
+.secret-reveal-group {
+  margin: 0;
+}
+
+.secret-reveal-row {
+  display: flex;
+  gap: var(--gl-spacing-3);
+  align-items: stretch;
+}
+
+.secret-reveal-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  background: var(--surface-strong);
+  color: var(--gl-text-color-link);
+  user-select: all;
+  text-decoration: none;
+}
+
+.secret-reveal-input:hover,
+.secret-reveal-input:focus {
+  text-decoration: none;
+}
+
+.secret-reveal-meta {
+  margin: 0;
+  padding: var(--gl-spacing-2) var(--gl-spacing-4);
+  background: var(--surface-moderate);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+
+.secret-reveal-meta li {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.secret-reveal-meta li:last-child {
+  border-bottom: none;
+}
+
+.secret-reveal-meta .muted {
+  flex: 0 0 auto;
+  min-width: 7rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.secret-reveal-meta .prop-default {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.secret-reveal-steps {
+  margin: 0;
+  transition: border-color var(--transition-normal);
+}
+
+/* When card-body is collapsed (Alpine x-show=false), card-header still has
+   border-bottom which renders a stray line under the closed card. Hide it. */
+.secret-reveal-steps:has(> .card-collapse-region[style*="display: none"])>.card-header,
+.secret-reveal-steps:has(> .card-body:not([x-show])):not([x-data*="open: true"])>.card-header {
+  border-bottom-color: transparent;
+}
+
+.secret-reveal-steps[x-data*="open: false"]>.card-header {
+  border-bottom-color: transparent;
+}
+
+.secret-reveal-steps .card-header {
+  cursor: pointer;
+}
+
+/* Numbered GitLab setup instructions (the webhook secret, the assistant's bot). */
+.setup-steps {
+  margin: 0;
+  padding-left: var(--gl-spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.setup-steps li::marker {
+  color: var(--gl-text-color-link);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ============================================
+   COURSE PROJECTS
+   ============================================ */
+.filter-bar {
+  display: flex;
+  gap: var(--gl-spacing-5);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-bar .form-input {
+  margin-bottom: 0;
+}
+
+.project-path {
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-link);
+  background: var(--gl-feedback-info-bg);
+  padding: 0.125rem var(--gl-spacing-2);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 768px) {
+  #rosterTable {
+    table-layout: auto;
+    min-width: 500px;
+  }
+
+  #rosterTable colgroup {
+    display: none;
+  }
+
+  /* Email + GitLab ID hidden via .col-hide-sm at template level. */
+}
+
+@media (max-width: 480px) {
+  #rosterTable {
+    min-width: 360px;
+  }
+
+  /* Actions column hidden via .col-hide-xs at template level. */
+}
+
+/* Full config preview - compact spacing */
+#fullConfigPreview .ce-panel-title,
+#importConfigPreview .ce-panel-title {
+  margin-top: 0;
+  margin-bottom: var(--gl-spacing-2);
+}
+
+#fullConfigPreview .prop-list,
+#importConfigPreview .prop-list {
+  padding-top: 0;
+}
+
+/* Full config section preview */
+.full-config-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+}
+
+.full-config-section-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.full-config-section-item.included {
+  border-color: var(--success);
+  background: var(--gl-feedback-success-bg);
+}
+
+.full-config-section-item.skipped {
+  opacity: .5;
+}
+
+.full-config-section-status {
+  font-weight: var(--font-weight-bold);
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.full-config-section-item.included .full-config-section-status {
+  color: var(--success);
+}
+
+.config-preview-details {
+  flex-basis: 100%;
+  margin: 0 0 0 2.4em;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.config-preview-details li::before {
+  content: '·';
+  margin-right: var(--gl-spacing-2);
+  color: var(--text-tertiary);
+}
+
+/* ============================================
+   DASHBOARD
+   ============================================ */
+.course-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.form-help-import {
+  margin: var(--gl-spacing-1) 0 var(--gl-spacing-4);
+}
+
+/* ============================================
+   COURSE ACTIVITY PAGE
+   ============================================ */
+/* -- Pipeline overview grid (doughnut chart + stat cards) -- */
+/* The tiles take the room the donut gives back, instead of the row centring
+   itself and leaving air at both ends. */
+.pipeline-overview-grid {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-6);
+}
+
+.pipeline-overview-grid>.stats-grid {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .pipeline-overview-grid {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--gl-spacing-4);
+  }
+  .pipeline-overview-grid>.stats-grid {
+    width: 100%;
+  }
+}
+
+/* Sized to 116px to harmonize with adjacent stat cards (~116px) */
+.pipeline-chart-wrap {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Ensure the canvas sits above any sibling decoration but keeps its box */
+.pipeline-chart-wrap>canvas {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.pipeline-chart-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  max-width: 90px;
+}
+
+.pipeline-chart-pct {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pipeline-chart-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  line-height: 1.1;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-weight: var(--font-weight-semibold);
+  margin-top: 2px;
+}
+
+.pipeline-stats-compact {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+}
+
+.pipeline-stats-compact.stats-grid-5 {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .pipeline-stats-compact.stats-grid-5 {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .pipeline-stats-compact.stats-grid-5 {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--gl-spacing-2);
+  }
+  .pipeline-stats-compact.stats-grid-5 > .stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* -- Activity card (Groups / Merge requests views) --
+   One card, one view strip, each view its own auto-layout table (no
+   `tbl-fixed`): a column takes the width its content needs and nothing is
+   truncated. The column widths below are the shares they settle at when there
+   is room to spare. */
+
+.col-activity-group {
+  width: 28%;
+}
+
+.col-activity-projects {
+  width: 12%;
+}
+
+.col-activity-pipeline {
+  width: 36%;
+}
+
+.col-activity-mrs {
+  width: 10%;
+}
+
+.col-activity-status {
+  width: 14%;
+}
+
+.col-mr-icon {
+  width: 36px;
+  min-width: 36px;
+}
+
+.col-mr-title {
+  width: 44%;
+}
+
+.col-mr-project {
+  width: 24%;
+}
+
+.col-mr-date {
+  width: 16%;
+}
+
+.col-mr-state {
+  width: 16%;
+}
+
+#recentMrsTable th:first-child,
+#recentMrsTable td:first-child {
+  text-align: center;
+}
+
+/* -- Pipeline health cell (GitLab-style) -- */
+.pipeline-health-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  width: 100%;
+  overflow: hidden;
+}
+
+.pipeline-health-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-health-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--gl-progress-track);
+  min-width: 100px;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  transform-origin: center;
+}
+
+.team-health-bar .passed {
+  background: var(--gl-green-500);
+  width: var(--progress, 0%);
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress) var(--motion-ease-emphasized);
+}
+
+.team-health-bar .failed {
+  background: var(--gl-red-500);
+  width: var(--progress, 0%);
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress) var(--motion-ease-emphasized);
+}
+
+.pipeline-health-counts {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin-top: 4px;
+  font-size: var(--font-size-xs);
+  /* 12px - GitLab's smallest */
+  line-height: 1;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pipeline-health-counts .count-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pipeline-health-counts .count-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pipeline-health-counts .count-dot.dot-passed {
+  background: var(--gl-green-500);
+}
+
+.pipeline-health-counts .count-dot.dot-failed {
+  background: var(--gl-red-500);
+}
+
+.health-pct {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.health-pct.health-success {
+  background: var(--gl-status-success-bg);
+  color: var(--gl-status-success-text);
+}
+
+.health-pct.health-warning {
+  background: var(--gl-status-warning-bg);
+  color: var(--gl-status-warning-text);
+}
+
+.health-pct.health-danger {
+  background: var(--gl-status-danger-bg);
+  color: var(--gl-status-danger-text);
+}
+
+.pipeline-health-cell:hover .team-health-bar {
+  /* Colour only on hover - GitLab's whole transition inventory carries no
+     transform outside animated icons (@gitlab/ui 136.3.0). The lift was
+     already removed from the course cards once; it survived here. */
+  box-shadow: 0 0 0 1px var(--gl-hover-subtle);
+}
+
+/* ============================================
+   ERROR PAGES (not_found + feature_disabled)
+   ============================================ */
+.error-container {
+  max-width: 600px;
+  margin: var(--gl-spacing-12) auto;
+  text-align: center;
+}
+
+.error-card-body {
+  padding: var(--gl-spacing-9) var(--gl-spacing-7);
+}
+
+.error-title {
+  font-size: var(--font-size-2xl);
+  color: var(--text-primary);
+  margin-bottom: var(--gl-spacing-3);
+}
+
+/* -- feature_disabled specific -- */
+.feature-info-box {
+  background: var(--surface-strong);
+  border-radius: var(--radius);
+  padding: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-6);
+  text-align: left;
+}
+
+.feature-info-text {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+
+.config-hint-text {
+  margin: var(--gl-spacing-3) 0 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.config-code {
+  background: var(--gl-background-color-strong);
+  padding: 0.125rem var(--gl-spacing-2);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+}
+
+/* ============================================
+   AI ANALYSIS CONFIGURATION - LLM PROMPT EDITOR
+   ============================================ */
+.llm-prompt-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+}
+
+.llm-prompt-toggle .form-label {
+  margin-bottom: 0;
+}
+
+/* Disclosure button: animated chevron + CSS-swapped Expand/Collapse label.
+   Driven purely off aria-expanded so no Alpine ternary is needed (the CSP
+   build cannot evaluate one).
+   The chevron trails the label and swings 0 -> 180deg, which is the app's one
+   disclosure anatomy (`.card-collapse-icon`, `details.details-accordion`). It
+   used to LEAD the label and rest at -90deg - a third variant of the same
+   control on the same settings page. */
+.llm-prompt-toggle-btn .llm-prompt-chevron {
+  transition: transform var(--transition-normal);
+  transform: rotate(0deg);
+}
+
+.llm-prompt-toggle-btn[aria-expanded="true"] .llm-prompt-chevron {
+  transform: rotate(180deg);
+}
+
+.llm-prompt-toggle-btn[aria-expanded="false"] .llm-prompt-label--expanded,
+.llm-prompt-toggle-btn[aria-expanded="true"] .llm-prompt-label--collapsed {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .llm-prompt-toggle-btn .llm-prompt-chevron {
+    transition: none;
+  }
+}
+
+.llm-prompt-editor {
+  min-height: 200px;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.llm-prompt-actions {
+  display: flex;
+  gap: var(--gl-spacing-3);
+}
+
+/* ============================================
+   AI ANALYSIS CONFIGURATION - LLM URL LIST
+   ============================================ */
+.llm-url-group legend {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-strong);
+  margin-bottom: var(--gl-spacing-2);
+}
+
+.llm-url-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+}
+
+.llm-url-entry {
+  display: grid;
+  grid-template-columns: 2fr 3fr auto;
+  gap: var(--gl-spacing-3);
+  align-items: center;
+}
+
+.llm-url-field {
+  min-width: 0;
+}
+
+.llm-url-remove {
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .llm-url-entry {
+    grid-template-columns: 1fr auto;
+  }
+
+  .llm-url-label-col {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ============================================
+   COURSE DETAIL - MISC HELPERS
+   ============================================ */
+.form-help-spacing {
+  margin: var(--gl-spacing-1) 0 var(--gl-spacing-4);
+}
+
+.btn-delete-left {
+  color: var(--danger);
+  margin-right: auto;
+}
+
+/* ============================================
+   TEAMS TABLE - Column widths
+   ============================================
+   Responsive behaviour is driven entirely by the universal
+   `.col-hide-sm` / `.col-hide-md` / `.table-scrollable` /
+   `.table-scrollable` utilities in tables.css. Per-table
+   nth-child() rules used to live here - removed in the universal
+   responsive-table refactor (see tables.css "UNIVERSAL RESPONSIVE
+   TABLE UTILITIES" block).
+*/
+/* Content-sized columns, and the wrapper scrolls when the sum does not fit -
+   the contract the Users and Admin Courses tables already use.
+   Six percentage columns on a fixed layout spend the whole width whatever the
+   rows hold: measured at 1440px the group name took 385px it did not need while
+   Score and Status sat in 128px columns holding "52%" and a dot, so the reader
+   saw a table of gaps. Sizing to content closes them, and `.table-responsive`
+   handles the case where the content genuinely is wider than the page.
+   The `col-*` classes stay: the responsive rules hide columns by them. */
+.teams-table {
+  table-layout: auto;
+}
+
+/* Cell padding is NOT set here any more, at any width. It was declared twice
+   in this file with `!important`, once for the desktop table and once inside
+   each mobile query - and tables.css already carries both the base padding and
+   its own 640px / 480px steps. Two answers to one question is what made no two
+   tables in the app line up. */
+
+/* Actions cell - header text and button row right-aligned, single line. */
+.teams-table th:last-child,
+.teams-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Group/project name link: clip long subgroup names with an ellipsis on the
+   fixed-width desktop/tablet layout (users-table pattern) instead of wrapping.
+   Harmless on the ≤768px auto-layout - the cell sizes to content there so the
+   name shows in full and the table scrolls. */
+.teams-table td a.text-bold {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* Groups is a TREE table (parent group rows + expandable child project rows).
+   It keeps the original horizontal-scroll responsiveness on phones - the card
+   stack read as "cheap" and mangled the tree's chevron + colspan child rows.
+   ≤1024 (not ≤768): on tablets the fixed sidebar squeezes the content column
+   to ~480-736px, where the fixed %-layout crammed every cell - let columns
+   size to content and scroll instead. */
+@media (max-width: 1439px) {
+  .teams-table {
+    min-width: 600px;
+  }
+
+  .teams-table colgroup {
+    display: none;
+  }
+
+  .teams-table td,
+  .teams-table th {
+    white-space: nowrap;
+  }
+
+  /* Sticky styling for group/project NAME column (2nd column) removed to match GitLab layout where tables scroll freely */
+}
+
+@media (max-width: 480px) {
+  .teams-table {
+    min-width: 460px;
+  }
+}
+
+/* ============================================
+   MEMBER TABLES - a team's summary, a project's check matrix
+   ============================================ */
+.team-members-table td.member-badge-cell,
+.project-members-table td.member-badge-cell {
+  text-align: center;
+}
+
+
+/* The check matrix (project Members): one column per check, then Score and
+   Actions. Declared shares, so the columns hold still while rows are drawn or
+   filtered, sized to what each needs (a check 44px, Score 92px, Actions 129px,
+   at a 1 190px card), with the name taking what is left - not all of the
+   surplus: that stood the name beside 200px of air while the codes touched.
+   Auto layout, so a share smaller than its content grows instead of cutting,
+   and single lines; when the row cannot fit, the wrapper scrolls. (It was a
+   fixed layout with 4.5% per check - 49px for a 51px header, "R...".) */
+.data-table:has(.th-check) :is(th, td) {
+  white-space: nowrap;
+}
+
+.data-table:has(.th-check) .col-member-checks {
+  width: 4.4%;
+}
+
+.data-table:has(.th-check) .col-member-score {
+  width: 8.5%;
+}
+
+.data-table:has(.th-check) .col-member-actions {
+  width: 12%;
+}
+
+/* Tabular figures: R01 and R11 are one width, so the check columns line up as
+   a grid. */
+.th-check {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The check columns, header and cells: the code centred over its column of
+   ticks (`.data-table th/td` left-align everything else, and out-rank a bare
+   `.th-check` or `.check-pass`), and 8px either side, not a text column's
+   12px - with thirteen of them that is the 104px that lets the whole matrix
+   fit its card from a 1440px window up instead of scrolling. */
+.data-table:has(.th-check) :is(.th-check, .check-pass, .check-fail, .check-na) {
+  padding-inline: var(--gl-spacing-3);
+  text-align: center;
+}
+
+.col-member-checks,
+.col-member-score {
+  text-align: center;
+}
+
+.col-member-actions {
+  text-align: right;
+}
+
+/* The Group Members summary: five metric columns spread along the row, so each
+   number sits under a heading the eye can follow down - rather than parked in a
+   huddle against the right edge, a screen's width from the student. */
+.data-table:has(.col-member-pipelines) .col-member-student {
+  width: 34%;
+  min-width: 200px;
+}
+
+.data-table:has(.col-member-pipelines) .col-member-score,
+.data-table:has(.col-member-pipelines) .col-member-checks,
+.data-table:has(.col-member-pipelines) .col-member-mrs,
+.data-table:has(.col-member-pipelines) .col-member-issues {
+  width: 13%;
+  text-align: center;
+}
+
+.data-table:has(.col-member-pipelines) .col-member-pipelines {
+  width: 14%;
+  text-align: center;
+}
+
+/* Student-only view: names alone. */
+.team-members-table:not(:has(.col-member-score)) .col-member-student,
+.project-members-table:not(:has(.col-member-score)) .col-member-student {
+  width: 50%;
+}
+
+.team-members-table:not(:has(.col-member-score)),
+.project-members-table:not(:has(.col-member-score)) {
+  min-width: 480px;
+}
+
+/* Sidebar-squeezed windows and tablets: the summary keeps one line per cell
+   and scrolls rather than squeezing five numbers under a wrapped name. */
+@media (max-width: 1439px) {
+  .team-members-table:has(.col-member-score) {
+    min-width: 920px;
+  }
+
+  .team-members-table td,
+  .team-members-table th {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1024px) {
+  .team-members-table:not(:has(.col-member-score)),
+  .project-members-table:not(:has(.col-member-score)) {
+    min-width: 360px;
+  }
+}
+
+/* -- Phones: collapse the wide member tables to the essentials --
+   On a phone the full matrix can't be read through a horizontal scroll, so we
+   keep Student + Score + Pipelines in the group summary and Student + Score +
+   Actions in the project matrix. The whole
+   column must collapse - the <col> AND the cells - because hiding only the
+   <td>/<th> leaves the <col>'s fixed width behind as a blank gap (the "тупо
+   пробіл / just empty space with no columns" report). The per-rule R01-R13
+   breakdown and the raw counts are one tap away on the student page. */
+@media (max-width: 600px) {
+  /* group SUMMARY: keep 1=Student, 2=Score, 6=Pipelines;
+     collapse 3=Checks, 4=MRs, 5=Issues. */
+  .team-members-table:has(.col-member-score) :is(col, th, td):nth-child(3),
+  .team-members-table:has(.col-member-score) :is(col, th, td):nth-child(4),
+  .team-members-table:has(.col-member-score) :is(col, th, td):nth-child(5) {
+    display: none;
+  }
+
+  /* Keep project actions reachable; only the R01-R13 grid collapses. */
+  .project-members-table:has(.col-member-score) col.col-member-checks,
+  .project-members-table:has(.col-member-score) th.th-check,
+  .project-members-table:has(.col-member-score) td.check-pass,
+  .project-members-table:has(.col-member-score) td.check-fail,
+  .project-members-table:has(.col-member-score) td.check-na {
+    display: none;
+  }
+
+  /* let Student flex and the table fill the viewport instead of forcing a scroll */
+  .team-members-table:has(.col-member-score),
+  .project-members-table:has(.col-member-score) {
+    min-width: 0 !important;
+  }
+
+  .team-members-table:has(.col-member-score) .col-member-student {
+    width: 48%;
+  }
+  .team-members-table:has(.col-member-score) .col-member-score {
+    width: 24%;
+  }
+  .team-members-table:has(.col-member-score) .col-member-pipelines {
+    width: 28%;
+  }
+
+  .project-members-table:has(.col-member-score) .col-member-student {
+    width: auto;
+  }
+  .project-members-table:has(.col-member-score) .col-member-score {
+    width: 76px;
+    min-width: 64px;
+  }
+
+  .team-members-table:has(.col-member-score) td:first-child,
+  .project-members-table:has(.col-member-score) td:first-child {
+    white-space: normal;
+  }
+}
+
+/* ============================================
+   PROJECTS TABLE (team detail) - Column widths
+   ============================================ */
+/* The name is the column that wraps; the path is a short slug (~90px), so it
+   gets a slug's share and the name the rest of what the path held. */
+.col-project-name {
+  width: 46%;
+}
+
+.col-project-path {
+  width: 14%;
+}
+
+.col-project-branch {
+  width: 15%;
+}
+
+.col-project-status {
+  width: 10%;
+}
+
+.col-project-actions {
+  width: 15%;
+}
+
+/* Branch chip is a single token (e.g. "master") - never let it wrap to
+   "maste\nr"; the row scrolls horizontally instead. */
+.projects-table code {
+  white-space: nowrap;
+}
+
+/* ============================================
+   TREE VIEW - Expandable Group -> Projects
+   GitLab-style chevron toggles for nested rows
+   ============================================ */
+.col-tree-toggle {
+  width: calc(var(--table-action-size) + var(--gl-spacing-2));
+  min-width: calc(var(--table-action-size) + var(--gl-spacing-2));
+  max-width: calc(var(--table-action-size) + var(--gl-spacing-2));
+  padding-left: var(--gl-spacing-2) !important;
+  padding-right: 0 !important;
+}
+
+.tree-toggle-chevron {
+  transition: transform var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.tree-row-expanded .tree-toggle-chevron {
+  transform: rotate(90deg);
+}
+
+.tree-row-child td {
+  padding-top: var(--gl-spacing-2) !important;
+  padding-bottom: var(--gl-spacing-2) !important;
+  border-bottom-color: var(--gl-border-color-subtle);
+}
+
+.tree-project-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  padding-left: var(--gl-spacing-1);
+}
+
+.tree-project-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.tree-project-name {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-default);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 500px;
+}
+
+.tree-project-name:hover {
+  color: var(--gl-text-color-link);
+  text-decoration: underline;
+}
+
+/* -- Project table (team detail) -- */
+.project-name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+}
+
+/* -- Responsive: projects-table - horizontal scroll on phones AND tablets
+   (the sidebar-squeezed 769-1024 content column crams the fixed %-layout
+   the same way phones did) -- */
+@media (max-width: 1439px) {
+  /* `.data-table.projects-table`, not `.projects-table`: the generic
+     `.data-table.table-scrollable` floor in tables.css is (0,2,0), and a
+     one-class selector lost to it - this table was 540px on every phone
+     regardless of the floors written here. */
+  .data-table.projects-table {
+    table-layout: auto;
+    min-width: 420px;
+  }
+
+  .projects-table colgroup {
+    display: none;
+  }
+
+  /* Path + Branch hidden via .col-hide-sm at template level. */
+  .tree-project-name {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .data-table.projects-table {
+    min-width: 300px;
+  }
+
+  .tree-project-name {
+    max-width: 140px;
+  }
+}
+
+/* The archived-course read-only strip is now rendered via the shared
+   `top_banner` macro (.gp-top-banner) and styled globally in health.css, so all
+   top-of-page status strips look identical. Only the read-only DIMMING of guarded
+   actions stays page-scoped here. */
+/* A course page that is archived dims its (now-guarded) action buttons so the
+   read-only state reads visually, not just on click. JS adds is-course-archived
+   on the lazy content once the banner is present. */
+.is-course-archived [data-process-lock-when],
+.is-course-archived .btn-save-guard,
+/* Buttons the guard locks WITHOUT disabling them - they stay clickable and
+   answer with a toast (see _lockControls). This selector is what dims them,
+   including the ones that carry no process-lock marker (the weekly-deadline
+   and member-scoring controls). */
+/* `button[...]` (not the bare attribute) so this beats `.btn { cursor: pointer }`
+   on equal specificity - the ACTION is unavailable even though the control still
+   answers. */
+button[data-archived-locked="1"] {
+  color: var(--gl-btn-disabled-text);
+  background: var(--gl-btn-disabled-bg);
+  border-color: var(--gl-btn-disabled-border);
+  cursor: not-allowed;
+}
+
+/* No `pointer-events: none` here: it also kills the hover that carries the
+   "why is this disabled" tooltip. The `disabled` attribute already blocks the
+   click, and `.gl-tip-wrap` (added by GP.setDisabledReason) forwards the hover
+   to the wrapper that owns the tooltip. */
+
+/* The Patterns card and its enforcement badges were removed: each pattern now
+   sits inside the check that enforces it, so "is this actually scored?" is
+   answered by the strict-mode toggle sitting right above it. */
+
+/* -- Generate-with-AI modal: two clear steps -----------------------------
+   The modal used to be a bare textarea + stepper + buttons with no framing,
+   so it read as a debug form. Numbered steps make the "describe -> review"
+   flow explicit and give the results panel somewhere to belong. */
+.llm-gen-step+.llm-gen-step {
+  margin-top: var(--gl-spacing-5);
+  padding-top: var(--gl-spacing-5);
+  border-top: 1px solid var(--border-color);
+}
+
+.llm-gen-step-title {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin: 0 0 var(--gl-spacing-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.llm-gen-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background: var(--gl-btn-selected-bg, var(--surface-strong));
+  color: var(--gl-btn-selected-text, var(--text-primary));
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.llm-gen-step-hint {
+  margin: 0 0 var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Keep the stepper compact and pair it with its explanation instead of
+   letting a lone 3-wide control float in an empty row. */
+.llm-gen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--gl-spacing-4);
+  margin-top: var(--gl-spacing-3);
+}
+
+.llm-gen-controls .gl-number-input {
+  flex: 0 0 auto;
+}
+
+.llm-gen-controls-hint {
+  flex: 1 1 16rem;
+  min-width: 0;
+  margin: 0;
+  align-self: center;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+/* -- Weekly deadlines: form editor -------------------------------------- */
+/* Expected-checks picker. Built from the course's own checks (custom ones
+   included) rather than a hard-coded R01-R12 list. */
+.wd-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--gl-spacing-2);
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--gl-spacing-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--surface-default);
+}
+
+.wd-check-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  min-width: 0;
+  padding: var(--gl-spacing-1) var(--gl-spacing-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.wd-check-item:hover {
+  background: var(--surface-strong);
+}
+
+.wd-check-item input {
+  margin: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.wd-check-code {
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.wd-check-name {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  /* Sized to its text, so the state badge that follows sits right after the
+     name it qualifies. (It used to claim the leftover width and push the badge
+     to the column's far edge - a hand-width from a short name, where it read
+     as belonging to the row rather than to the check.) */
+  flex: 0 1 auto;
+}
+
+.wd-check-item .badge {
+  flex: 0 0 auto;
+}
+
+.wd-check-bulk {
+  display: flex;
+  gap: var(--gl-spacing-2);
+}
+
+/* -- Course Teachers table: what this table's columns need --
+   The identity cell itself is not this page's business and lives in tables.css
+   as `.table-identity`: an avatar, a name over a handle, in a row of a table. */
+.col-teacher {
+  width: 38%;
+  min-width: 180px;
+}
+
+.col-teacher-account {
+  width: 22%;
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.col-teacher-role {
+  width: 26%;
+  min-width: 140px;
+}
+/* The table is `table-layout: fixed`, where a column is exactly its `width`
+   and `min-width` counts for nothing: on a phone 26% of the 540px table gave
+   the role column 140px, of which 116px were content - less than the
+   "Course Owner" select needs - and the overflow ran under the pinned Actions
+   column, which painted over it: the select looked cut off at its chevron.
+   A width the longest label fits in, in either language. */
+@media (max-width: 768px) {
+  .col-teacher-role {
+    width: 176px;
+  }
+}
+
+.col-teacher-actions {
+  width: 14%;
+  min-width: 80px;
+  text-align: right;
+}
+
+.teachers-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* -- Course assistant: what the activity table's columns need -- */
+.col-assistant-student {
+  width: 17%;
+  min-width: 150px;
+}
+
+.col-assistant-team {
+  width: 8%;
+  min-width: 90px;
+}
+
+.col-assistant-tool {
+  width: 13%;
+  min-width: 130px;
+}
+
+.col-assistant-where {
+  width: 24%;
+  min-width: 170px;
+}
+
+.col-assistant-state {
+  width: 12%;
+  min-width: 130px;
+}
+
+.col-assistant-action {
+  width: 15%;
+  min-width: 150px;
+}
+
+.col-assistant-updated {
+  width: 11%;
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+/* -- Course settings: webhook configurations and the checks matrix.
+      Balanced widths so names do not wrap into 6 lines. -- */
+/* Auto layout, not fixed: a fixed 20% Scope column cut "Projects projects:
+   123,456" to "Projects projects: ..." and a 12% Status column cut "Active
+   Grace until 2026-09-08" mid-word. The shares are what the columns settle at
+   with room to spare; with less, each takes what its content needs and the
+   wrapper scrolls. */
+#webhookConfigsTable {
+  width: 100%;
+}
+
+#webhookConfigsTable .col-whc-name {
+  width: 28%;
+}
+
+#webhookConfigsTable .col-whc-scope {
+  width: 22%;
+}
+
+#webhookConfigsTable .col-whc-status {
+  width: 14%;
+}
+
+#webhookConfigsTable .col-whc-delivery {
+  width: 12%;
+}
+
+#webhookConfigsTable .col-whc-created {
+  width: 12%;
+}
+
+#webhookConfigsTable .col-whc-actions {
+  width: 12%;
+}
+
+#checksTable .col-chk-active {
+  width: 60px;
+}
+
+#checksTable .col-chk-code {
+  width: 80px;
+}
+
+#checksTable .col-chk-name {
+  width: 612px;
+}
+
+#checksTable .col-chk-category {
+  width: 100px;
+}
+
+#checksTable .col-chk-weight {
+  width: 80px;
+}
+
+#checksTable .col-chk-source {
+  width: 80px;
+}
+
+#checksTable .col-chk-actions {
+  width: 80px;
+}

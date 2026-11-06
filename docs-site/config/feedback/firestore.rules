@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function hasPersonalInfo(comment) {  
+      // Check for phone numbers (US and international), personal email addresses (allow git@gitlab.com)
+      return comment.matches('[\\s\\S]*(\\+?\\d[\\s\\-\\.]*){7,15}[\\s\\S]*')
+      || (comment.matches('[\\s\\S]*\\w+@\\w+\\.\\w+[\\s\\S]*') && !comment.matches('[\\s\\S]*git@gitlab\\.com[\\s\\S]*'));
+    }
+    match /feedback/{document} {
+      allow create: if
+        // Data structure validation (honeypot-style)
+        request.resource.data.keys().hasAll(['wasHelpful', 'timestamp', 'language', 'url']) &&
+        request.resource.data.keys().hasOnly(['wasHelpful', 'timestamp', 'language', 'url', 'group', 'stage']) &&
+
+        // Data type validation
+        request.resource.data.wasHelpful is int &&
+        request.resource.data.wasHelpful in [0, 1] &&
+        request.resource.data.language is string &&
+        request.resource.data.timestamp is timestamp &&
+        request.resource.data.url is string &&
+        request.resource.data.group is string &&
+        request.resource.data.stage is string &&
+
+        // Reasonable data validation
+        request.resource.data.language.size() >= 2 &&
+        request.resource.data.language.size() <= 10 &&
+        request.resource.data.url.size() > 10 &&
+        request.resource.data.url.size() < 500 &&
+
+        // Timestamp validation (not from future, not too old)
+        request.resource.data.timestamp <= request.time + duration.value(2, 'm') &&
+        request.resource.data.timestamp >= request.time - duration.value(10, 'm') &&
+
+        // URL validation (basic patterns)
+        request.resource.data.url.matches('https?://.*') &&
+        !request.resource.data.url.matches('.*\\.(exe|zip|bat|cmd).*');
+      allow update: if
+        // Only allow updates to these fields
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reason', 'comment', 'wasHelpful']) &&
+
+        // Validate field types and sizes
+        (request.resource.data.reason == null || request.resource.data.reason == "" ||
+         (request.resource.data.reason is string &&
+          request.resource.data.reason.size() <= 100)) &&
+        (request.resource.data.comment == null || request.resource.data.comment == "" ||
+         (request.resource.data.comment is string &&
+          request.resource.data.comment.size() <= 500 && 
+          !hasPersonalInfo(request.resource.data.comment)))
+
+      allow read: if false;
+    }
+  }
+}

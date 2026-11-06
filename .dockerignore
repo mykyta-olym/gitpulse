@@ -1,0 +1,79 @@
+# Keep the Docker build context lean and prevent secrets / local state
+# from leaking into image layers.
+
+# ── Secrets & local config (must never be in any image) ──
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.test
+!.env.pilot
+
+# ── VCS ──
+.git
+.gitignore
+.gitattributes
+.gitlab-ci.yml
+
+# ── Python local state ──
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.benchmarks
+.hypothesis
+.cache
+.coverage
+htmlcov
+*.cover
+
+# ── Editor / OS noise ──
+.vscode
+.idea
+.claude
+.codex
+.agents
+.impeccable
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Tests, docs, dev tooling (not needed in runtime image) ──
+tests
+docs
+!docs/fixtures
+docs-site
+monitoring
+reports
+backups
+node_modules
+src/app/templates/static/uploads
+scratch
+output
+.playwright-cli
+
+# ── Build / report artefacts ──
+*.log
+*.sql.gz
+*.tar
+*.tar.gz
+build
+dist
+template-cache
+.tox
+.eggs
+
+# ── CI helper scripts not needed in the image ──
+deploy-production.ps1
+start-dev.ps1
+redeploy.py
+reset_db.sql
+reset_db_remote.py
+_check_db.py

@@ -1,0 +1,45 @@
+{#
+  List Components - GitLab Pajamas `.gl-list` design system
+
+  Usage:
+    from "components/lists.html" import gl_list, gl_list_item, project_link_item
+
+    -- Simple text list --
+    call gl_list(flush=true, compact=true)
+      for tip in tips
+        gl_list_item(tip)
+      endfor
+    endcall
+
+    -- Project link list item --
+    project_link_item(project, gitlab_url)
+#}
+
+{% from "components/icons.html" import icon %}
+
+{# -- List wrapper -- #}
+{% macro gl_list(flush=false, compact=false, class='', id='') %}
+{% set cls = ['gl-list'] %}
+{% if flush %}{% set _ = cls.append('gl-list-flush') %}{% endif %}
+{% if compact %}{% set _ = cls.append('gl-list-compact') %}{% endif %}
+<ul class="{{ cls|join(' ') }} {{ class }}"{% if id %} id="{{ id }}"{% endif %}>
+  {{ caller() }}
+</ul>
+{% endmacro %}
+
+{# -- Simple text item -- #}
+{% macro gl_list_item(text, variant='', icon_name='', href='', class='', button=false, current=false, data_attrs={}) %}
+{% set cls = ['gl-list-item'] %}
+{% if variant %}{% set _ = cls.append('gl-list-item-' ~ variant) %}{% endif %}
+{% set tag = 'a' if href else ('button' if button else 'li') %}
+{% if href or button %}<li>{% endif %}
+<{{ tag }}{% if href %} href="{{ href }}"{% elif button %} type="button"{% endif %} class="{{ cls|join(' ') }} {{ class }}"{% if button %} aria-current="{{ 'true' if current else 'false' }}"{% endif %}{% for key, value in data_attrs.items() %} data-{{ key }}="{{ value|force_escape }}"{% endfor %}>
+  {% if icon_name %}<span class="gl-list-item-avatar gl-list-item-avatar-icon">{{ icon(icon_name, size='sm') }}</span>{% endif %}
+  <span class="gl-list-item-body">{{ text }}</span>
+</{{ tag }}>
+{% if href or button %}</li>{% endif %}
+{% endmacro %}
+
+
+{# -- Block-level item - use caller() for complex custom content -- #}
+

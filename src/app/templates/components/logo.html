@@ -1,0 +1,56 @@
+{#
+  GitPulse Brand Logo Component
+  
+  Renders the 48x48 GitLab Tanuki logo with an integrated neon ECG pulse line,
+  complete with heartbeat, hover drift, and trace pulse animations.
+  
+  Usage:
+    {% from "components/logo.html" import gitpulse_logo %}
+    {{ gitpulse_logo(id_suffix='sidebar', class='gl-sidebar-logo') }}
+#}
+{% macro gitpulse_logo(id_suffix='', class='') %}
+<svg viewBox="0 0 48 48" fill="none" class="gp-logo {{ class }}" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Shading Gradients -->
+    <linearGradient id="gpGradCenter{{ id_suffix }}" x1="18" y1="19" x2="31" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff7a00"/>
+      <stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpGradLeftEar{{ id_suffix }}" x1="11" y1="6" x2="18" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fc6d26"/>
+      <stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpGradRightEar{{ id_suffix }}" x1="37" y1="6" x2="31" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fc6d26"/>
+      <stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpGradLeftCheek{{ id_suffix }}" x1="6" y1="27" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fca326"/>
+      <stop offset="100%" stop-color="#fc6d26"/>
+    </linearGradient>
+    <linearGradient id="gpGradRightCheek{{ id_suffix }}" x1="42" y1="27" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fca326"/>
+      <stop offset="100%" stop-color="#fc6d26"/>
+    </linearGradient>
+  </defs>
+
+  <!-- GitLab Tanuki -->
+  <g class="gp-logo-body" opacity="0.85">
+    <path class="gp-part gp-left-cheek" d="M6 27.4152L17.9932 18.9935L23.9627 42Z" fill="url(#gpGradLeftCheek{{ id_suffix }})" />
+    <path class="gp-part gp-right-cheek" d="M42 27.4152L30.9661 18.9935L23.9627 42Z" fill="url(#gpGradRightCheek{{ id_suffix }})" />
+    <path class="gp-part gp-left-ear" d="M11.0151 6L17.9932 18.9935L6 27.4152Z" fill="url(#gpGradLeftEar{{ id_suffix }})" />
+    <path class="gp-part gp-right-ear" d="M36.9957 6L30.9661 18.9935L42 27.4152Z" fill="url(#gpGradRightEar{{ id_suffix }})" />
+    <path class="gp-part gp-center" d="M17.9932 18.9935H30.9661L23.9627 42Z" fill="url(#gpGradCenter{{ id_suffix }})" />
+  </g>
+
+  <!-- ECG Glowing Pulse Line -->
+  <!-- Background Cyan Glow -->
+  <path class="gp-ecg-halo" pathLength="100" d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" />
+  <!-- Theme Contrast Guard -->
+  <path class="gp-ecg-guard" pathLength="100" d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" />
+  <!-- Resting Core Line -->
+  <path class="gp-ecg-core" pathLength="100" d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" />
+  <!-- White Moving Pulse Segment -->
+  <path class="gp-ecg-trace-pulse" pathLength="100" d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" />
+</svg>
+{% endmacro %}

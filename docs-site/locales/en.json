@@ -1,0 +1,85 @@
+{
+  "clipboard": {
+    "copyTxt": "Copy",
+    "srCopyToClipboard": "Copy to clipboard",
+    "copied": "Copied!"
+  },
+  "navBar": {
+    "toggleSidebar": "Toggle sidebar",
+    "mainNavigation": "Main Navigation",
+    "collapseSidebar": "Collapse sidebar",
+    "selectATopic": "Select a topic"
+  },
+  "searchForm": {
+    "search": "Search",
+    "searchGitLabDocs": "Search topics, API and CI/CD reference",
+    "seeAllResults": "See all results",
+    "noResultsFound": "No results found.",
+    "tooltipTxt": "Use the shortcut keys{0} or {1} to start a search"
+  },
+  "pagefindSearchResults": {
+    "searchDocs": "Search GitPulse documentation",
+    "errorFetchingMsg": "Error fetching search index."
+  },
+  "searchSuggestedItems": {
+    "recentlyViewed": "Recently viewed",
+    "popular": "Popular",
+    "cicdYAMLSyntaxReference": "Teacher's guide"
+  },
+  "plantuml": {
+    "errorRenderMsg": "This diagram could not be rendered."
+  },
+  "lightbox": {
+    "label": "Image preview",
+    "close": "Close image preview"
+  },
+  "mermaidZoom": {
+    "regionLabel": "Zoomable diagram. Use the toolbar, or focus and press plus, minus, and zero to zoom and the arrow keys to pan.",
+    "overlayLabel": "Diagram fullscreen view",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "reset": "Reset zoom",
+    "fullscreen": "View fullscreen",
+    "close": "Close fullscreen view"
+  },
+  "languageSelector": {
+    "language": "Language"
+  },
+  "themeToggle": {
+    "theme": "Theme",
+    "light": "Light mode",
+    "dark": "Dark mode",
+    "auto": "Auto",
+    "tooltip": "Select theme and layout"
+  },
+  "layoutToggle": {
+    "layout": "Layout",
+    "fixed": "Fixed width",
+    "fluid": "Fluid width"
+  },
+  "feedback": {
+    "editPage": "Edit this page",
+    "viewSourceHelp": "Edit this file only.",
+    "openWebIDE": "Open in Web IDE",
+    "openWebIDEhelp": "Edit multiple files.",
+    "viewSource": "View page source",
+    "suggestUpdates": "Create an issue",
+    "suggestUpdatesHelp": "Suggest improvements."
+  },
+  "copyForLLMOptions": {
+    "copyForLLM": "Copy for LLM",
+    "copyMarkdownButton": "Copy as Markdown",
+    "viewMarkdownButton": "View as Markdown",
+    "openInClaude": "Open in Claude",
+    "openInChatGPT": "Open in ChatGPT"
+  },
+  "backToTopButton": {
+    "label": "Back to top"
+  },
+  "tables": {
+    "expandTable": "Expand table"
+  },
+  "toc": {
+    "tableOfContents": "Table of Contents"
+  }
+}

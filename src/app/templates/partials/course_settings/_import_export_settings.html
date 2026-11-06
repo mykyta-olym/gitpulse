@@ -1,0 +1,20 @@
+{# -- Full Course Configuration Import / Export -- #}
+{% from "components/cards.html" import card %}
+{% from "components/buttons.html" import btn_icon %}
+
+{% set ct %}{{ t('Full Course Configuration') }}{% endset %}
+{% call card(title=ct, icon_name='package', class='mt-lg') %}
+    <p class="muted">{{ t('Export or import the entire course configuration - settings, compliance checks, custom checks, and weekly deadlines - as a single JSON file.') }}</p>
+    {# A button row, not a field row: `.form-row` is the equal-column grid for
+       form INPUTS, and it stretched both buttons across half the card each -
+       and collapsed to a lopsided pair the moment the read-only guard wrapped
+       the disabled Import in its tooltip span. Buttons size to their label. #}
+    <div class="d-flex gap-3 flex-wrap">
+      {% set _is_archived = course and not course.is_active %}
+      {% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _is_archived else '' %}
+      {# `readonly-ok`: exporting reads the course, so it stays available on an
+         archived one - the same note the compliance-checks Export carries. #}
+      {{ btn_icon(t('Export Full Configuration'), 'download', variant='secondary', id='btnExportFullConfig', data_attrs={'course-id': course.id|string, 'readonly-ok': '', 'tippy-content': t('Download all checks and settings as JSON')}) }}
+      {{ btn_icon(t('Import Full Configuration'), 'upload', id='btnImportFullConfigOpen', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Upload a JSON configuration file to apply to this course')}) }}
+    </div>
+{% endcall %}

@@ -1,0 +1,75 @@
+{% from "components/buttons.html" import btn_link_icon, btn_link_icon_only %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/tables.html" import table_controls, data_table, pagination_controls %}
+{% from "components/table_heads.html" import tickets_table_head with context %}
+{% from "components/icons.html" import icon %}
+{% from "components/support_badges.html" import support_status_badge, priority_badge, category_badge %}
+{% from "components/badges.html" import badge, person_badge with context %}
+{% from "partials/support/_tickets_toolbar.html" import tickets_search, tickets_filters, tickets_actions with context %}
+{% from "components/layout.html" import page_config with context %}
+{% from "components/academic_period.html" import period_label with context %}
+
+{% if responses %}
+
+{# The Users page's card, on this page: a title, the row count and the actions
+   in the header; search and the filter dropdowns in `table_controls` under it.
+   All six used to be in the header together. #}
+{% set tickets_title %}{{ t('Tickets') }}{% endset %}
+{% set tickets_head_actions %}{{ tickets_actions(is_admin=is_admin) }}{% endset %}
+<div data-paginator="ticketsTable" data-controls="#paginationControls" data-page-size="50">
+{% call card(title=tickets_title, icon_name='inbox', header_actions=tickets_head_actions) %}
+  {{ table_controls(search=tickets_search(), filters=tickets_filters()) }}
+  {% call data_table(headers=[], sortable=true, class='tickets-table table-scrollable table-sticky-actions', id='ticketsTable') %}
+  {{ tickets_table_head() }}
+  <tbody>
+    {% for r in responses %}
+    <tr data-search="{{ (r.title or '')|lower }} {{ (r.submitted_by or '')|lower }} {{ (r.assigned_to or '')|lower }} {{ (r.category or '')|lower }} #{{ r.id }}"
+        data-status="{{ r.status }}"
+        data-priority="{{ r.priority }}"
+        data-category="{{ r.category }}">
+      {% if is_admin %}
+      <td><input type="checkbox" id="ticket-select-{{ r.id }}" class="form-check-input ticket-select" value="{{ r.id }}"
+          aria-label="{{ t('Select ticket') }} #{{ r.id }}"></td>
+      {% endif %}
+      <td data-sort-value="{{ r.title or '' }}">
+        <a href="/dashboard/support/ticket/{{ r.id }}" class="ticket-title-link">{{ r.title or t('Untitled ticket') }}</a>
+        <span class="ticket-title-meta">#{{ r.id }}{% if r.comment_count > 0 %} · {{ icon('message-circle', size='xs') }} {{ r.comment_count }}{% endif %}</span>
+      </td>
+      <td data-sort-value="{{ r.submitted_by or '' }}">
+        {% if r.submitted_by %}
+        <span class="ticket-person">{{ badge('@' ~ r.submitted_by, variant='gray', icon_name='user') }}{{ person_badge((people or {}).get(r.submitted_by)) }}</span>
+        {% else %}<span class="muted">-</span>{% endif %}
+      </td>
+      <td data-sort-value="{{ r.status }}">{{ support_status_badge(r.status) }}</td>
+      <td data-sort-value="{{ r.priority }}" class="col-hide-sm">{{ priority_badge(r.priority) }}</td>
+      <td data-sort-value="{{ r.category }}">{{ category_badge(r.category) }}</td>
+      <td class="muted col-hide-sm" data-sort-value="{{ r.submitted_at or '' }}">
+        <span data-tippy-content="{{ r.submitted_at[:19]|replace('T', ' ') if r.submitted_at else '' }}">{{ r.submitted_at[:10] if r.submitted_at else '-' }}</span>
+      </td>
+      <td>
+        {% if r.assigned_to %}
+        <span class="ticket-person">{{ badge(r.assigned_to, variant='gray', icon_name='user') }}{{ person_badge((people or {}).get(r.assigned_to)) }}</span>
+        {% else %}<span class="muted">-</span>{% endif %}
+      </td>
+      <td class="text-right">
+        {{ btn_link_icon_only('eye', '/dashboard/support/ticket/' ~ r.id, t('View Details'), size='sm') }}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% endcall %}
+  {{ pagination_controls(total=responses | length, page_size=default_page_size | default('50')) }}
+{% endcall %}
+</div>
+
+{% else %}
+{% call empty_state(t('No tickets found.'), t('No support tickets have been submitted for this course yet.'), illustration='empty-dashboard') %}
+  {{ btn_link_icon(t('Back to Courses'), '/dashboard/support/tickets', 'arrow-left', variant='secondary') }}
+{% endcall %}
+{% endif %}
+
+{{ page_config({
+  'courseId': (selected_course.id | string) if selected_course else '',
+  'courseLabel': (selected_course.code ~ ' (' ~ period_label(selected_course.academic_year, selected_course.semester) ~ ')') if selected_course else '',
+}, csp_nonce, id='gp-tickets-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/support-tickets.js') }}"></script>

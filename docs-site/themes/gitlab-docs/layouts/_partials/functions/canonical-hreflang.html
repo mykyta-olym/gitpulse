@@ -1,0 +1,75 @@
+<!-- SEO: Canonical URL and Hreflang tags -->
+{{- $canonicalBaseURL := "https://gitpulse.kpi.fei.tuke.sk" -}}
+{{- $isPreRelease := partial "functions/is-pre-release-version.html" . -}}
+{{- $defaultLang := site.Params.defaultLang -}}
+{{- $canonicalPermalink := .RelPermalink -}}
+{{- $translations := dict -}}
+
+{{/* Is this page's content actually written in this language, or is it the
+     default language's content served under a locale URL? Each language has its
+     own content directory, so the answer is whether the source file is in this
+     language's. (Matching on "/<lang>/" in the path is the upstream form and is
+     never true here - `content-en` is not `/en/`.) */}}
+{{- $isFallbackContent := false -}}
+{{- if ne .Lang $defaultLang -}}
+  {{- $dir := index site.Params.contentDirs .Lang -}}
+  {{- with .File -}}
+    {{- with .Filename -}}
+      {{- if not (strings.Contains . $dir) -}}
+        {{- $isFallbackContent = true -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* Process all translations */}}
+{{- range .AllTranslations -}}
+  {{- $lang := .Lang -}}
+
+  {{/* Detect whether this translation is English fallback content served under a locale URL */}}
+  {{- $translationIsFallback := false -}}
+  {{- if ne $lang $defaultLang -}}
+    {{- $dir := index site.Params.contentDirs $lang -}}
+    {{- with .File -}}
+      {{- with .Filename -}}
+        {{- if not (strings.Contains . $dir) -}}
+          {{- $translationIsFallback = true -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{/* Only real (self-canonicalizing) translations get an hreflang alternate. Locale URLs
+       backed by English fallback content canonicalise to English, so listing them as
+       alternates breaks the hreflang cluster. */}}
+  {{- if not $translationIsFallback -}}
+    {{- $translations = merge $translations (dict $lang .Permalink) -}}
+  {{- end -}}
+
+  {{/* Use English permalink for canonical if showing fallback */}}
+  {{- if and $isFallbackContent (eq $lang $defaultLang) -}}
+    {{- $canonicalPermalink = .RelPermalink -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* Add current page if missing from AllTranslations, unless it is fallback content
+     (a locale URL backed by English content must not advertise itself as an alternate) */}}
+{{- if and (not $isFallbackContent) (not (index $translations .Lang)) -}}
+  {{- $translations = merge $translations (dict .Lang .Permalink) -}}
+{{- end -}}
+
+{{/* Generate canonical URL */}}
+{{- $canonicalUrl := printf "%s%s" $canonicalBaseURL $canonicalPermalink -}}
+{{- if ne $isPreRelease "true" -}}
+  {{- $canonicalUrl = printf "%s%s" $canonicalBaseURL (replaceRE "^/(review-mr-\\d+|\\d+\\.\\d+)/" "/" $canonicalPermalink) -}}
+{{- end -}}
+
+<link rel="canonical" href="{{ $canonicalUrl }}">
+
+{{/* Generate hreflang tags for all translations */}}
+{{- range $lang, $url := $translations -}}
+  <link rel="alternate" hreflang="{{ $lang }}" href="{{ $url }}">
+{{- end -}}
+{{- with index $translations $defaultLang -}}
+  <link rel="alternate" hreflang="x-default" href="{{ . }}">
+{{- end -}}

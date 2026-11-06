@@ -1,0 +1,465 @@
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import btn_icon, btn_icon_only, btn_link_icon %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card, empty_state %}
+{% from "components/lists.html" import gl_list, gl_list_item %}
+{% from "components/spinner.html" import spinner %}
+{% from "components/alerts.html" import alert %}
+{% from "components/tables.html" import pagination_controls, table_controls %}
+{% from "components/forms.html" import csrf_field, search_input, select_field with context %}
+
+{# -- Macro for rendering finding evidence links -- #}
+{% macro render_evidence_link(ev, mr_url, is_red=false) %}
+  {% set link_class = "evidence-link evidence-link-red" if is_red else "evidence-link" %}
+  {% if ev.source_type == 'note' and ev.source_id %}
+    <a href="{{ mr_url }}#note_{{ ev.source_id }}" target="_blank" rel="noopener noreferrer" class="{{ link_class }}" data-tippy-content="{{ t('View comment in GitLab') }}">{{ icon('message-square', size='xs') }} <span class="evidence-label">{{ t('Comment') }}</span></a>
+  {% elif ev.source_type == 'diff' %}
+    <a href="{{ mr_url }}/diffs" target="_blank" rel="noopener noreferrer" class="{{ link_class }}" data-tippy-content="{{ t('View changes in GitLab') }}">{{ icon('file-diff', size='xs') }} <span class="evidence-label">{{ t('Code') }}</span></a>
+  {% elif ev.source_type == 'description' %}
+    <a href="{{ mr_url }}" target="_blank" rel="noopener noreferrer" class="{{ link_class }}" data-tippy-content="{{ t('View MR description') }}">{{ icon('file-text', size='xs') }} <span class="evidence-label">{{ t('Description') }}</span></a>
+  {% elif ev.source_type == 'commit' %}
+    <a href="{{ mr_url }}/commits" target="_blank" rel="noopener noreferrer" class="{{ link_class }}" data-tippy-content="{{ t('View commits') }}">{{ icon('git-commit', size='xs') }} <span class="evidence-label">{{ t('Commit') }}</span></a>
+  {% else %}
+    <a href="{{ mr_url }}" target="_blank" rel="noopener noreferrer" class="{{ link_class }}" data-tippy-content="{{ t('View MR in GitLab') }}">{{ icon('external-link', size='xs') }} <span class="evidence-label">{{ t('Evidence') }}</span></a>
+  {% endif %}
+{% endmacro %}
+
+
+{# -- AI Teamwork Analysis -- #}
+{% if feature_llm_suggestions %}
+{% set ct %}{{ t('AI Teamwork Analysis') }} {{ badge(t('Beta'), variant='info', size='sm', data_attrs={'tippy-content': t('This feature uses AI and results may not be 100% accurate')}) }}{% endset %}
+{% set ha %}
+    {% if can_edit %}
+    <form class="m-0" id="llmAnalysisForm">
+      {{ csrf_field() }}
+      {{ btn_icon(t('Run Analysis'), 'refresh', type='submit', size='sm', id='runAnalysisBtn', disabled=analysis_started, data_attrs={'disabled-reason': t('Analyzing...'), 'tippy-content': t('Analyze merge requests with AI to evaluate teamwork quality')}) }}
+    </form>
+    {% endif %}
+{% endset %}
+{% call card(title=ct, icon_name='cpu', header_actions=ha, class='mt-6') %}
+  
+  {% call alert(variant='info', class='analysis-progress' ~ (' d-none' if not analysis_started or llm_last_error else ''), id='analysisProgress', show_icon=false, role='status') %}
+    <div class="flex-center-0875">
+      <span id="analysisSpinner">{{ spinner(size='sm') }}</span>
+      <div class="flex-1">
+        <p id="analysisStatusText" class="gitlab-alert-title">{{ t('Analyzing merge requests with AI...') }}</p>
+        <p id="analysisSubtitle" class="mb-0">{{ t('Results will appear below when complete.') }}</p>
+      </div>
+    </div>
+    <div id="analysisProgressBar" class="progress mt-3" role="progressbar" aria-label="{{ t('AI Teamwork Analysis') }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar is-indeterminate"></div>
+    </div>
+    {{ btn_icon(t('Refresh'), 'refresh', variant='secondary', size='sm', class='d-none mt-3', id='refreshAnalysisBtn', data_attrs={'action': 'refreshProjectAnalysis'}) }}
+  {% endcall %}
+
+  <div id="projectAnalysisResults">
+  {# Show LLM Error if present #}
+  {% if llm_last_error %}
+  {% set error_type = llm_last_error.get('error_type', 'unknown') %}
+  {% set error_variant = 'warning' if error_type in ['quota_exceeded', 'rate_limited', 'network_error'] else ('info' if error_type == 'no_mrs' else 'danger') %}
+  {% set error_icon = {'quota_exceeded': 'clock', 'rate_limited': 'clock', 'model_not_found': 'alert-triangle', 'invalid_api_key': 'key', 'network_error': 'wifi-off', 'parse_error': 'code', 'no_mrs': 'user-plus'}.get(error_type, 'alert-circle') %}
+
+  {# Build role-specific suggestions per error type #}
+  {% if is_admin %}
+    {% set _quota_tips = [t('The daily analysis limit has been reached'), t('Wait until tomorrow when the quota resets and try again'), t('Check your API billing dashboard and adjust quota limits')] %}
+    {% set _rate_tips = [t('Too many requests were sent in a short time'), t('Wait a few minutes before clicking "Retry Analysis"')] %}
+    {% set _model_tips = [t('The AI model is currently unavailable or misconfigured'), t('Check the LLM_MODEL setting in the server .env configuration')] %}
+    {% set _auth_tips = [t('The AI service credentials are invalid or expired'), t('Check the LLM_API_KEY value in the server .env configuration')] %}
+    {% set _net_tips = [t('The AI service is temporarily unreachable'), t('Try again in a few minutes'), t('Check server logs and network connectivity to the LLM provider')] %}
+    {% set _parse_tips = [t('The AI model returned an unexpected response - this is usually temporary'), t('Click "Retry Analysis" to try again'), t('If it persists, check server logs for response details')] %}
+    {% set _nomrs_tips = [t('Students need to create merge requests in GitLab first'), t('Sync the project to fetch the latest MR data'), t('Check that the project has merge request activity')] %}
+    {% set _unk_tips = [t('Click "Retry Analysis" - transient errors often resolve on retry'), t('Check the server logs and .env configuration for details'), t('The error details below may help diagnose the issue')] %}
+  {% elif is_teacher %}
+    {% set _quota_tips = [t('The daily analysis limit has been reached'), t('Wait until tomorrow when the quota resets and try again'), t('If urgent, contact your system administrator to increase the limit')] %}
+    {% set _rate_tips = [t('Too many requests were sent in a short time'), t('Wait a few minutes before clicking "Retry Analysis"')] %}
+    {% set _model_tips = [t('The AI model is currently unavailable or misconfigured'), t('Contact your system administrator to fix the AI configuration')] %}
+    {% set _auth_tips = [t('The AI service credentials are invalid or expired'), t('Contact your system administrator to update the API key')] %}
+    {% set _net_tips = [t('The AI service is temporarily unreachable'), t('Try again in a few minutes'), t('If it persists, contact your system administrator')] %}
+    {% set _parse_tips = [t('The AI model returned an unexpected response - this is usually temporary'), t('Click "Retry Analysis" to try again'), t('If it persists, the AI model may be overloaded - wait a few minutes')] %}
+    {% set _nomrs_tips = [t('Students need to create merge requests in GitLab first'), t('Sync the project to fetch the latest MR data'), t('Check that the project has merge request activity')] %}
+    {% set _unk_tips = [t('Click "Retry Analysis" - transient errors often resolve on retry'), t('If it persists, contact your system administrator')] %}
+  {% else %}
+    {% set _quota_tips = [t('The analysis is temporarily unavailable due to usage limits'), t('Please try again later or contact your instructor')] %}
+    {% set _rate_tips = [t('The analysis is temporarily busy'), t('Please wait a few minutes and try again')] %}
+    {% set _model_tips = [t('The AI analysis service is currently unavailable'), t('Please try again later or contact your instructor')] %}
+    {% set _auth_tips = [t('The AI analysis service is currently unavailable'), t('Please try again later or contact your instructor')] %}
+    {% set _net_tips = [t('The AI service is temporarily unreachable'), t('Please try again in a few minutes')] %}
+    {% set _parse_tips = [t('The AI analysis encountered a temporary issue'), t('Please try again - this usually resolves on retry')] %}
+    {% set _nomrs_tips = [t('No merge requests found to analyze'), t('Create merge requests in GitLab first, then run the analysis')] %}
+    {% set _unk_tips = [t('The analysis encountered an unexpected issue'), t('Please try again - transient errors often resolve on retry')] %}
+  {% endif %}
+
+  {% set error_config = {
+    'quota_exceeded': {
+      'title': t('API Quota Exceeded'),
+      'suggestions': _quota_tips
+    },
+    'rate_limited': {
+      'title': t('Rate Limited'),
+      'suggestions': _rate_tips
+    },
+    'model_not_found': {
+      'title': t('Model Not Available'),
+      'suggestions': _model_tips
+    },
+    'invalid_api_key': {
+      'title': t('Authentication Failed'),
+      'suggestions': _auth_tips
+    },
+    'network_error': {
+      'title': t('Connection Error'),
+      'suggestions': _net_tips
+    },
+    'parse_error': {
+      'title': t('AI Response Error'),
+      'suggestions': _parse_tips
+    },
+    'no_mrs': {
+      'title': t('No Merge Requests Found'),
+      'suggestions': _nomrs_tips
+    },
+    'unknown': {
+      'title': t('Analysis Error'),
+      'suggestions': _unk_tips
+    }
+  } %}
+  {% set cfg = error_config.get(error_type, error_config['unknown']) %}
+  {% call alert(variant=error_variant, title=cfg.title, icon_name=error_icon, class='llm-error-card') %}
+          <p class="mb-0">
+            {{ llm_last_error.get('error_message', t('An error occurred during analysis. Please try again.')) }}
+          </p>
+          
+          {% if llm_last_error.get('failed_count') and can_edit %}
+          <div class="d-flex align-items-center gap-2 flex-wrap mt-3">
+            {{ icon('zap', size='sm') }}
+            <span>
+              {{ llm_last_error.get('failed_count') }} {{ t('merge requests') if llm_last_error.get('failed_count') != 1 else t('merge request') }} {{ t('affected') }}{% if llm_last_error.get('errors') %}: {% for e in llm_last_error.get('errors', []) %}MR !{{ e.mr_iid }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+            </span>
+          </div>
+          {% endif %}
+          
+          {# Technical details (collapsible) - admin only #}
+          {% if is_admin and llm_last_error.get('errors') %}
+          <details class="llm-error-details mt-3" aria-label="{{ t('Technical details') }}">
+            <summary>{{ t('Show technical details') }}</summary>
+            <div class="llm-error-details-content">
+              {% for e in llm_last_error.get('errors', []) %}
+              <div class="llm-error-detail-item">
+                <strong>MR !{{ e.mr_iid }}</strong>: {{ e.get('exception', t('Error')) }} - {{ e.get('detail', t('No details'))[:300] }}
+              </div>
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
+          
+          {# Suggestions #}
+          {% if cfg.suggestions %}
+          <div class="mt-4">
+            <p class="fw-semibold mb-2">
+              {{ t('How to fix') }}
+            </p>
+            {% call gl_list(flush=true, compact=true) %}
+              {% for suggestion in cfg.suggestions %}
+              {{ gl_list_item(suggestion) }}
+              {% endfor %}
+            {% endcall %}
+          </div>
+          {% endif %}
+          
+          {# Action buttons (teacher/admin only) #}
+          {% if can_edit %}
+          <div class="gp-alert-actions">
+            {{ btn_icon(t('Retry Analysis'), 'refresh', size='sm', data_attrs={'action': 'retryProjectAnalysis', 'tippy-content': t('Re-run AI analysis for this project')}) }}
+            {% if error_type in ['quota_exceeded', 'rate_limited', 'invalid_api_key', 'model_not_found'] %}
+            {{ btn_link_icon(t('Learn More'), 'https://ai.google.dev/gemini-api/docs/rate-limits', 'info', variant='secondary', size='sm', target='_blank') }}
+            {% endif %}
+            <form method="post" action="/dashboard/projects/{{ project.id }}/dismiss-llm-error" class="d-inline" data-submit-action="dismissLlmError">
+              {{ csrf_field() }}
+              {{ btn_icon(t('Dismiss'), 'x', variant='secondary', size='sm', type='submit', data_attrs={'tippy-content': t('Dismiss this error and hide the alert')}) }}
+            </form>
+          </div>
+          {% endif %}
+  {% endcall %}
+  {% endif %}
+  
+    {% call alert(variant='info', class='advisory-banner') %}
+      <strong>{{ t('Advisory:') }}</strong> {{ t('AI suggestions are for guidance only. Always verify findings with actual MR evidence before grading decisions.') }}
+    {% endcall %}
+
+    {% if llm_analyses %}
+    {# -- Filter bar for MR analyses -- #}
+    {% if llm_analyses | length > 1 %}
+    <div class="mr-analysis-filters" id="mrAnalysisFilters">
+      {{ table_controls(
+        search=search_input(id='mrSearchInput', placeholder=t('Search merge requests...')),
+        filters=select_field('mr_risk', id='mrRiskFilter', options=[('', t('All Risk Levels')), ('high', t('High Risk')), ('medium', t('Medium Risk')), ('low', t('Low Risk'))], value='', placeholder=t('All Risk Levels'))
+      ) }}
+      <div class="mr-analysis-filter-count d-none" id="mrFilteredCount"></div>
+    </div>
+    {% endif %}
+    <div class="mr-analysis-filter-empty d-none" id="mrAnalysisFiltersEmpty">
+      {{ empty_state(t('No matching results'), t('Try adjusting your search or filter criteria.'), illustration='empty-search') }}
+    </div>
+    <div class="flex-col-15" id="mrAnalysisList">
+      {% for analysis in llm_analyses %}
+      {% set result = analysis.structured_result %}
+      {% set risk_cls = 'high' if analysis.risk_score and analysis.risk_score > 10 else ('medium' if analysis.risk_score and analysis.risk_score > 5 else 'low') %}
+      {% set mr_url = gitlab_url ~ '/' ~ project.gitlab_project_path ~ '/-/merge_requests/' ~ analysis.mr_iid %}
+      {% set mr_search_text = ('!' ~ (analysis.mr_iid|string) ~ ' ' ~ (result.summary or '') ~ ' ' ~ (analysis.model_used or '')) | lower %}
+      
+      <details class="mr-card" data-mr-item data-mr-risk="{{ risk_cls }}" data-mr-search="{{ mr_search_text }}" {% if loop.first %}open{% endif %} aria-label="{{ t('MR analysis') }} !{{ analysis.mr_iid or '?' }}">
+        {# Header - clickable summary (no interactive elements for a11y) #}
+        <summary class="mr-card-header">
+          <div class="mr-card-header-top">
+            <div class="mr-card-header-left">
+              {{ icon('chevron-right', size='sm', class='mr-card-toggle-icon') }}
+              <span class="mr-iid">MR !{{ analysis.mr_iid or '?' }}</span>
+              {% if analysis.risk_score is not none %}
+              {{ badge(t('Risk:') ~ ' ' ~ (analysis.risk_score | int), variant={'high': 'danger', 'medium': 'warning', 'low': 'success'}[risk_cls], data_attrs={'tippy-content': t('Higher values indicate more potential issues')}) }}
+              {% endif %}
+              {% if result.confidence_score is not none and result.confidence_score %}
+              {{ badge(t('Confidence:') ~ ' ' ~ ((result.confidence_score * 100) | int) ~ '%', variant='info', data_attrs={'tippy-content': t('How confident the AI model is in its analysis')}) }}
+              {% endif %}
+            </div>
+            <div class="mr-card-header-meta">
+              <span class="muted font-xs">
+                {{ local_time(analysis.analysis_timestamp) }}
+                · {{ analysis.model_used }}
+              </span>
+            </div>
+          </div>
+          {% if result.summary %}
+          <p class="mr-summary">{{ result.summary }}</p>
+          {% endif %}
+        </summary>
+        
+        {# Action bar sits outside <summary> for accessibility #}
+        <div class="mr-card-actions">
+          {{ btn_link_icon(t('Open in GitLab'), mr_url, 'external-link', variant='ghost', size='sm', target='_blank', title=t('Open MR in GitLab')) }}
+          {% if can_edit %}
+          {{ btn_icon_only('clock', variant='ghost', size='xs', data_attrs={'mr-history': analysis.mr_iid|string, 'tippy-content': t('View History')}) }}
+          {{ btn_icon_only('refresh-cw', variant='ghost', size='xs', data_attrs={'mr-reanalyze': analysis.mr_iid|string, 'tippy-content': t('Re-analyze')}) }}
+          {% endif %}
+        </div>
+
+        <div class="mr-card-body">
+          {# Strengths #}
+          {% if result.strengths %}
+          <div class="analysis-section">
+            <h4 class="analysis-heading analysis-heading-green" data-tippy-content="{{ t('Positive DevOps practices identified in this merge request') }}">
+              {{ icon('check-circle') }}
+              {{ t('Strengths') }} ({{ result.strengths | length }})
+            </h4>
+            <div class="analysis-grid">
+              {% for strength in result.strengths %}
+              {% set cat_map = {'communication': t('Communication'), 'code_quality': t('Code Quality'), 'collaboration': t('Teamwork'), 'devops': t('DevOps'), 'testing': t('Testing'), 'process': t('Process')} %}
+              <div class="finding-card finding-card-strength">
+                <span class="finding-category-label finding-cat-green">{{ cat_map.get(strength.category, strength.category | replace('_', ' ') | title) }}</span>
+                <p class="finding-desc-green">{{ strength.description }}</p>
+                {% if strength.evidence %}
+                {% set non_empty_evidence = strength.evidence | selectattr('snippet') | list %}
+                {% if non_empty_evidence %}
+                <div class="finding-evidence finding-evidence-green">
+                  {% for ev in non_empty_evidence[:2] %}
+                  {% set clean_snippet = ev.snippet | trim %}
+                  {% if clean_snippet and clean_snippet|length > 2 %}
+                  <p class="finding-evidence-quote finding-evidence-green-quote">
+                    {{ render_evidence_link(ev, mr_url, is_red=false) }}
+                    {{ clean_snippet | truncate(150) }}
+                  </p>
+                  {% endif %}
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          
+          {# Risk Flags (teacher/admin only) #}
+          {% if can_edit and result.risk_flags %}
+          <div class="analysis-section">
+            <h4 class="analysis-heading analysis-heading-red">
+              {{ icon('alert-triangle') }}
+              {{ t('Potential Issues') }} ({{ result.risk_flags | length }})
+            </h4>
+            <div class="analysis-grid">
+              {% for flag in result.risk_flags %}
+              {% set severity_map = {'low': t('Low'), 'medium': t('Medium'), 'high': t('High')} %}
+              <div class="finding-card finding-card-risk finding-severity-{{ flag.severity }}">
+                <div class="findings-header">
+                  <span class="finding-severity-label">{{ severity_map.get(flag.severity, flag.severity) }}</span>
+                  <span class="finding-flag-name">{{ flag.flag | replace('_', ' ') | title }}</span>
+                </div>
+                <p class="finding-desc-red">{{ flag.description }}</p>
+                {% if flag.evidence %}
+                {% set non_empty_evidence = flag.evidence | selectattr('snippet') | list %}
+                {% if non_empty_evidence %}
+                <div class="finding-evidence">
+                  {% for ev in non_empty_evidence[:2] %}
+                  {% set clean_snippet = ev.snippet | trim %}
+                  {% if clean_snippet and clean_snippet|length > 2 and 'Content:' not in clean_snippet %}
+                  <p class="finding-evidence-quote">
+                    {{ render_evidence_link(ev, mr_url, is_red=true) }}
+                    {{ clean_snippet | truncate(150) }}
+                  </p>
+                  {% endif %}
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          
+          {# Improvements #}
+          {% if result.improvements %}
+          <div class="analysis-section">
+            <h4 class="analysis-heading analysis-heading-blue" data-tippy-content="{{ t('Actionable suggestions for improving DevOps practices') }}">
+              {{ icon('plus-circle') }}
+              {{ t('Improvement Suggestions') }} ({{ result.improvements | length }})
+            </h4>
+            <div class="analysis-grid">
+              {% for imp in result.improvements %}
+              {% set area_map = {'communication': t('Communication'), 'code_quality': t('Code Quality'), 'collaboration': t('Teamwork'), 'devops': t('DevOps'), 'testing': t('Testing'), 'process': t('Process')} %}
+              {% set priority_map = {'low': t('Low'), 'medium': t('Medium'), 'high': t('High')} %}
+              <div class="finding-card finding-card-improvement">
+                <div class="findings-header">
+                  <span class="finding-category-label finding-cat-blue">{{ area_map.get(imp.area, imp.area | replace('_', ' ') | title) }}</span>
+                  <span class="priority-badge priority-badge-{{ imp.priority }}">{{ priority_map.get(imp.priority, imp.priority) }}</span>
+                </div>
+                <p class="finding-desc-blue">{{ imp.suggestion }}</p>
+                {% if imp.learning_resource %}
+                <p class="finding-resource">{{ icon('book-open', size='sm') }} {{ imp.learning_resource }}</p>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          
+          {# DevOps Practices #}
+          {% if result.devops_practices %}
+          <details class="analysis-details-section" aria-label="{{ t('DevOps Practices') }}">
+            <summary class="analysis-toggle analysis-toggle-purple" data-tippy-content="{{ t('Assessment of specific DevOps methodologies used') }}">
+              {{ t('DevOps Practices') }} ({{ result.devops_practices | length }})
+            </summary>
+            <div class="practices-grid">
+              {% for practice in result.devops_practices %}
+              {% set status_map = {'good': 'good', 'needs_improvement': 'needs-improvement', 'missing': 'missing', 'not_applicable': 'not-applicable'} %}
+              {% set practice_cls = status_map.get(practice.status, practice.status | replace('_', '-')) %}
+              {% set status_label_map = {'good': t('Good'), 'needs_improvement': t('Needs Improvement'), 'missing': t('Missing'), 'not_applicable': t('N/A')} %}
+              <div class="devops-practice-card devops-practice-{{ practice_cls }}" data-tippy-content="{{ practice.observation | truncate(200) }}">
+                <div class="practice-name">{{ practice.practice | replace('_', ' ') | title }}</div>
+                <div class="devops-practice-status">{{ status_label_map.get(practice.status, practice.status | replace('_', ' ')) }}</div>
+                <div class="practice-note">{{ practice.observation }}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
+          
+          {# Teamwork Metrics #}
+          {% if result.collaboration_metrics %}
+          <details class="analysis-details-section" aria-label="{{ t('Teamwork Quality') }}">
+            <summary class="analysis-toggle analysis-toggle-indigo" data-tippy-content="{{ t('Group teamwork metrics and code review quality') }}">
+              {{ t('Teamwork Quality') }} ({{ result.collaboration_metrics | length }})
+            </summary>
+            <div class="metrics-grid">
+              {% for metric in result.collaboration_metrics %}
+              {% set score_label_map = {'excellent': t('Excellent'), 'good': t('Good'), 'fair': t('Fair'), 'poor': t('Poor')} %}
+              <div class="collab-metric-row">
+                <div class="flex-1">
+                  <span class="metric-name">{{ metric.metric | replace('_', ' ') | title }}</span>
+                  <span class="metric-score metric-score-{{ metric.score }}" data-tippy-content="{{ t('Teamwork quality rating') }}">{{ score_label_map.get(metric.score, metric.score) }}</span>
+                </div>
+                <div class="metric-detail">{{ metric.detail }}</div>
+                {% if metric.evidence %}
+                {% set non_empty_evidence = metric.evidence | selectattr('snippet') | list %}
+                {% if non_empty_evidence %}
+                <div class="finding-evidence finding-evidence-indigo">
+                  {% for ev in non_empty_evidence[:2] %}
+                  {% set clean_snippet = ev.snippet | trim %}
+                  {% if clean_snippet and clean_snippet|length > 2 %}
+                  <p class="finding-evidence-quote finding-evidence-indigo-quote">
+                    {{ render_evidence_link(ev, mr_url, is_red=false) }}
+                    {{ clean_snippet | truncate(150) }}
+                  </p>
+                  {% endif %}
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
+          
+          {# Learning Tips #}
+          {% if result.learning_tips %}
+          <div class="learning-tips-box">
+            <h4 class="analysis-heading analysis-heading-yellow">
+              {{ icon('book') }}
+              {{ t('Learning Tips') }}
+            </h4>
+            {% call gl_list(flush=true, compact=true) %}
+              {% for tip in result.learning_tips %}
+              {{ gl_list_item(tip) }}
+              {% endfor %}
+            {% endcall %}
+          </div>
+          {% endif %}
+          
+          {# Questions for Teacher (teacher/admin only) #}
+          {% if can_edit and result.recommended_questions %}
+          <details class="analysis-details-section" aria-label="{{ t('Questions to Ask Student') }}">
+            <summary class="analysis-toggle analysis-toggle-gray">
+              {{ icon('help-circle') }}
+              {{ t('Questions to Ask Student') }} ({{ result.recommended_questions | length }})
+            </summary>
+            {% call gl_list(flush=true, compact=true) %}
+              {% for q in result.recommended_questions %}
+              {{ gl_list_item(q) }}
+              {% endfor %}
+            {% endcall %}
+          </details>
+          {% endif %}
+          
+          {# Grading Suggestion (teacher/admin only) #}
+          {% if can_edit and result.grading_suggestion %}
+          <div class="grading-suggestion-box">
+            <h4 class="analysis-heading analysis-heading-purple">
+              {{ icon('award') }}
+              {{ t('Grading Suggestion') }}
+            </h4>
+            <p class="grading-suggestion-text">{{ result.grading_suggestion }}</p>
+          </div>
+          {% endif %}
+          
+          {# Explanation (teacher/admin only) #}
+          {% if can_edit and result.explanation %}
+          <details class="explanation-details" aria-label="{{ t('Assessment reasoning') }}">
+            <summary class="analysis-toggle-muted">{{ t('Assessment reasoning') }}</summary>
+            <p class="explanation-text">{{ result.explanation }}</p>
+          </details>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+    {{ pagination_controls(id='mrPaginationBottom', total=llm_analyses|length, page_size=default_page_size|default('50')) }}
+    {% else %}
+    {% if is_student %}
+    {{ empty_state(t('No Analysis Yet'), t('AI-powered analysis of merge requests will appear here once your teacher runs it.'), illustration='empty-service-desk') }}
+    {% else %}
+    {{ empty_state(t('No Analysis Yet'), t('Click "Run Analysis" to analyze merge requests with AI.'), illustration='empty-service-desk') }}
+    {% endif %}
+    {% endif %}
+  </div>
+{% endcall %}
+{% endif %}

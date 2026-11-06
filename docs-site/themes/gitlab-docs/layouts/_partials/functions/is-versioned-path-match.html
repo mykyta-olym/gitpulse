@@ -1,0 +1,24 @@
+{{/*
+  Determine if a path matches a specific pattern
+
+  This should return the same value for production, as well as
+  instances with prefixed URLs, like review apps, archived copies,
+  or non-English pages.
+
+  @param dict
+    $path string - The full path to check
+    $pattern string - The path pattern to match (without version/language)
+
+  @return string
+    "true" if the path matches (with or without version/language), "false" if not
+*/}}
+
+{{- $cleanPath := partial "functions/clean-path" (dict "path" .path) | string -}}
+{{- $pattern := strings.TrimSuffix "/" (strings.TrimPrefix "/" .pattern) -}}
+
+{{- /* Check for match */ -}}
+{{- if or (eq $cleanPath $pattern) (hasPrefix $cleanPath (printf "%s/" $pattern)) -}}
+  {{- "true" -}}
+{{- else -}}
+  {{- "false" -}}
+{{- end -}}

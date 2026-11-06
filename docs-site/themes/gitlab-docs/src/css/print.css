@@ -1,0 +1,29 @@
+/* Print-only styles */
+
+@page {
+  margin: 1.5cm;
+}
+
+@media print {
+  /* Fixed header overlays every printed page and clips content at the top */
+  .header-wrapper {
+    position: static;
+  }
+
+  main {
+    padding-top: 0;
+  }
+
+  /* Safari keeps the desktop layout when printing; hide chrome Chrome already omits */
+  .sidebar-container,
+  .sidebar-right {
+    display: none !important;
+  }
+
+  .main-content,
+  .fluid .main-content {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,19 @@
+{{/*
+  Determine if this is the pre-release version of the site
+
+  We know this is the site pre-release when the active branch
+  (CI_COMMIT_REF_NAME) matches the default (CI_DEFAULT_BRANCH),
+  which is "main" on the gitlab-docs project.
+
+  @return string
+    "true" if the site is the pre-release version, "false" if not
+*/}}
+
+{{- $branch := getenv "CI_COMMIT_REF_NAME" -}}
+{{- $defaultBranch := getenv "CI_DEFAULT_BRANCH" -}}
+
+{{- if eq $branch $defaultBranch -}}
+  {{- "true" -}}
+{{- else -}}
+  {{- "false" -}}
+{{- end -}}

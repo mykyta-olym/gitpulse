@@ -1,0 +1,227 @@
+.chart-container--interactive:hover {
+  box-shadow: var(--shadow-lg);
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--gl-spacing-5);
+}
+.chart-header h3 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin: 0;
+}
+
+
+.chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+}
+.chart-canvas-wrap--md  { height: 200px; min-height: 200px; }
+.chart-canvas-wrap--lg  { height: 280px; min-height: 280px; }
+.chart-canvas-wrap--xl  { height: 340px; min-height: 340px; }
+.chart-canvas-wrap canvas {
+  /* Absolutely fill the fixed-height wrap (--md/--lg/--xl, all of which set a
+     height). The wrap only bounded WIDTH, so on init Chart.js sized the canvas
+     to its intrinsic HEIGHT first - measured 546px inside a 200px wrap (2.7x) -
+     and only clamped it to the wrap a frame or two later once its ResizeObserver
+     fired. That transient is the "element grows ~2x then shrinks" deformation,
+     and the card wrapping the canvas lurched out and back with it. Pinning the
+     canvas to the wrap's box (which has a definite height) means it can never be
+     drawn taller than the wrap, not even for one frame. */
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.trend-row--empty td { opacity: 0.45; }
+.history-score-progress { min-width: 80px; }
+
+@media (max-width: 768px) {
+  .chart-canvas-wrap--xl { min-height: 280px; }
+  .chart-canvas-wrap--md  { min-height: 220px; }
+}
+
+/* -- Week Analytics - premium week explorer component -- */
+
+/* Toolbar: hint text + arrow buttons */
+.wa-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--gl-spacing-4);
+  gap: var(--gl-spacing-4);
+}
+.wa-toolbar-hint { margin: 0; }
+.wa-nav-arrows {
+  display: flex;
+  gap: var(--gl-spacing-2);
+  flex-shrink: 0;
+}
+/* -- Detail panel -- */
+.wa-detail {
+  margin-top: var(--gl-spacing-5);
+}
+
+/* Header row */
+.wa-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-3);
+  padding-bottom: var(--gl-spacing-4);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--gl-spacing-5);
+}
+.wa-detail-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+.wa-head-metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+}
+
+/* Empty-state placeholder for "no data this week" */
+/* The detail panel's empty state is the shared empty box (GP.emptyStateHtml,
+   the one every empty table shows) - it needs no dashed frame of its own,
+   only the room the charts would have taken, so the card is the same height
+   whether a week has data or not. */
+.wa-empty-placeholder {
+  margin-top: var(--gl-spacing-3);
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wa-empty-placeholder .table-empty-state { padding: var(--gl-spacing-6) var(--gl-spacing-7); }
+
+
+/* Body: two-column layout - bar chart + compliance ring */
+.wa-detail-body {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: var(--gl-spacing-6);
+  align-items: start;
+}
+.wa-chart-col { min-width: 0; }
+.wa-chart-wrap {
+  height: 220px;
+  position: relative;
+}
+.wa-chart-wrap canvas { width: 100% !important; }
+.wa-side-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gl-spacing-5);
+}
+.wa-ring-wrap {
+  width: 140px;
+  height: 140px;
+  position: relative;
+}
+.wa-ring-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.wa-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  text-align: center;
+}
+/* The ring's ARC colour and the ring's LABEL colour are different roles. The
+   arc is a graphic and may be saturated; the label is text and has to clear
+   4.5:1, which the amber arc colour (2.15:1) never did. The state class now
+   carries both, from tokens, instead of JS writing a Tailwind hex inline. */
+.wa-ring-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.wa-ring-label {
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+/* Empty chart message overlay */
+.wa-chart-wrap--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wa-empty-msg {
+  width: 100%;
+}
+
+/* Side stats - compact vertical list */
+.wa-side-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-3);
+  width: 100%;
+}
+.wa-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gl-spacing-2) var(--gl-spacing-3);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+}
+.wa-stat-val {
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+.wa-ring--green .wa-ring-value { color: var(--gl-feedback-success-text); }
+.wa-ring--amber .wa-ring-value { color: var(--gl-feedback-warning-text); }
+.wa-ring--red   .wa-ring-value { color: var(--gl-feedback-danger-text); }
+
+.wa-stat-lbl {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+/* The 400 steps are chart/icon colours: 2.79:1 and 2.93:1 as text on the
+   page tint. The feedback TEXT pair flips 700/800 <-> 200/300 with the theme. */
+.wa-stat--green .wa-stat-val { color: var(--gl-feedback-success-text); }
+.wa-stat--red   .wa-stat-val { color: var(--gl-feedback-danger-text); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wa-detail-body { grid-template-columns: 1fr; }
+  .wa-side-col { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .wa-ring-wrap { width: 120px; height: 120px; }
+  .wa-side-stats { flex-direction: row; gap: var(--gl-spacing-2); }
+  .wa-stat { flex: 1; min-width: 80px; flex-direction: column; text-align: center; gap: 2px; }
+}
+@media (max-width: 480px) {
+  .wa-chart-wrap { height: 180px; }
+  .wa-toolbar { flex-direction: column; align-items: flex-start; }
+}

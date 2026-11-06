@@ -1,0 +1,60 @@
+/* ============================================
+   FONTS - Self-hosted GitLab Sans + GitLab Mono
+   ============================================
+   The application's typographic identity is GitLab's. Until now the
+   `--font-family` stack named 'GitLab Sans' but the face was never shipped,
+   so every OS fell back to its own system UI font (Segoe UI on Windows, SF
+   on macOS, Roboto on Android). Self-hosting the real faces makes the UI
+   render in GitLab Sans / GitLab Mono on every platform, identical to GitLab.
+
+   Both faces are variable fonts (single woff2 spanning the full weight axis),
+   licensed SIL Open Font License 1.1 (see fonts/GitLabSans-LICENSE.txt and
+   fonts/GitLabMono-OFL.txt). Absolute `/static/fonts/` URLs resolve from the
+   bundled stylesheet (served at the static root) regardless of source file
+   location.
+
+   `font-display: optional`, NOT `swap`. Swap paints the fallback first and
+   then replaces it, and the fallback has different metrics - so every text
+   width on the page changes at once when the face arrives. On a table sized
+   to its content that is the whole layout moving: measured on User Management
+   with the font delayed, the columns went
+   [162, 95, 232, 298, 85, 92, 104, 84] -> [174, 97, 250, 318, 88, 95, 115, 84]
+   and the table grew 68px, 179ms after it was already readable. That is the
+   "tables slide while the page loads" report.
+
+   `optional` gives the face a short block period and then commits to whatever
+   it has FOR THAT PAGE LOAD: it never swaps, so the layout cannot move. The
+   main face is preloaded (base.html) so it usually wins that race anyway, and
+   once it is cached every later visit renders in it from the first frame. */
+
+/* -- GitLab Sans (UI typeface) -- */
+@font-face {
+  font-family: 'GitLab Sans';
+  font-style: normal;
+  font-weight: 100 900;          /* variable weight axis */
+  font-display: optional;
+  src: url('/static/fonts/GitLabSans.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'GitLab Sans';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: optional;
+  src: url('/static/fonts/GitLabSans-Italic.woff2') format('woff2');
+}
+
+/* -- GitLab Mono (code / monospace) -- */
+@font-face {
+  font-family: 'GitLab Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: optional;
+  src: url('/static/fonts/GitLabMono.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'GitLab Mono';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: optional;
+  src: url('/static/fonts/GitLabMono-Italic.woff2') format('woff2');
+}

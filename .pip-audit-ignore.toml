@@ -1,0 +1,12 @@
+# pip-audit ignore file
+# Use this to suppress false positives or accepted risks
+# Format: TOML
+
+# Example suppression (uncomment and modify as needed):
+# [[vulnerabilities]]
+# id = "PYSEC-2024-XXXX"
+# reason = "Not applicable: affected feature is not used in this project"
+
+# [[vulnerabilities]]
+# id = "GHSA-xxxx-yyyy-zzzz"
+# reason = "Risk accepted: mitigated by network isolation"

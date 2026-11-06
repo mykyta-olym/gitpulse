@@ -1,0 +1,252 @@
+{#
+  Card Components - Content containers and stat displays
+  
+  Usage:
+    from "components/cards.html" import card, stat_card, course_card, empty_state
+    call card(title='Team Info') ...endcall
+    stat_card('Total Teams', 42, icon='users')
+#}
+
+{% from "components/academic_period.html" import period_label with context %}
+{% from "components/icons.html" import icon %}
+{% from "components/badges.html" import badge %}
+
+{# Generic card wrapper
+   data_attrs: dict of {attr: value} e.g. {'data-course-id': course.id}
+              OR legacy string (rendered via |safe - caller must sanitize).
+#}
+{% macro card(title='', class='', id='', header_actions=none, footer=none, collapsible=false, collapsed=false, body_class='', header_class='', footer_class='', data_attrs='', header_note='', icon_name='', badge_text='', badge_id='', badge_class='', badge_attrs={}, info_tip='', badge_variant='muted') %}
+{# Collapsible cards run on the registered ``glCollapse`` factory - the
+   production @alpinejs/csp build cannot evaluate an x-data object literal,
+   an ``open = !open`` assignment, or ``open.toString()``, which left every
+   collapsible card frozen. The chevron rotation is driven by the existing
+   [aria-expanded="false"] CSS in cards.css. #}
+<div class="card motion-card {{ class }}"{% if id %} id="{{ id }}"{% endif %}{% if collapsible %} x-data="glCollapse({{ 'false' if collapsed else 'true' }})"{% endif %}{% if data_attrs is mapping %}{% for k, v in data_attrs.items() %} {{ k }}="{{ v|e }}"{% endfor %}{% endif %}>
+  {% if title or header_actions or info_tip %}
+  <div class="card-header{% if collapsible %} card-header--interactive{% endif %} {{ header_class }}"{% if collapsible and not header_actions and not info_tip %} @click="toggle" role="button" tabindex="0" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle"{% endif %}>
+    {% if title or icon_name or badge_text %}
+    <div class="card-heading">
+      {% if icon_name %}{{ icon(icon_name, size='sm') }}{% endif %}
+      {% if title %}<h3 class="card-title">{{ title }}</h3>{% endif %}
+      {% if badge_text %}{{ badge(badge_text, variant=badge_variant, size='sm', id=badge_id, class=badge_class, data_attrs=badge_attrs) }}{% endif %}
+    </div>
+    {% endif %}
+    {% if header_note %}
+      <span class="card-header-note">{{ header_note }}</span>
+    {% endif %}
+    {% if header_actions %}
+      <div class="card-actions">
+        {{ header_actions }}
+      </div>
+    {% endif %}
+    {%- if info_tip %}
+      <button type="button" class="btn btn-icon-only btn-tertiary btn-sm btn-touch-target card-header-info-tip" data-tippy-content="{{ info_tip|e }}" aria-label="{{ t('What does this mean?') }}">{{ icon('help-circle', size='sm') }}</button>
+    {%- endif %}
+    {% if collapsible %}
+    <button type="button" class="btn btn-icon-only btn-tertiary btn-sm btn-touch-target card-collapse-btn card-collapse-btn--trailing" {% if not header_actions and not info_tip %}tabindex="-1"{% else %}@click.stop="toggle"{% endif %} :aria-expanded="expanded" aria-label="{{ t('Toggle section') }}" data-tippy-content="{{ t('Toggle section') }}">
+      {{ icon('chevron-down', size='sm', class='card-collapse-icon') }}
+    </button>
+    {% endif %}
+  </div>
+  {% endif %}
+  {# A card that starts collapsed is collapsed on its FIRST frame: `x-show`
+     only hides the body once Alpine has initialised, so the server-rendered
+     body was on screen until then and the card snapped shut a beat after
+     paint (Archived Courses on the dashboard: 207px -> 54px, measured). The
+     inline display is what `x-show="open"` would set for `open = false`, so
+     Alpine takes it over without a change. #}
+  {#- x-collapse animates the HEIGHT of what it sits on. On the padded body
+      that height could not go below the padding: closing, the body shrank to
+      48px, sat there for the rest of the transition and then vanished in one
+      jump; opening, it appeared at 48px and grew from there - the stutter on
+      Archived Courses. It animates a wrapper with no padding of its own, so
+      the height runs from 0 to the full body and back without a stop. -#}
+  {% if collapsible %}
+  <div class="card-collapse-region" x-show="open" x-collapse{% if collapsed %} style="display: none;"{% endif %}>
+    <div class="card-body {{ body_class }}">
+      {{ caller() }}
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body {{ body_class }}">
+    {{ caller() }}
+  </div>
+  {% endif %}
+  {% if footer %}
+  <div class="card-footer {{ footer_class }}">{{ footer }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# Stat tile - ONE component for every KPI number in the app.
+   Label + icon on the shell, the figure in an inset block; `state` tones it to
+   what the number MEANS (empty / info / success / warning / danger) - colour
+   only, the way GitLab signals status.
+   There used to be two of these: this one (icon floating on the right of a flat
+   box) and `dashboard_stat`, plus a `.stat-card--centered` grid that re-created
+   the dashboard's LOOK on this markup. Same tile, three implementations, and
+   the description line landed outside the inset block on one of them.
+   `id` names the value node (the async fillers target it), `value_id` is its
+   older spelling. #}
+{% macro stat_card(label, value, icon_name='', desc='', time='', state='', class='', href='', id='', tooltip='', value_id='', data_attrs='', icon_html=none, target='') %}
+{% from "components/spinner.html" import spinner %}
+{% set _tag = 'a' if href else 'div' %}
+{% set _vid = value_id or id %}
+<{{ _tag }} class="gl-home-stat{% if href %} gl-home-stat--link{% endif %}{% if class %} {{ class }}{% endif %}"{% if href %} href="{{ href }}"{% if target %} target="{{ target }}"{% if target == '_blank' %} rel="noopener noreferrer"{% endif %}{% endif %}{% endif %}{% if state %} data-state="{{ state }}"{% endif %}{% if tooltip %} data-tippy-content="{{ tooltip }}"{% endif %}{% if data_attrs is mapping %}{% for k, v in data_attrs.items() %} {{ k }}="{{ v|e }}"{% endfor %}{% endif %}>
+  <div class="gl-home-stat-head">
+    <span class="gl-home-stat-label">{{ label }}</span>
+    {% if icon_html %}
+      <div class="gl-home-stat-icon">{{ icon_html|safe }}</div>
+    {% elif icon_name %}
+      <div class="gl-home-stat-icon">{{ icon(icon_name, size='sm') }}</div>
+    {% endif %}
+  </div>
+  <div class="gl-home-stat-inner">
+    <div class="gl-home-stat-value stat-card-value"{% if _vid %} id="{{ _vid }}"{% endif %}>{% if _vid and value == '-' %}{{ spinner(size='sm', tag='span', class='gl-spinner-inline') }}{% else %}{{ value }}{% endif %}</div>
+    {% if desc %}<div class="gl-home-stat-desc">{{ desc }}</div>{% endif %}
+    {% if time %}<div class="gl-home-stat-time">{{ time }}</div>{% endif %}
+  </div>
+  {% if href %}<span class="gl-home-stat-arrow" aria-hidden="true">{{ icon('external-link' if target == '_blank' else 'arrow-right', size='sm') }}</span>{% endif %}
+</{{ _tag }}>
+{% endmacro %}
+
+{# Course card for dashboard #}
+{% macro course_card(course, team_count=0, class='', sync=none, is_student=false, student_team_name=none, is_teacher=false, at_risk_count=0, can_edit=false) %}
+{% from "components/buttons.html" import btn, btn_link, btn_icon_only, close_button %}
+{% from "components/spinner.html" import spinner %}
+{# No status halo class here: it was an infinite blurred-shadow pulse running on
+   every card for as long as the dashboard was open. See animations.css. #}
+<div class="course-card motion-card-interactive {{ class }}"{% if course %} data-course-id="{{ course.id }}" data-course-period="{{ period_label(course.academic_year, course.semester) }}" data-search="{{ course.code|lower }} {{ course.name|lower }} {{ course.academic_year }}"{% endif %}>
+  <div class="course-card-header">
+    <div class="course-card-top-row">
+      {{ badge(course.code, variant='info', class='course-card-code') }}
+      <span class="course-card-semester">{{ period_label(course.academic_year, course.semester) }}</span>
+    </div>
+    {% if sync and (sync.running or sync.queued) %}
+      {% set _sync_total = sync.total or 0 %}
+      {% set _sync_done = sync.synced or 0 %}
+      {% set _sync_label %}
+        {{ spinner(size='sm', tag='span') }}
+        <span class="course-sync-text">
+          {% if _sync_total > 0 %}
+            {{ t('Syncing:') }} {{ _sync_done }}/{{ _sync_total }} {{ t('groups done') }} ({{ sync.running }} {{ t('active') }}, {{ sync.queued }} {{ t('queued') }})
+          {% else %}
+            {{ t('Syncing:') }} {{ sync.running }} {{ t('running') }}, {{ sync.queued }} {{ t('queued') }}
+          {% endif %}
+        </span>
+      {% endset %}
+      {{ badge(_sync_label, variant='info', class='course-card-sync', data_attrs={'course-id': course.id, 'sync-running': sync.running, 'sync-queued': sync.queued, 'sync-total': _sync_total, 'sync-synced': _sync_done}) }}
+    {% endif %}
+    <div class="course-card-title">{{ course.name }}</div>
+    {% if course.description %}
+      <div class="course-card-description">{{ course.description }}</div>
+    {% endif %}
+  </div>
+  <div class="course-card-footer">
+    <div class="course-card-indicators">
+      {% if is_student and student_team_name %}
+        {{ badge(student_team_name, variant='gray', icon_name='users') }}
+      {% endif %}
+      {% if is_teacher and at_risk_count > 0 %}
+        {{ badge(at_risk_count ~ ' ' ~ t('at-risk'), variant='danger', icon_name='alert-triangle', class='course-card-at-risk') }}
+      {% endif %}
+      {% if not course.is_active %}
+        {{ badge(t('Archived'), variant='gray', size='sm') }}
+      {% endif %}
+    </div>
+    <div class="course-card-actions">
+      {{ btn_link(t('View'), '/dashboard/courses/' ~ course.id, size='sm', title=t('Open the course: groups, settings, activity and analytics')) }}
+      {% if can_edit %}
+        {{ btn(t('+ Group'), variant='secondary', size='sm', data_attrs={'action': 'openAddTeamModal', 'action-args': [course.id|string, course.code]|tojson_attr, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Create a new group in this course')}) }}
+        {{ btn_icon_only('more-vertical', variant='secondary', size='sm', aria_label=t('More actions'), data_attrs={'action': 'openCourseMenu', 'action-args': [course.id|string, course.code, course.name, course.academic_year, course.semester, course.description|default(''), (course.settings.semester_start_date.isoformat() if course.settings and course.settings.semester_start_date else ''), (course.settings.semester_end_date.isoformat() if course.settings and course.settings.semester_end_date else '')]|tojson_attr, 'tippy-content': t('More actions')}) }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Empty state placeholder.
+
+   GlEmptyState leads with an illustration, never a glyph. `illustration` names
+   a file in components/illustrations/ (copied unchanged from @gitlab/svgs, MIT)
+   and is required - a call without one fails to render rather than falling
+   back to an icon. It is INLINED, because those SVGs colour themselves from
+   --gl-illustration-* variables that a linked image element could never see.
+   The markup is GlEmptyState's (@gitlab/ui regions/empty_state): the
+   illustration, then one content block holding the title, the description
+   and the actions row - a caller's body is that row's content. #}
+{% macro empty_state(title=t('No data'), message='', illustration='', action_text='', action_href='', action='', action_args=[], action_class='btn-primary', class='') %}
+<div class="empty-state {{ class }}">
+  {% if illustration %}
+  <div class="empty-state-illustration" aria-hidden="true">
+    {% include 'components/illustrations/' ~ illustration ~ '.svg' %}
+  </div>
+  {% endif %}
+  <div class="empty-state-content">
+    <h3 class="empty-state-title">{{ title }}</h3>
+    {% if message %}
+    <p class="empty-state-message">{{ message }}</p>
+    {% endif %}
+    <div class="empty-state-actions">
+      {% if caller is defined %}
+      {{ caller() }}
+      {% endif %}
+      {% if action_text %}
+      {% if action_href %}
+      <a href="{{ action_href }}" class="btn {{ action_class }}">{{ action_text }}</a>
+      {% else %}
+      <button type="button" class="btn {{ action_class }}"{% if action %} data-action="{{ action }}"{% endif %}{% if action_args %} data-action-args='{{ action_args|tojson_attr }}'{% endif %}>{{ action_text }}</button>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# A list, panel or section with nothing in it - the server twin of
+   GP.emptyStateHtml: a GitLab sm illustration (`status-nothing-sm`, or
+   `search-sm` when a filter matched nothing) and one line. The page-sized
+   state with a title and actions is empty_state above. #}
+{% macro block_empty(message, illustration='status-nothing-sm', class='') %}
+<div class="table-empty-state{{ ' ' ~ class if class }}">
+  <div class="table-empty-icon" aria-hidden="true">{% include 'components/illustrations/' ~ illustration ~ '.svg' %}</div>
+  <p class="table-empty-message">{{ message }}</p>
+</div>
+{% endmacro %}
+
+{# A chart with nothing to draw. The same box an empty table shows, with
+   GitLab's bar-chart illustration, in the space the chart would have taken -
+   so "no data" reads the same under a canvas as it does under a table
+   header. #}
+{% macro chart_empty(message=t('No data')) %}
+{{ block_empty(message, 'chart-bar-sm', 'chart-empty-state') }}
+{% endmacro %}
+
+{# GlChartLegend: each series' colour and name. `items` are (label, series)
+   pairs; `series` names a --chart-* colour (issue, mr, review, ci, quality,
+   custom, danger, warning, brand). What the caller block holds (a hint) ends
+   the row. A legend is not a row of badges. #}
+{% macro chart_legend(items, class='') %}
+<div class="gl-chart-legend{{ ' ' ~ class if class }}">
+  {%- for label, series in items %}<span class="gl-chart-legend-item"><span class="gl-chart-legend-marker gl-chart-legend-marker--{{ series }}" aria-hidden="true"></span>{{ label }}</span>{% endfor -%}
+  {%- if caller is defined %}{{ caller() }}{% endif -%}
+</div>
+{%- endmacro %}
+
+{# Info card (highlighted information box) #}
+{% macro info_card(title='', content='', variant='info', icon_name='', class='', id='', dismissible=false, dismiss_key='') %}
+{% set default_icons = {'info': 'info', 'success': 'check-circle', 'warning': 'alert-triangle', 'danger': 'alert-circle'} %}
+{% set icon_to_use = icon_name or default_icons.get(variant, 'info') %}
+<div class="info-card info-card-{{ variant }} {{ class }}{% if dismissible %} info-card-dismissible{% endif %}"{% if id %} id="{{ id }}"{% endif %}{% if dismiss_key %} data-dismiss-key="{{ dismiss_key }}"{% endif %}>
+  <div class="info-card-icon">
+    {{ icon(icon_to_use, size='lg') }}
+  </div>
+  <div class="info-card-content">
+    {% if title %}<h4 class="info-card-title">{{ title }}</h4>{% endif %}
+    <div class="info-card-body">{{ content|safe if content else caller() }}</div>
+  </div>
+  {% if dismissible %}
+  {{ close_button(t('Dismiss'), class='info-card-dismiss') }}
+  {% endif %}
+</div>
+{% endmacro %}

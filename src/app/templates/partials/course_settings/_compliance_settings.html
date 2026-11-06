@@ -1,0 +1,140 @@
+{# -- Compliance Checks, Thresholds & Patterns -- #}
+{% from "components/icons.html" import icon %}
+{% from "components/badges.html" import badge %}
+{% from "components/cards.html" import card %}
+{% from "components/forms.html" import text_input with context %}
+{% from "components/tables.html" import data_table, sortable_header, table_controls %}
+{% from "components/layout.html" import json_island, filter_tabs with context %}
+{% from "components/buttons.html" import btn_icon %}
+
+{% set _is_archived = course and not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _is_archived else '' %}
+{% set ct %}
+  {{ t('Compliance Checks') }}
+{% endset %}
+{% set ha %}
+  {# `readonly-ok`: exporting reads the course, so it stays available on an
+     archived (read-only) course - unlike Import / Generate / Add below. #}
+  {{ btn_icon(t('Export'), 'download', variant='secondary', size='sm', class='btn-responsive', id='btnExportChecks', data_attrs={'course-id': course.id|string, 'readonly-ok': '', 'tippy-content': t('Export check configuration as JSON')}) }}
+  {{ btn_icon(t('Import'), 'upload', variant='secondary', size='sm', class='btn-responsive', id='btnImportChecksOpen', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Import check configuration from JSON')}) }}
+  {% if llm_enabled|default(false) %}
+  {% set _llm_disabled = _is_archived or (not llm_api_key_configured|default(false)) %}
+  {% set _llm_reason = _archived_reason if _is_archived else (t('LLM API key is not configured. Set LLM_API_KEY in environment.') if not llm_api_key_configured|default(false) else '') %}
+  {{ btn_icon(t('Generate with LLM'), 'cpu', variant='secondary', size='sm', class='btn-responsive', id='btnGenerateChecks', disabled=_llm_disabled, disabled_reason=_llm_reason, data_attrs={'course-id': course.id|string, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'course-id': course.id|string, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': (t('LLM API key is not configured. Set LLM_API_KEY in environment.') if not llm_api_key_configured|default(false) else t('Use AI to suggest compliance checks based on course description'))}) }}
+  {% endif %}
+  {{ btn_icon(t('Add Check'), 'plus', size='sm', class='btn-responsive', id='btnAddCustomCheck', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'course-id': course.id|string, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'course-id': course.id|string, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Add a custom compliance check with your own evaluation rules')}) }}
+{% endset %}
+{% call card(title=ct, icon_name='shield', header_actions=ha, class='compliance-checks-card',
+             badge_text='∑ ' ~ ('%.2f'|format(checks_first_json.total_weight)), badge_id='checkWeightTotal', badge_class='check-weight-total', badge_variant='success' if checks_first_json.weight_valid else 'danger',
+             badge_attrs={'tippy-content': t('Total weight of the active checks. Scores are divided by it.')},
+             info_tip=t('Compliance checks verify commit patterns, merge requests, CI pipelines, and review habits. Active weights normalize to compute overall student compliance scores.')) %}
+    <p class="muted">{{ t('Manage all compliance checks - built-in (R01-R13) and custom. Toggle active state, adjust weights, and configure parameters inline. Custom checks use dynamic evaluation rules.') }}</p>
+
+    {# Weight Presets for quick setup #}
+    <div class="weight-presets mb-3" id="weightPresets" data-tour="weights">
+      <span class="form-label form-label-sm">{{ t('Quick Setup - Weight Presets') }}</span>
+      <div class="weight-preset-btns" role="group" aria-label="{{ t('Weight presets') }}">
+        {{ btn_icon(t('Balanced'), 'sliders', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPreset', 'preset': 'balanced', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPreset', 'preset': 'balanced', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Equal weight across all categories - good starting point')}) }}
+        {{ btn_icon(t('Code Review Focus'), 'eye', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPreset', 'preset': 'review_heavy', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPreset', 'preset': 'review_heavy', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Emphasises reviews and teamwork - 50% weight on review checks')}) }}
+        {{ btn_icon(t('CI/CD Focus'), 'git-branch', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPreset', 'preset': 'ci_heavy', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPreset', 'preset': 'ci_heavy', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Emphasises testing and pipelines - 40% weight on CI + tests')}) }}
+        {{ btn_icon(t('Minimal'), 'zap', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPreset', 'preset': 'minimal', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPreset', 'preset': 'minimal', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Only essential checks active - simplified workflow for beginners')}) }}
+      </div>
+    </div>
+
+    {# Convention presets. These fill R02/R03/R05 - branch regex, test globs,
+       template headings - AND the strict-mode toggle each one needs to count,
+       which is what the removed standalone "Patterns" card could not do. #}
+    <div class="weight-presets mb-3" id="patternPresets">
+      <span class="form-label form-label-sm">{{ t('Conventions - Pattern Presets') }}</span>
+      <div class="weight-preset-btns" role="group" aria-label="{{ t('Pattern presets') }}">
+        {{ btn_icon(t('TUKE FEI'), 'git-branch', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPatternPreset', 'preset': 'tuke_fei', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPatternPreset', 'preset': 'tuke_fei', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Branch names, test paths and MR headings used by TUKE FEI courses - and enables enforcement')}) }}
+        {{ btn_icon(t('Strict'), 'shield', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPatternPreset', 'preset': 'strict', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPatternPreset', 'preset': 'strict', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Every MR must come from an issue-NNN branch and carry a What/Why/How description')}) }}
+        {{ btn_icon(t('No conventions'), 'x-circle', variant='secondary', size='sm', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs={'action': 'applyPatternPreset', 'preset': 'off', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'archived-locked': '1'} if _is_archived else {'action': 'applyPatternPreset', 'preset': 'off', 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id, 'tippy-content': t('Clear the patterns and stop enforcing branch naming and MR templates')}) }}
+      </div>
+    </div>
+
+    {# Filters #}
+    {% set _check_tabs = [
+      {'value': 'all', 'label': t('All')},
+      {'value': 'builtin', 'label': t('Built-in'), 'icon': 'lock'},
+      {'value': 'custom', 'label': t('Custom'), 'icon': 'plus-circle'},
+      {'value': 'issue', 'label': t('Issue'), 'apart': true},
+      {'value': 'mr', 'label': t('MR')},
+      {'value': 'review', 'label': t('Review')},
+      {'value': 'ci', 'label': t('CI/CD')},
+      {'value': 'commit', 'label': t('Commit')}
+    ] %}
+    {{ table_controls(filters=filter_tabs(_check_tabs, active=active_check_filter|default('all'), aria_label=t('Filter checks'), id='checkFilters')) }}
+
+    {% call data_table(class='table-compact table-scrollable table-scrollable-lg table-sticky-actions', id='checksTable', sortable=true, compact=true) %}
+      {# Columns declared so the browser does not size them from whichever rows
+               happen to be visible - that set changes on every load (rows parse in,
+               then a paginator or a filter hides some) and the whole table slides
+               sideways and back. Measured at 1440px: these are the widths it already
+               settles at. #}
+      <colgroup>
+        <col class="col-chk-active">
+        <col class="col-chk-code">
+        <col class="col-chk-name">
+        <col class="col-chk-category">
+        <col class="col-chk-weight">
+        <col class="col-chk-source">
+        <col class="col-chk-actions">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="th-center-60">{{ t('Active') }}</th>
+          {{ sortable_header(t('Code'), 'code', class='th-w-80', default_sort='asc') }}
+          {{ sortable_header(t('Name'), 'name') }}
+          {{ sortable_header(t('Category'), 'category', class='th-w-100') }}
+          {{ sortable_header(t('Weight'), 'weight', sort_type='number', class='th-center-80') }}
+          {{ sortable_header(t('Source'), 'source', class='th-w-80') }}
+          <th class="th-center-80">{{ t('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody id="checksBody" data-tour="enabled-checks">
+        {% include "partials/course_settings/_check_rows.html" %}
+      </tbody>
+    {% endcall %}
+
+    <div class="checks-weight-summary" id="checksWeightSummary">
+      <div class="cws-text">
+        <span class="cws-label">{{ icon('target', size='sm') }} {{ t('Total Active Weight') }}</span>
+        <span class="cws-hint">{{ t('Scores are divided by the total weight of the active checks.') }}</span>
+      </div>
+      {{ badge('%.2f'|format(checks_first_json.total_weight), 'success' if checks_first_json.weight_valid else 'danger', size='sm', class='cws-value', id='checksFooterWeight', data_attrs={'weight-total': ''}) }}
+    </div>
+{% endcall %}
+
+{# The former "Patterns" card lived here. Its three fields - branch regex, test
+   globs and MR template headings - now sit inside the check they configure
+   (R02 / R03 / R05), because on their own they scored nothing: two of the
+   three only took effect once the matching check was separately switched to
+   strict mode, which the card could not express. #}
+<div class="settings-grid">
+  {% set ct %}{{ t('Traffic Light Thresholds') }}{% endset %}
+  {% call card(title=ct, icon_name='target') %}
+      <p class="muted">{{ t('Define score boundaries for the green/yellow/red compliance status. Values are fractions (0.00-1.00).') }}</p>
+      <div class="threshold-preview mb-3" id="thresholdPreview" aria-label="{{ t('Threshold preview') }}">
+        <div class="threshold-bar">
+          <div class="threshold-segment threshold-red" id="thresholdRed"><span>{{ t('Red') }}</span></div>
+          <div class="threshold-segment threshold-yellow" id="thresholdYellow"><span>{{ t('Yellow') }}</span></div>
+          <div class="threshold-segment threshold-green" id="thresholdGreen"><span>{{ t('Green') }}</span></div>
+        </div>
+        <div class="threshold-labels">
+          <span>0%</span>
+          <span id="thresholdYellowLabel" data-threshold-pct="{{ '%.0f'|format(settings.yellow_threshold * 100) }}">{{ '%.0f'|format(settings.yellow_threshold * 100) }}%</span>
+          <span id="thresholdGreenLabel" data-threshold-pct="{{ '%.0f'|format(settings.green_threshold * 100) }}">{{ '%.0f'|format(settings.green_threshold * 100) }}%</span>
+          <span>100%</span>
+        </div>
+      </div>
+      <div class="form-row">
+        {{ text_input('green_threshold', label=t('Green ≥'), type='number', step='0.01', min='0', max='1', value='%.2f'|format(settings.green_threshold), help_text=t('Students at or above this score are on track')) }}
+        {{ text_input('yellow_threshold', label=t('Yellow ≥'), type='number', step='0.01', min='0', max='1', value='%.2f'|format(settings.yellow_threshold), help_text=t('Students between yellow and green need attention')) }}
+      </div>
+  {% endcall %}
+</div>
+
+{# First checks payload, inlined so the compliance table paints on load with no
+   fetch and no loader. course-settings/10-sections.js reads this on boot. #}
+{{ json_island(checks_first_json|default(none), csp_nonce, id='gp-checks-first') }}

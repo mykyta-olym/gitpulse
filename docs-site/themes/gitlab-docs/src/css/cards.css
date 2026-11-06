@@ -1,0 +1,110 @@
+/* Styles for Cards (Hugo shortcode) and Walkthroughs (Vue component) */
+
+/* Cards */
+.cards a,
+.cards a:hover {
+  color: var(--gl-text-color-default) !important;
+  text-decoration-line: none !important;
+}
+
+/* Walkthroughs */
+[data-vue-app="feature-walkthrough"].vue-loading {
+  min-height: 100vh;
+}
+.walkthrough-button {
+  appearance: none;
+  box-shadow: none;
+  text-shadow: none;
+  background-image: none;
+  border-width: 0;
+}
+div.docs-content .walkthrough-recommendation a {
+  color: var(--gl-text-color-link);
+}
+
+/* Shared */
+.cards,
+.walkthrough-container {
+  .gl-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  @media (min-width: 992px) and (max-width: 1199px) {
+    .gl-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1200px) {
+    .gl-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .card {
+    background-color: var(--gl-background-color-default);
+    color: var(--gl-text-color-default) !important;
+    transition: all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+
+    .card-title::after {
+      content: '';
+      position: relative;
+      top: 0.15rem;
+      left: 0.25rem;
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      mask: url("../gitlab_ui/svgs/arrow-right.svg") center no-repeat;
+      background-color: transparent;
+      translate: -50% 0;
+      transition: all 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+    }
+
+    &:hover {
+      background-color: var(--gl-background-color-subtle);
+
+      .card-title::after {
+        background-color: var(--gl-text-color-default);
+        translate: 0 0;
+      }
+    }
+
+    &:focus-visible {
+      outline-color: var(--gl-focus-ring-outer-color);
+      outline-width: 2px;
+      outline-offset: 4px;
+
+      .card-title::after {
+        background-color: var(--gl-text-color-default);
+        translate: 0 0;
+      }
+    }
+  }
+  .card-title {
+    font-size: 1rem;
+    text-wrap: balance;
+  }
+  .card-text {
+    line-height: 1.5rem;
+  }
+  .card-link {
+    text-decoration: none;
+    position: relative;
+    &:hover {
+      text-decoration-line: underline;
+    }
+  }
+  .svg-wrapper {
+    width: fit-content;
+    display: inline-block;
+    background-color: var(--gl-color-brand-purple-02p);
+    padding: .5rem;
+    border-radius: 8px;
+
+    img {
+      filter: brightness(0) invert(1);
+      display: block;
+    }
+  }
+}

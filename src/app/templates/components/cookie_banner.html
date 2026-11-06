@@ -1,0 +1,33 @@
+{#
+  Cookie Consent Banner - GDPR-compliant, GitLab-style component.
+
+  Usage:
+    {% include "components/cookie_banner.html" %}
+
+  Works on ALL pages (base.html, login.html).
+  JS logic lives in /static/js/cookie-consent.js (requires cookies.js - GitLab js-cookie pattern).
+#}
+{% from "components/buttons.html" import btn, close_button %}
+{% from "components/icons.html" import icon %}
+<div id="cookieConsent" class="cookie-banner d-none" role="dialog"
+     aria-label="{{ t('Cookie Notice') }}" aria-describedby="cookieConsentText">
+  <div class="cookie-banner-inner">
+    <div class="cookie-banner-icon" aria-hidden="true">
+      {{ icon('info', size='md') }}
+    </div>
+    <div class="cookie-banner-text">
+      <p id="cookieConsentText">
+        <strong class="cookie-banner-title">{{ t('Cookie Notice') }}.</strong>
+        <span>{{ t('This application uses essential cookies for authentication and session management. No tracking or analytics cookies are used. By continuing to use this site you consent to essential cookies.') }}</span>
+        <a href="/docs/pravne/ochrana-udajov/" class="cookie-banner-link" target="_blank" rel="noopener noreferrer">
+          <span>{{ t('Privacy Policy') }}</span>
+          {{ icon('external-link', size='xs') }}
+        </a>
+      </p>
+    </div>
+    <div class="cookie-banner-actions">
+      {{ btn(t('I agree'), variant='confirm', id='cookieAcceptBtn') }}
+      {{ close_button(t('Dismiss'), class='cookie-banner-close', id='cookieDismissBtn') }}
+    </div>
+  </div>
+</div>

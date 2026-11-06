@@ -1,0 +1,7 @@
+{{ define "main" }}
+  {{ partial "page-content.html" . }}
+{{ end }}
+
+{{ define "page-specific-styles" }}
+  <link rel="stylesheet" href="{{ relURL "" }}vite/page_content.css">
+{{ end }}

@@ -1,0 +1,372 @@
+redirects:
+  # Archives redirects
+  - from: /17.8/*
+    to: https://archives.docs.gitlab.com/17.8/:splat
+    remove_date:
+  - from: /17.7/*
+    to: https://archives.docs.gitlab.com/17.7/:splat
+    remove_date:
+  - from: /17.6/*
+    to: https://archives.docs.gitlab.com/17.6/:splat
+    remove_date:
+  - from: /17.5/*
+    to: https://archives.docs.gitlab.com/17.5/:splat
+    remove_date:
+  - from: /17.4/*
+    to: https://archives.docs.gitlab.com/17.4/:splat
+    remove_date:
+  - from: /17.3/*
+    to: https://archives.docs.gitlab.com/17.3/:splat
+    remove_date:
+  - from: /17.2/*
+    to: https://archives.docs.gitlab.com/17.2/:splat
+    remove_date:
+  - from: /17.1/*
+    to: https://archives.docs.gitlab.com/17.1/:splat
+    remove_date:
+  - from: /17.0/*
+    to: https://archives.docs.gitlab.com/17.0/:splat
+    remove_date:
+  - from: /16.11/*
+    to: https://archives.docs.gitlab.com/16.11/:splat
+    remove_date:
+  - from: /16.10/*
+    to: https://archives.docs.gitlab.com/16.10/:splat
+    remove_date:
+  - from: /16.9/*
+    to: https://archives.docs.gitlab.com/16.9/:splat
+    remove_date:
+  - from: /16.8/*
+    to: https://archives.docs.gitlab.com/16.8/:splat
+    remove_date:
+  - from: /16.7/*
+    to: https://archives.docs.gitlab.com/16.7/:splat
+    remove_date:
+  - from: /16.6/*
+    to: https://archives.docs.gitlab.com/16.6/:splat
+    remove_date:
+  - from: /16.5/*
+    to: https://archives.docs.gitlab.com/16.5/:splat
+    remove_date:
+  - from: /16.4/*
+    to: https://archives.docs.gitlab.com/16.4/:splat
+    remove_date:
+  - from: /16.3/*
+    to: https://archives.docs.gitlab.com/16.3/:splat
+    remove_date:
+  - from: /16.2/*
+    to: https://archives.docs.gitlab.com/16.2/:splat
+    remove_date:
+  - from: /16.1/*
+    to: https://archives.docs.gitlab.com/16.1/:splat
+    remove_date:
+  - from: /16.0/*
+    to: https://archives.docs.gitlab.com/16.0/:splat
+    remove_date:
+  - from: /15.11/*
+    to: https://archives.docs.gitlab.com/15.11/:splat
+    remove_date:
+  - from: /releases/patches/
+    to: /releases/
+    remove_date:
+  # Content redirects from Nanoc
+  - from: /subscriptions/gitlab_dedicated/maintenance/
+    to: /administration/dedicated/maintenance/
+    remove_date: 2026-08-28
+  - from: /user/gitlab_duo/context_exclusion/
+    to: /user/gitlab_duo/context/#exclude-context-from-gitlab-duo/
+    remove_date: 2026-08-27
+  - from: /development/documentation/hugo_migration/
+    to: /development/documentation/
+    remove_date: 2026-09-03
+  - from: /user/gitlab_duo_chat/turn_on_off/
+    to: /user/gitlab_duo/turn_on_off/
+    remove_date: 2026-09-03
+  - from: /operator/operator_upgrades/
+    to: /operator/gitlab_upgrades/
+    remove_date: 2026-09-05
+  - from: /api/graphql/ai_impact_analytics/
+    to: /api/graphql/duo_and_sdlc_trends/
+    remove_date: 2026-09-09
+  - from: /integration/exact_code_search/zoekt/
+    to: /integration/zoekt/
+    remove_date: 2026-09-05
+  - from: /user/analytics/ai_impact_analytics/
+    to: /user/analytics/duo_and_sdlc_trends/
+    remove_date: 2026-09-09
+  - from: /subscriptions/gitlab_dedicated/data_residency_and_high_availability/
+    to: /administration/dedicated/create_instance/data_residency_high_availability/
+    remove_date: 2026-09-15
+  - from: /charts/releases/6_0/
+    to: /charts/releases/
+    remove_date: 2026-09-29
+  - from: /charts/releases/7_0/
+    to: /charts/releases/
+    remove_date: 2026-09-29
+  - from: /development/cloud_connector/
+    to: /development/ai_features/cloud_connector/
+    remove_date: 2026-09-20
+  - from: /development/cloud_connector/configuration/
+    to: /development/ai_features/unit_primitives/
+    remove_date: 2026-09-20
+  - from: /development/contributing/first_contribution/configure-dev-env-gitpod/
+    to: /development/contributing/first_contribution/
+    remove_date: 2026-10-15
+  - from: /development/contributing/first_contribution/contribute-gitpod/
+    to: /development/contributing/first_contribution/
+    remove_date: 2026-10-15
+  - from: /development/testing_guide/flaky_tests/
+    to: /development/testing_guide/unhealthy_tests/#flaky-tests/
+    remove_date: 2026-10-27
+  - from: /subscriptions/customers_portal/
+    to: /subscriptions/billing_account/
+    remove_date: 2026-09-30
+  - from: /user/application_security/sast/clangsa/
+    to: /user/application_security/sast/gitlab_advanced_sast/
+    remove_date: 2026-10-09
+  - from: /api/members/
+    to: /api/group_members/
+    remove_date: 2026-11-14
+  - from: /user/application_security/sast/cpp_advanced_sast/
+    to: /user/application_security/sast/advanced_sast_cpp/
+    remove_date: 2026-11-15
+  - from: /user/duo_agent_platform/agent_assistant/
+    to: /user/duo_agent_platform/agents/external/
+    remove_date: 2026-11-01
+  - from: /user/duo_agent_platform/agents/third_party/
+    to: /user/duo_agent_platform/agents/external/
+    remove_date: 2026-11-01
+  - from: /user/duo_agent_platform/flows/convert_to_gitlab_ci/
+    to: /user/duo_agent_platform/flows/foundational_flows/convert_to_gitlab_ci/
+    remove_date: 2026-11-07
+  - from: /user/duo_agent_platform/flows/fix_pipeline/
+    to: /user/duo_agent_platform/flows/foundational_flows/fix_pipeline/
+    remove_date: 2026-11-07
+  - from: /user/duo_agent_platform/flows/foundational_flows/issue_to_mr/
+    to: /user/duo_agent_platform/flows/foundational_flows/developer/
+    remove_date: 2026-11-07
+  - from: /user/duo_agent_platform/flows/issue_to_mr/
+    to: /user/duo_agent_platform/flows/foundational_flows/developer/
+    remove_date: 2026-11-07
+  - from: /user/duo_agent_platform/flows/software_development/
+    to: /user/duo_agent_platform/flows/foundational_flows/software_development/
+    remove_date: 2026-11-07
+  - from: /user/project/import/
+    to: /user/import/
+    remove_date: 2026-11-01
+  - from: /user/project/import/bitbucket/
+    to: /user/import/bitbucket_cloud/
+    remove_date: 2026-11-04
+  - from: /administration/settings/rate_limit_on_members_api/
+    to: /administration/settings/rate_limit_on_groups_api/
+    remove_date: 2026-11-21
+  - from: /api/version/
+    to: /api/metadata/
+    remove_date: 2026-11-28
+  - from: /user/duo_agent_platform/agents/flow_examples/
+    to: /user/duo_agent_platform/agents/external_examples/
+    remove_date: 2026-12-02
+  - from: /user/gitlab_duo/choose_path/
+    to: /user/get_started/getting_started_gitlab_duo/
+    remove_date: 2026-11-23
+  - from: /user/project/issues/issue_work_items/
+    to: /user/project/issues/#issues-as-work-items/
+    remove_date: 2026-12-02
+  - from: /administration/gitlab_duo/setup/
+    to: /administration/gitlab_duo/configure/
+    remove_date: 2026-12-09
+  - from: /security/compromised_password_detection/
+    to: /user/profile/user_passwords/
+    remove_date: 2027-01-12
+  - from: /security/password_length_limits/
+    to: /administration/settings/sign_up_restrictions/
+    remove_date: 2027-01-12
+  - from: /security/password_storage/
+    to: /user/profile/user_passwords/
+    remove_date: 2027-01-12
+  - from: /security/passwords_for_integrated_authentication_methods/
+    to: /user/profile/user_passwords/
+    remove_date: 2027-01-12
+  - from: /user/duo_agent_platform/security/
+    to: /user/duo_agent_platform/composite_identity/
+    remove_date: 2026-12-19
+  - from: /user/group/credentials_inventory/
+    to: /administration/credentials_inventory/
+    remove_date: 2026-12-19
+  - from: /user/project/import/bitbucket_server/
+    to: /user/import/bitbucket_server/
+    remove_date: 2026-12-18
+  - from: /user/project/import/gitea/
+    to: /user/import/gitea/
+    remove_date: 2026-12-22
+  - from: /ci/steps/
+    to: /ci/functions/
+    remove_date: 2027-01-20
+  - from: /development/ai_features/embeddings/
+    to: /development/ai_features/semantic_search/
+    remove_date: 2027-02-11
+  - from: /development/logs/
+    to: /development/
+    remove_date: 2027-01-28
+  - from: /development/metrics/
+    to: /development/
+    remove_date: 2027-01-28
+  - from: /development/tracing/
+    to: /development/
+    remove_date: 2027-01-28
+  - from: /tutorials/observability/observability_django_tutorial/
+    to: /tutorials/
+    remove_date: 2027-01-23
+  - from: /tutorials/observability/observability_dotnet_tutorial/
+    to: /tutorials/
+    remove_date: 2027-01-23
+  - from: /tutorials/observability/observability_java_tutorial/
+    to: /tutorials/
+    remove_date: 2027-01-23
+  - from: /tutorials/observability/observability_nodejs_tutorial/
+    to: /tutorials/
+    remove_date: 2027-01-23
+  - from: /tutorials/observability/observability_rails_tutorial/
+    to: /tutorials/
+    remove_date: 2027-01-23
+  - from: /tutorials/setup_steps/
+    to: /tutorials/set_up_cicd_functions/
+    remove_date: 2027-01-20
+  - from: /user/gitlab_duo/customize_duo/
+    to: /user/duo_agent_platform/customize/
+    remove_date: 2027-01-26
+  - from: /user/gitlab_duo/customize_duo/agents_md/
+    to: /user/duo_agent_platform/customize/agents_md/
+    remove_date: 2027-01-26
+  - from: /user/gitlab_duo/customize_duo/custom_rules/
+    to: /user/duo_agent_platform/customize/custom_rules/
+    remove_date: 2027-01-26
+  - from: /user/interface_redesign/
+    to: /tutorials/gitlab_navigation/
+    remove_date: 2027-01-23
+  - from: /user/project/integrations/slack_slash_commands/
+    to: /user/project/integrations/gitlab_slack_application/
+    remove_date: 2027-02-06
+  - from: /charts/installation/migration/minio/
+    to: /charts/installation/migration/bundled_chart_migration/
+    remove_date: 2027-01-30
+  - from: /administration/gitlab_duo/configure/gitlab_self_managed/
+    to: /administration/gitlab_duo/configure/
+    remove_date: 2027-03-10
+  - from: /development/mcp_server/
+    to: /development/duo_agent_platform/mcp/
+    remove_date: 2027-03-10
+  - from: /development/permissions/granular_access/graphql_granular_token_authorization/
+    to: /development/permissions/granular_access/graphql_implementation_guide/
+    remove_date: 2027-03-04
+  - from: /development/permissions/job_tokens/
+    to: /development/permissions/granular_access/job_tokens/
+    remove_date: 2027-02-18
+  - from: /development/service_measurement/
+    to: /development/performance/
+    remove_date: 2027-03-09
+  - from: /tutorials/dependency_scanning/dependency_scanning_by_sbom/
+    to: /tutorials/dependency_scanning_by_sbom/
+    remove_date: 2027-03-10
+  - from: /user/compliance/compliance_center/compliance_standards_adherence_dashboard/
+    to: /user/compliance/compliance_center/
+    remove_date: 2027-02-25
+  - from: /omnibus/_index/
+    to: /install/package/
+    remove_date: 2027-03-27
+  - from: /omnibus/installation/
+    to: /install/package/
+    remove_date: 2027-03-27
+  - from: /charts/charts/gitlab/spamcheck/
+    to: /update/deprecations/#spamcheck-support-in-the-linux-package-and-gitlab-helm-chart/
+    remove_date: 2027-05-14
+  - from: /charts/installation/database_upgrade/
+    to: /charts/advanced/external-db/
+    remove_date: 2027-05-01
+  - from: /orbit/configure/
+    to: /orbit/remote/getting-started/
+    remove_date: 2027-05-07
+  - from: /orbit/orbit_troubleshooting/
+    to: /orbit/troubleshooting/
+    remove_date: 2027-05-07
+  - from: /orbit/queries/
+    to: /orbit/remote/queries/
+    remove_date: 2027-05-07
+  - from: /orbit/queries/mcp_tools/
+    to: /orbit/remote/access/mcp/
+    remove_date: 2027-05-07
+  - from: /orbit/queries/query_language/
+    to: /orbit/remote/queries/query-language/
+    remove_date: 2027-05-07
+  - from: /orbit/schema/
+    to: /orbit/remote/schema/
+    remove_date: 2027-05-07
+  - from: /administration/reference_architectures/cloud_native_first/
+    to: /administration/reference_architectures/cloud_native/
+    remove_date: 2027-04-24
+  - from: /ci/pipeline_security/slsa/provenance_v1/
+    to: /ci/pipeline_security/slsa/level_3/provenance_v1/
+    remove_date: 2027-04-08
+  - from: /install/postgresql_extensions/
+    to: /administration/postgresql/extensions/
+    remove_date: 2027-05-13
+  - from: /integration/arkose/
+    to: /development/integrations/arkose/
+    remove_date: 2027-03-26
+  - from: /operations/observability/
+    to: /operations/observability/observability/
+    remove_date: 2027-04-22
+  - from: /subscriptions/manage_users_and_seats/
+    to: /subscriptions/manage_seats/
+    remove_date: 2027-03-25
+  - from: /tutorials/set_up_cicd_functions/
+    to: /ci/functions/
+    remove_date: 2027-03-23
+  - from: /user/application_security/dast/set_up_dast_tutorial/
+    to: /user/application_security/dast/browser/set_up_dast_tutorial/
+    remove_date: 2027-04-07
+  - from: /user/duo_agent_platform/code_suggestions/repository_xray/
+    to: /user/project/repository/code_suggestions/repository_xray/
+    remove_date: 2027-04-09
+  - from: /user/duo_agent_platform/code_suggestions/set_up/
+    to: /user/project/repository/code_suggestions/set_up/
+    remove_date: 2027-04-09
+  - from: /user/duo_agent_platform/code_suggestions/supported_extensions/
+    to: /user/project/repository/code_suggestions/supported_extensions/
+    remove_date: 2027-04-09
+  - from: /user/duo_agent_platform/code_suggestions/troubleshooting/
+    to: /user/project/repository/code_suggestions/troubleshooting/
+    remove_date: 2027-04-09
+  - from: /user/duo_agent_platform/troubleshooting_ide/
+    to: /user/duo_agent_platform/troubleshooting/
+    remove_date: 2027-04-20
+  - from: /user/gitlab_duo/code_review_classic/
+    to: /user/gitlab_duo/code_review/
+    remove_date: 2027-03-24
+  - from: /user/import/mapping/
+    to: /user/import/mapping/post_migration_mapping/
+    remove_date: 2027-03-25
+  - from: /user/project/import/clearcase/
+    to: /user/import/third_party_systems/clearcase/
+    remove_date: 2027-03-20
+  - from: /user/project/import/cvs/
+    to: /user/import/third_party_systems/cvs/
+    remove_date: 2027-03-24
+  - from: /user/project/import/fogbugz/
+    to: /user/import/third_party_systems/fogbugz/
+    remove_date: 2027-05-05
+  - from: /user/project/import/manifest/
+    to: /user/import/third_party_systems/manifest_file/
+    remove_date: 2027-04-15
+  - from: /user/project/import/perforce/
+    to: /user/import/third_party_systems/perforce/
+    remove_date: 2027-03-24
+  - from: /user/project/import/repo_by_url/
+    to: /user/import/third_party_systems/repo_by_url/
+    remove_date: 2027-04-17
+  - from: /user/project/import/tfvc/
+    to: /user/import/third_party_systems/tfvc/
+    remove_date: 2027-03-25
+  - from: /user/project/issues/issue_weight/
+    to: /user/work_items/weight/
+    remove_date: 2027-04-03

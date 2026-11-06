@@ -1,0 +1,119 @@
+{#
+  Alert Components - Inline alerts and error banners
+  
+  Usage:
+    from "components/alerts.html" import alert, error_banner, success_banner
+    alert('Please fill all required fields', variant='warning')
+    error_banner('Session expired', 'Please log in again')
+#}
+
+{% from "components/icons.html" import icon %}
+{% from "components/buttons.html" import close_button %}
+
+{#
+  Unified TOP status banner - the single strip style for every page-level status
+  notice (archived, data-outdated, stale-data, ...). Marked `.js-top-banner` so
+  JS portals it into the global top slot (#globalBannerSlot) where all such
+  strips stack together like GitLab's broadcast bar. Consistent look (flush
+  full-width strip, centered inner, icon + message + optional action + dismiss).
+  `dismiss_key` persists dismissal across navigation / reload / other tabs via
+  the shared gp:dismissedBanners store. Content via a {% call %} block.
+#}
+{% macro top_banner(dismiss_key='', variant='warning', icon_name='', action_href='', action_label='', action_icon='refresh-cw', dismissible=true, id='', class='') %}
+{% set _variant_icons = {'info': 'info', 'warning': 'alert-triangle', 'danger': 'alert-circle', 'success': 'check-circle'} %}
+<div class="gp-top-banner gp-top-banner--{{ variant }} js-top-banner{% if class %} {{ class }}{% endif %}"{% if dismiss_key %} data-banner-key="{{ dismiss_key }}" data-dismiss-key="{{ dismiss_key }}"{% endif %}{% if id %} id="{{ id }}"{% endif %} role="status" aria-live="polite">
+  <div class="gp-top-banner-inner">
+    <span class="gp-top-banner-icon">{{ icon(icon_name or _variant_icons.get(variant, 'info'), size='sm') }}</span>
+    <span class="gp-top-banner-msg">{{ caller() }}</span>
+    {% if action_href %}<a href="{{ action_href }}" class="gp-top-banner-action">{% if action_icon %}{{ icon(action_icon, size='xs') }} {% endif %}{{ action_label }}</a>{% endif %}
+    {% if dismissible and dismiss_key %}{{ close_button(t('Dismiss'), class='gp-top-banner-dismiss') }}{% endif %}
+  </div>
+</div>
+{% endmacro %}
+
+{#
+  THE alert - GitLab's GlAlert, matched in alerts.css. There were three: this
+  macro drew a flex `.alert` of its own, `gitlab_alert` drew the GlAlert, and
+  the course settings had a hand-written `settings_callout` beside them.
+
+  `message`, or a {% call %} body. `show_icon=false` is GlAlert's `showIcon`.
+  `dismissible` adds the shared close button, which removes the alert through
+  the app's `data-remove-closest` handler; `auto_dismiss` (ms) instead leaves it
+  to the `autoDismissAlert` factory, which also hides it after that long - the
+  flash message a save leaves behind.
+#}
+{% macro alert(message='', variant='info', title='', dismissible=false, icon_name='', class='', id='', show_icon=true, role='alert', auto_dismiss=0) %}
+{% set default_icons = {'info': 'info', 'success': 'check-circle', 'warning': 'alert-triangle', 'error': 'alert-circle', 'danger': 'alert-circle'} %}
+{% set icon_to_use = icon_name or default_icons.get(variant, 'info') %}
+<div class="gitlab-alert gitlab-alert-{{ variant }}{% if not show_icon %} gitlab-alert-no-icon{% endif %}{% if class %} {{ class }}{% endif %}"{% if id %} id="{{ id }}"{% endif %} role="{{ role }}"{% if auto_dismiss %} x-data="autoDismissAlert({{ auto_dismiss }})" x-show="show" x-transition.opacity.duration.250ms{% endif %}>
+  {% if show_icon %}
+  <div class="gitlab-alert-icon" aria-hidden="true">
+    {{ icon(icon_to_use, size='sm') }}
+  </div>
+  {% endif %}
+  <div class="gitlab-alert-content">
+    {% if title %}<p class="gitlab-alert-title">{{ title }}</p>{% endif %}
+    <div class="gitlab-alert-message">{% if message %}{{ message }}{% elif caller is defined %}{{ caller() }}{% endif %}</div>
+  </div>
+  {% if dismissible and auto_dismiss %}
+  {{ close_button(t('Dismiss'), class='gitlab-alert-close', x_click='dismiss') }}
+  {% elif dismissible %}
+  {{ close_button(t('Dismiss'), class='gitlab-alert-close', data_attrs={'remove-closest': '.gitlab-alert'}) }}
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# Error banner (prominent error display) #}
+{% macro error_banner(title=t('Error'), message='', dismissible=true, class='', id='') %}
+{{ alert(message, variant='danger', title=title, dismissible=dismissible, class=class, id=id) }}
+{% endmacro %}
+
+{# Success banner #}
+{% macro success_banner(title=t('Success'), message='', dismissible=true, class='', id='') %}
+{{ alert(message, variant='success', title=title, dismissible=dismissible, class=class, id=id) }}
+{% endmacro %}
+
+
+
+{# =============================================
+   ENHANCED STATUS BANNERS
+   ============================================= #}
+
+
+{# Inline status indicator #}
+{% macro status_indicator(status, label='', size='sm') %}
+<span class="status-indicator status-indicator--{{ status }}">
+  <span class="status-dot status-dot--{{ size }}{% if status == 'loading' %} status-dot-pulse{% endif %}"></span>
+  {% if label %}<span class="status-label">{{ label }}</span>{% endif %}
+</span>
+{% endmacro %}
+
+
+{#
+  Stale-data banner - shown above charts when the most recent compliance
+  snapshot predates the current ISO week (Monday 00:00 UTC). Server passes
+  pre-computed `is_stale` (bool), `latest_snapshot_at` (datetime|None) and
+  `days_old` (int|None).
+#}
+{% macro stale_data_banner(is_stale=false, latest_snapshot_at=None, days_old=None, current_week_groups=0, total_active_groups=0, class='') %}
+  {% if is_stale %}
+  {% call top_banner(dismiss_key='stale-data', variant='warning', icon_name='clock') %}
+    <strong>{{ t('Showing data from last sync') }}</strong>
+    {% if latest_snapshot_at %}
+      {# Label, value and age are ONE unit: `nowrap` keeps the timestamp welded to
+         its colon instead of drifting to the far side of a full-width banner,
+         and stops the age wrapping away from the date it describes. #}
+      · <span class="gp-banner-stat">{{ t('Most recent snapshot:') }}&nbsp;<strong>{{ local_time(latest_snapshot_at) }}</strong>{% if days_old is not none and days_old > 0 %}&nbsp;({{ days_old }}&nbsp;{{ t('day(s) ago') }}){% endif %}</span>
+      {% if total_active_groups and current_week_groups > 0 %}
+        · {{ t('Some groups do not have a current-week analytics snapshot yet.') }} {{ current_week_groups }}/{{ total_active_groups }} {{ t('groups are current.') }}
+      {% elif total_active_groups %}
+        · {{ t('No active group has a current-week analytics snapshot yet.') }}
+      {% else %}
+        · {{ t('No active groups are available for analytics yet.') }}
+      {% endif %}
+    {% else %}
+      · {{ t('No compliance snapshots have been captured yet for this course. Charts will populate after the first sync.') }}
+    {% endif %}
+  {% endcall %}
+  {% endif %}
+{% endmacro %}

@@ -1,0 +1,169 @@
+{# Course analytics content fragment - loaded via HTMX lazy swap #}
+{% from "components/cards.html" import card, stat_card, chart_empty, chart_legend, block_empty %}
+{% from "components/badges.html" import badge %}
+{% from "components/alerts.html" import stale_data_banner %}
+{% from "components/loaders.html" import block_loading %}
+{% from "components/layout.html" import page_config, filter_tabs with context %}
+{% from "components/buttons.html" import btn_icon_only %}
+
+{# The Sync button is deliberately NOT here. It triggers a full GitLab sync, which
+   is a course-level action and already lives on the course page and on Activity;
+   a third copy on Analytics offered the same heavy operation from a page that
+   only reads data. #}
+
+{# Stale-data banner - surfaces when no snapshot exists for the current ISO week #}
+{# Archived course: read-only, so its data being old is expected rather than
+   actionable - and the archived strip above already says so. Same rule as
+   the Overview tab. #}
+{% set _course_archived = course is defined and course and not course.is_active %}
+{{ stale_data_banner(is_stale=data_is_stale and not _course_archived, latest_snapshot_at=latest_snapshot_at, days_old=data_days_old, current_week_groups=current_week_groups|default(0), total_active_groups=total_active_groups|default(0), class='js-top-banner') }}
+
+{# Report Preview - Key Metrics - animated stat cards #}
+<div class="stats-grid stats-grid-5" id="metricsGrid">
+  {% if is_exam_period %}
+{# The six cards below are rendered by the SERVER and nothing on the page
+   updates them afterwards. They used to carry a `value_id`, an id that
+   appears nowhere else in the codebase - and `stat_card` reads that id plus a
+   value of '-' as "JavaScript will fill this in" and renders a spinner. So a
+   course with no computed compliance yet showed five spinners that could never
+   resolve, instead of saying it has no data. Without the id the same '-' is
+   simply drawn. #}
+    {{ stat_card(t('Exam Period'), t('Week') ~ ' ' ~ exam_week, icon_name='calendar', state='warning', tooltip=t('Teaching weeks are over. Currently in skuskove obdobie (exam period).')) }}
+  {% else %}
+    {{ stat_card(t('Semester Week'), (current_week ~ ' / ' ~ semester_weeks) if current_week else '-', icon_name='calendar', state='info', tooltip=t('Current teaching week / total teaching weeks. Exam period (skuskove obdobie) is tracked separately and never inflates this counter.')) }}
+  {% endif %}
+  {{ stat_card(t('Avg Compliance'), (avg_compliance ~ '%') if avg_compliance is not none else '-', icon_name='shield', state=('success' if avg_compliance is not none and avg_compliance >= green_pct else ('warning' if avg_compliance is not none and avg_compliance >= yellow_pct else ('danger' if avg_compliance is not none else 'empty'))), tooltip=t('Average weighted compliance score across all students in the latest computed week.')) }}
+  {{ stat_card(t('Checklist Pass Rate'), (checklist_avg ~ '%') if checklist_avg is not none else '-', icon_name='check-circle', state=('success' if checklist_avg is not none and checklist_avg >= green_pct else ('warning' if checklist_avg is not none and checklist_avg >= yellow_pct else ('danger' if checklist_avg is not none else 'empty'))), tooltip=t('Average pass rate across all expected checks. Mean of per-check percentages shown below.')) }}
+  {{ stat_card(t('At-Risk Students'), at_risk_count if at_risk_count is not none else '-', icon_name='alert-triangle', state=('danger' if at_risk_count and at_risk_count > 0 else ('success' if checklist_data else 'empty')), tooltip=t('Number of students whose individual pass rate falls below the yellow threshold. Click a student in the group view to investigate.')) }}
+  {{ stat_card(t('Total Activity'), total_activity if total_activity else '-', icon_name='activity', state=('info' if total_activity else 'empty'), tooltip=t('Total commits + merge requests recorded across all groups in this course.')) }}
+</div>
+
+{# Teacher's Checklist - horizontal bar chart (built-in R01-R13 + custom checks) #}
+{% set checklist_title %}{{ t("Teacher's Checklist") }}{% endset %}
+{% call card(title=checklist_title, icon_name='clipboard', id='checklistCard',
+             info_tip=t('Compliance pass rate across all students enrolled in this course for each active check.')) %}
+  <p class="muted text-sm">{{ t('Percentage of students meeting each requirement. Built-in checks (R01-R13) and any course-specific custom checks are included.') }}{% if checklist_data %} <strong>{{ t('Based on') }} {{ checklist_data[0].total }} {{ t('student(s)') }}</strong> - {{ t('teachers are excluded.') }}{% endif %}</p>
+  {% if checklist_data %}
+  {{ chart_legend([(t('Issue'), 'issue'), (t('MR'), 'mr'), (t('Review'), 'review'), (t('CI/CD'), 'ci'), (t('Quality'), 'quality'), (t('Custom'), 'custom')]) }}
+  {% set _expected_checks = checklist_data | rejectattr('expected', 'equalto', false) | list %}
+  {% set _checklist_h = ([340, (_expected_checks | length) * 34] | max) ~ 'px' %}
+  {# Loader and chart share one grid cell during the hand-off. #}
+  <div class="gl-chart-swap">
+    {# Reserve the chart's height before JavaScript runs. #}
+    <div id="checklistLoading" class="chart-canvas-wrap chart-canvas-wrap--xl" style="min-height: {{ _checklist_h }}" role="status" aria-label="{{ t('Loading') }}" aria-busy="true">
+      {{ block_loading(height=_checklist_h, label=t('Loading checklist...')) }}
+    </div>
+    <div id="checklistBody" class="chart-canvas-wrap chart-canvas-wrap--xl d-none">
+      <canvas id="checklistCanvas" role="img" aria-label="{{ t('Checklist compliance chart') }}"></canvas>
+    </div>
+  </div>
+  {% else %}
+  {{ chart_empty(t('No students enrolled yet - add groups and import their members to see the checklist breakdown.') if not checklist_students else t('No compliance data yet - run a sync and compute metrics to see the checklist breakdown.')) }}
+  {% endif %}
+{% endcall %}
+
+{# Week Navigator - browse analytics by semester week #}
+{% if can_edit %}
+{% set week_nav_title %}{{ t('Week Analytics') }}{% endset %}
+{% call card(title=week_nav_title, icon_name='calendar', id='weekNavigator',
+             info_tip=t('Weekly aggregated metrics showing student activity, compliance progression, and historical snapshots across teaching weeks.')) %}
+    <div class="wa-toolbar">
+      <p class="muted text-sm wa-toolbar-hint">{{ t('Select a week to explore activity breakdown and compliance trends.') }}</p>
+      <div class="wa-nav-arrows">
+        {{ btn_icon_only('chevron-left', variant='ghost', id='waPrev', title=t('Previous week')) }}
+        {{ btn_icon_only('chevron-right', variant='ghost', id='waNext', title=t('Next week')) }}
+      </div>
+    </div>
+    {% set _wa_total = display_weeks or semester_weeks %}
+    {% set _wa_now = now_week or current_week %}
+    {% set _wa_data = (activity_data | map(attribute='week') | list) + (trends | map(attribute='week_number') | list) %}
+    {% set _weeks = namespace(items=[], active=_wa_now if _wa_now in range(1, _wa_total + 1) else _wa_total) %}
+    {% for w in range(1, _wa_total + 1) %}
+      {% if w in _wa_data %}{% set _weeks.active = w %}{% endif %}
+      {% set _ = _weeks.items.append({'value': w|string, 'label': w|string, 'muted': w not in _wa_data, 'badge': t('Now') if w == _wa_now else (t('Exam') if w > semester_weeks else none), 'tooltip': t('Week') ~ ' ' ~ w ~ (' · ' ~ t('Exam Period') if w > semester_weeks else '') ~ (' · ' ~ t('Current week') if w == _wa_now else '')}) %}
+    {% endfor %}
+    {{ filter_tabs(_weeks.items, active=_weeks.active|string, aria_label=t('Week Analytics'), id='weekPills') }}
+    {# Match the initial week to the client explorer; only charts need JS. #}
+    {% set _act = activity_data | selectattr('week', 'equalto', _weeks.active) | first | default({}) %}
+    {% set _trend = trends | selectattr('week_number', 'equalto', _weeks.active) | first | default({}) %}
+    {% set _total = _act.get('commits', 0) + _act.get('merge_requests', 0) + _act.get('pipelines', 0) + _act.get('issues', 0) + _act.get('reviews', 0) %}
+    {% set _score = _trend.get('avg_score') %}
+    {% set _empty = not _total and _score is none %}
+    {% set _score_variant = 'success' if _score is not none and _score >= green_pct else ('warning' if _score is not none and _score >= yellow_pct else 'danger') %}
+    {% if _empty %}
+      {% set _first = _wa_data | min if _wa_data else none %}
+      {% set _chip_variant = 'muted' %}
+      {% if current_week and _weeks.active > current_week %}
+        {% set _chip = t('Future week') %}
+        {% set _message = t('This week has not started yet.') %}
+      {% elif _first and _weeks.active < _first %}
+        {% set _chip = t('Before tracking started') %}
+        {% set _message = t('No data - tracking for this course started in week') ~ ' ' ~ _first ~ '.' %}
+      {% elif current_week and _weeks.active == current_week %}
+        {% set _chip = t('Awaiting sync') %}
+        {% set _chip_variant = 'info' %}
+        {% set _message = t('This week just started. Student activity is synced from GitLab via webhooks (real-time) or periodic sync. If data is missing, run a manual sync from the course page.') %}
+      {% else %}
+        {% set _chip = t('No data yet') %}
+        {% set _message = t('No student activity recorded for this week. If you expected data, check team configuration or run a manual sync from the course page.') %}
+      {% endif %}
+    {% endif %}
+    <div id="weekDetail" class="wa-detail">
+      <div class="wa-detail-head" id="waDetailHead">
+        <h4 class="wa-detail-title">{{ t('Week') }} {{ _weeks.active }}</h4>
+        {% if _weeks.active > semester_weeks %}{{ badge(t('Exam Period') ~ ' · ' ~ t('Week') ~ ' ' ~ (_weeks.active - semester_weeks), 'warning') }}{% endif %}
+        {% if _empty %}
+          {{ badge(_chip, _chip_variant) }}
+        {% else %}
+        <div class="wa-head-metrics">
+          {{ badge(t('Activity') ~ ': ' ~ _total, 'gray') }}
+          {% if _score is not none %}
+          {{ badge(t('Compliance') ~ ': ' ~ ('%.1f'|format(_score)) ~ '%', _score_variant) }}
+          {{ badge(_trend.get('improved_count', 0), 'success', icon_name='trending-up') }}
+          {{ badge(_trend.get('declined_count', 0), 'danger', icon_name='trending-down') }}
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="wa-detail-body{{ ' d-none' if _empty }}">
+        <div class="wa-chart-col">
+          <div class="wa-chart-wrap{{ ' wa-chart-wrap--empty' if not _total }}">
+            <canvas id="waBarChart" data-tour="chart-week"{% if not _total %} style="display: none"{% endif %}></canvas>
+            {% if not _total and not _empty %}<div class="wa-empty-msg">{{ block_empty(t('No GitLab events tracked this week'), 'chart-bar-sm') }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="wa-side-col">
+          <div class="wa-ring-wrap">
+            <canvas id="waRingChart" aria-hidden="true"></canvas>
+            <div class="wa-ring-center{{ (' wa-ring--' ~ {'success': 'green', 'warning': 'amber', 'danger': 'red'}[_score_variant]) if _score is not none }}" id="waRingCenter" aria-live="polite">
+              <span class="wa-ring-value">{{ ('%.1f'|format(_score)) ~ '%' if _score is not none else '—' }}</span>
+              <span class="wa-ring-label">{{ t('Compliance') }}</span>
+            </div>
+          </div>
+          <div class="wa-side-stats" id="waSideStats">
+            {% if _score is not none %}
+            {% for label, value, state in [(t('Active'), _trend.get('students_count', 0), ''), (t('Improved'), _trend.get('improved_count', 0), 'green'), (t('Declined'), _trend.get('declined_count', 0), 'red')] %}
+            <div class="wa-stat{{ ' wa-stat--' ~ state if state }}"><span class="wa-stat-val">{{ value }}</span><span class="wa-stat-lbl">{{ label }}</span></div>
+            {% endfor %}
+            {% else %}<p class="muted text-xs text-center">{{ t('No compliance data') }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% if _empty %}<div class="wa-empty-placeholder">{{ block_empty(_message) }}</div>{% endif %}
+    </div>
+{% endcall %}
+{% endif %}
+
+{{ page_config({
+  'courseId': course.id | string,
+  'courseName': course.name,
+  'greenPct': green_pct,
+  'yellowPct': yellow_pct,
+  'checklistData': checklist_data,
+  'activityData': activity_data,
+  'trends': trends,
+  'currentWeek': current_week or 0,
+  'semesterWeeks': semester_weeks or 13,
+  'examPeriodStart': semester_weeks or 13,
+}, csp_nonce, id='gp-analytics-config') }}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/course-analytics.js') }}"></script>

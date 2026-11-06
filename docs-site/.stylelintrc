@@ -1,0 +1,8 @@
+{
+  "extends": "@gitlab/stylelint-config",
+  "rules": {
+    "rule-empty-line-before": null,
+    "selector-max-compound-selectors": 4,
+    "scale-unlimited/declaration-strict-value": null
+  }
+}

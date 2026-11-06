@@ -1,0 +1,50 @@
+/* guide list styles */
+
+.guide {
+  > li {
+    list-style: none; /* Remove default marker - can't style marker element */
+    position: relative;
+    padding-left: 2em;
+  }
+
+  > li > p {
+    font-size: var(--gl-text-size-h4);
+    line-height: 1.25rem;
+    font-weight: 600;
+  }
+
+  > li::before {
+    content: counter(list-item) ""; /* Mimic ::marker behavior */
+    background-color: var(--gl-background-color-strong);
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+  }
+
+  > li:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    top: 0.75rem;
+    bottom: -1rem; /* Close gap between main ordered list items for continuous line */
+    width: 1px;
+    background-color: var(--gl-border-color-subtle);
+    z-index: 0;
+  }
+
+  .guide-item-title > ol {
+    padding-left: 1rem;
+  }
+
+  .guide-item-title li {
+    list-style: none;
+  }
+}

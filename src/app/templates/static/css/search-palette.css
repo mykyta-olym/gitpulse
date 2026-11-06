@@ -1,0 +1,99 @@
+/* -- Search Command Palette --
+   The palette's own shell and nothing else: the backdrop, the panel, the band
+   the field sits in, and the scrolling results. What is inside is shared -
+   search_input(borderless), a gl-dropdown for the filters, gl-dropdown-item
+   rows under gl-dropdown-header labels, the app's avatar, role badge, kbd and
+   loading mark - the way GitLab's `.global-search-modal` styles only the shell
+   around GlSearchBoxByType, GlCollapsibleListbox and its dropdown groups. */
+.gl-search-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--gl-overlay-bg-strong);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  /* Drop the palette from the search bar at the TOP (like GitLab) instead of
+     floating it ~20vh down the viewport center. Horizontally it stays centered,
+     which lines up with the centered top-bar search on desktop and the
+     full-width search on mobile. */
+  padding-top: var(--gl-spacing-2);   /* GitLab's palette sits 4px from the top */
+  /* GP.motion expands the panel from its trigger and animates the backdrop's
+     colour separately, keeping the field opaque throughout the transition. */
+}
+
+.gl-search-modal-backdrop[hidden] {
+  display: none;
+}
+
+.gl-search-modal-backdrop.has-motion-shade {
+  background: transparent;
+}
+
+/* Its own layer lets opacity animate without repainting the whole viewport. */
+.gl-search-modal-shade {
+  position: absolute;
+  inset: 0;
+  background: var(--gl-overlay-bg-strong);
+  pointer-events: none;
+}
+
+.gl-search-modal {
+  position: relative;
+  width: 90vw;
+  /* Measured on gitlab.com with the palette open: 768px wide, 4px from the top,
+     16px radius. We were 640px at 12px with an 8px radius. */
+  max-width: 768px;
+  background: var(--gl-background-color-overlap);
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--gl-modal-border-radius);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keep text at its resting dimensions while the outer shell reveals it. */
+.gl-search-modal.is-morphing > .gl-search-modal-input-wrap,
+.gl-search-modal.is-morphing > .gl-search-modal-body {
+  flex: 0 0 auto;
+}
+
+.gl-search-modal.is-morphing .gl-search-modal-body {
+  overflow: hidden;
+}
+
+/* The band the field sits in - GitLab's `.input-box-wrapper`: 4px around the
+   field and a rule under it. */
+.gl-search-modal-input-wrap {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  padding: var(--gl-spacing-2);
+  border-bottom: 1px solid var(--gl-border-color-default);
+}
+
+.gl-search-modal-input-wrap > .search-box {
+  flex: 1;
+  min-width: 0;
+}
+
+/* For a phone, where there is no Esc key to close with. */
+.gl-search-close-btn {
+  display: none;
+}
+
+.gl-search-modal-body {
+  flex: 1;
+  min-height: 0;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: var(--gl-spacing-2);
+}
+
+/* Nothing to show: no empty strip under the field. */
+.gl-search-modal-body:empty {
+  padding: 0;
+}

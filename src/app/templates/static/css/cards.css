@@ -1,0 +1,1311 @@
+/* ============================================
+   CARDS - GitLab Pajamas Design System
+   ============================================ */
+/* The dashboard KPI card is the reference for this whole system: a LIGHTER
+   shell with padding all round, and the content sitting inside it as a darker
+   block with its own radius - not a full-bleed band with content pressed to the
+   edges. `.gl-home-stat` / `-head` / `-inner` already do exactly this, so these
+   three rules mirror its values (shell `strong`, 16px radius, 4px padding; inner
+   `default`, 8px radius) and the two card families finally read as one system. */
+.card {
+  background: var(--gl-background-color-strong);
+  border-radius: var(--gl-card-border-radius);
+  padding: var(--gl-spacing-2);
+  /* Transparent, like .gl-card's own `gl-border-1 gl-border-solid
+     gl-border-transparent`: the card is told apart from the page by its
+     STRONG background against the page's default one, not by a rule. The 1px
+     is still declared so the box does not resize when high contrast paints
+     it (@gitlab/ui's `contrast-more:gl-border-strong`). */
+  border: 1px solid transparent;
+  /* Flex column with a gap, NOT margins on the children. A `display: none` child
+     is removed from flex layout entirely, so no gap is reserved for it - which is
+     exactly what a collapsed card needs. The margin version left 4px of dead
+     space under the header of every collapsed card (Archived Courses), because
+     the body is hidden but still present, so the header was never `:last-child`. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+  /* Single source of truth for vertical spacing between top-level cards
+     across the whole app. Anything overriding this for a specific page
+     causes visible inconsistency (e.g. Webhook Configurations vs
+     Traffic Light Thresholds on course settings). Keep it here only. */
+  margin-bottom: var(--gl-spacing-7);
+  transition: border-color var(--transition-normal),
+              box-shadow var(--transition-normal),
+              transform var(--transition-normal);
+  overflow: visible;
+}
+/* @gitlab/ui's `contrast-more:gl-border-strong` / `forced-colors:gl-border`:
+   when the reader asks for more contrast the background difference alone is
+   not enough to separate the card, so the rule that was reserved becomes
+   visible. No reflow - the 1px was always there. */
+@media (prefers-contrast: more) {
+  .card { border-color: var(--gl-border-color-strong); }
+}
+@media (forced-colors: active) {
+  .card { border-color: CanvasText; }
+}
+/* Keep border-radius clipping only on header/body edges */
+/* The header is an inset block now, not flush with the card edge, so it takes
+   the inner block's radius on ALL FOUR corners. The old `12px 12px 0 0` was
+   written for a flush header: against the shell's 8px inner corner its top was
+   too round and its bottom was square, so on a collapsed card (header only, as
+   Archived Courses renders) the square corners poked out past the frame. */
+/* Every direct child is an inset block now, so they all take the SAME 8px on
+   all four corners. The old per-position radii (`... 0 0`, `0 0 ...`) existed
+   only because children used to be flush with the card edge and had to finish
+   its rounding; inset, those square edges show against the shell. */
+/* calc(card radius - the shell's own padding), which is @gitlab/ui's
+   `calc(var(--gl-card-border-radius) - $gl-spacing-scale-2)` = 12 - 4 = 8px.
+   The comments above have said "8px" since the inset model landed, but the
+   rule passed the full 12px token, so an inset block was rounder than the
+   shell corner enclosing it. */
+.card > .card-header:first-child,
+.card > .card-body:last-child,
+.card > .card-body:only-child,
+.card-collapse-region > .card-body {
+  border-radius: var(--gl-card-inner-radius);
+}
+/* A collapsible card's body sits in a region that x-collapse animates. The
+   shell's gap is moved INTO the region - cancelled on the region, given back
+   as the body's margin - so it opens and closes with the height instead of
+   appearing on the first frame and vanishing on the last. The region is a
+   flex item, so neither margin collapses into the other. */
+.card > .card-collapse-region {
+  margin-top: calc(-1 * var(--gl-spacing-2));
+}
+.card-collapse-region > .card-body {
+  margin-top: var(--gl-spacing-2);
+}
+/* The 4px gap that separates these blocks lives on `.card` above - one rule per
+   element, so a second `.card {` block cannot drift away from the first. */
+.card:last-child {
+  margin-bottom: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  /* Start, not space-between. Everything that belongs at the right edge -
+     actions, note, help mark, chevron - carries `margin-left: auto`; with
+     space-between, a header that had none of them spread its own items
+     apart instead: icon at the left, title in the middle, count at the far
+     right ("Active Courses" on the Support course picker). */
+  justify-content: flex-start;
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  gap: var(--gl-spacing-2);
+  /* One row on desktop: the title takes the slack and the actions sit at the
+     right, beside the help mark. Only the phone layout below wraps. */
+  flex-wrap: nowrap;
+  align-content: center;
+  min-height: 44px;
+}
+.card-header h3 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  min-width: 0;
+}
+.card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+  min-width: 0;
+  /* The title takes only its own width, so a count badge after it sits beside
+     the words it counts (GitLab's "Archived Courses  1"); the actions, the note
+     and the help mark carry `margin-left: auto` and hold the right edge. */
+  flex: 0 1 auto;
+}
+.card-actions {
+  display: inline-flex;
+  gap: var(--gl-spacing-2);
+  align-items: center;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.card-header .card-actions form {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+}
+/* A header action is a GlButton small (`size='sm'`), sized by the button
+   itself; the header only keeps it on one line and unshrunk. */
+.card-header .card-actions .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* A search/filter input inside a card header must be allowed to shrink and, on
+   small screens, take the full row so it never forces horizontal overflow. */
+.card-actions .form-group,
+.card-actions .search-box,
+.card-actions .search-box-inline {
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .card-actions:has(.search-box, .search-box-inline, .form-group, input, select) {
+    width: 100%;
+  }
+  .card-actions .search-box,
+  .card-actions .search-box-inline,
+  .card-actions .form-group {
+    flex: 1 1 100%;
+  }
+}
+/* Form groups inside card-actions: no bottom margin, shrink-wrap */
+.card-actions .form-group {
+  width: auto;
+  margin-bottom: 0;
+}
+/* When table-count is empty and the only child, don't occupy layout */
+.card-actions:has(> .table-count:only-child:empty) {
+  display: none;
+}
+/* The right-hand note: same weight and colour as Service Accounts' own. */
+.card-header-note {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  color: var(--gl-text-color-subtle);
+  white-space: nowrap;
+}
+.card-header-note ~ .card-actions {
+  margin-left: 0;
+}
+
+/* Card header question-mark help tooltip positioned on the right side of the header row */
+.card-header-info-tip {
+  /* The shared small tertiary icon button; the header only places it. */
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.card-header-note ~ .card-header-info-tip {
+  margin-left: 0;
+}
+.card-actions:not(:empty):not([style*="display: none"]):not(:has(> .table-count:only-child:empty)) ~ .card-header-info-tip {
+  margin-left: 0;
+}
+
+/* When actions are the only child, fill the header width. */
+.card-actions:only-child {
+  flex: 1;
+  justify-content: space-between;
+}
+
+/* Keep mobile headers in one row while their contents fit. */
+@media (max-width: 768px) {
+  .card-header {
+    flex-wrap: wrap;
+    padding: 6px var(--gl-spacing-3);
+    min-height: 38px;
+  }
+  .card-heading {
+    margin-right: auto;
+  }
+  .card-actions,
+  .card-actions:only-child {
+    margin-left: 0 !important;
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+.card-body {
+  /* The darker inner block, inset by the shell's own padding and carrying its
+     own 8px radius - the shape of `.gl-home-stat-inner`. Keeps the generous
+     padding so form rows, tables and prose are never pressed against an edge. */
+  background: var(--gl-background-color-default);
+  border-radius: var(--gl-card-inner-radius);
+  /* The padding is PUBLISHED, as two properties, so what runs to the body's
+     edge - the pagination bar under a table - follows it at every breakpoint
+     instead of restating a number. It restated 16px while the body padded 24:
+     the bar sat 8px inside the edge and 12px under the table, against 24px
+     above the table's controls - the uneven frame round every paginated table.
+     A breakpoint changes these two properties, never `padding`. */
+  --card-body-pad-y: var(--gl-spacing-6);
+  --card-body-pad-x: var(--gl-spacing-6);
+  /* The room above a table's controls band (tables.css): the body's
+     padding, capped at 16px - 24px left the search floating in a band of its
+     own. On a phone the body's 12px is less and wins. */
+  --table-band-room: min(var(--card-body-pad-y), var(--gl-spacing-5));
+  padding: var(--card-body-pad-y) var(--card-body-pad-x);
+}
+/* The explanatory line a card body opens with ("Non-scoring diagnostic metrics
+   on teamwork quality", "Score trend and practice tracking across the
+   semester") keeps one step between itself and what it explains. It is the
+   component's own spacing: each template used to pick its own utility - mb-3
+   here, mb-2 there, nothing at all on Communication Indicators and User Role
+   Breakdown, whose stat cards and chart sat on the line. A line that is the
+   whole body (an empty-state note) has nothing under it and keeps no margin. */
+.card-body > p.muted:first-child:not(:last-child) {
+  margin-bottom: var(--gl-spacing-3);
+}
+
+/* Same motion as the <details> chevron below: rest at 0deg, 180deg when open.
+   This button used to swing -90deg while every <details> swung 180, so two
+   identical-looking disclosures animated differently. One angle, one duration. */
+.card-collapse-btn .card-collapse-icon {
+  transition: transform var(--transition-normal);
+  transform: rotate(0deg);
+  align-self: center;
+  display: block;
+}
+.card-collapse-btn[aria-expanded="true"] .card-collapse-icon {
+  transform: rotate(180deg);
+}
+
+/* Native <details> open/close is animated by GP.motion (core/45-gsap-motion.js),
+   which measures the panel after the <summary> and defers the close until it has
+   collapsed. It replaced an `interpolate-size` + `::details-content` rule that
+   needed Chromium 129+ and did nothing in Firefox or Safari - so the same card
+   glided in one browser and snapped in another.
+   A flex item's `min-block-size: auto` refuses to shrink below its content,
+   which is why `details.card` (a flex column) needs this to stay explicit. */
+details > summary ~ * {
+  min-block-size: 0;
+}
+
+/* -- Native <details>.card chevron animation (no Alpine.js dependency) -- */
+/* Any <details>, not only `details.card`: the JSON disclosure on the student
+   page is a plain <details> inside a card, and scoping the rotation to
+   `details.card` is why its chevron would have sat frozen. */
+details > summary .card-details-chevron {
+  transition: transform var(--transition-normal);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  /* Centre it on the row. A flex item inheriting `align-items` from a header
+     that wraps can settle a pixel or two off the text's optical centre; pinning
+     `align-self` and giving the glyph its own line box removes the drift that
+     made the chevron sit low next to "Archived Courses". */
+  align-self: center;
+  display: block;
+  /* The SAME 24px box as the card's collapse chevron (the shared small icon
+     button). A bare 16px glyph made the disclosure row shorter on one of the
+     two, so the icon opposite it sat at a different height. A <summary>
+     cannot contain a <button> (nested interactive), so the box comes from
+     padding on the glyph itself. */
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  /* Explicit initial value so the browser has both keyframes and the
+     transition fires reliably in both directions (open AND close). */
+  transform: rotate(0deg);
+}
+details[open] > summary .card-details-chevron {
+  transform: rotate(180deg);
+}
+details > summary:hover .card-details-chevron {
+  color: var(--text-primary);
+}
+
+/* When the <details> is collapsed, the card-header is the last visible
+   element. Hide the separator border-bottom (no card-body below it) and
+   restore full corner radius so the card looks properly closed. */
+/* Collapsed <details> card: the header is the only visible block. It keeps the
+   SAME 8px as every other inset block - `--gl-card-border-radius` (12px) belongs
+   to the shell, and using it here made the header rounder than the shell's own
+   inner corner, which is the last of the flush-edge leftovers. */
+details.card:not([open]) > summary.card-header {
+  border-bottom-color: transparent;
+  border-radius: var(--radius-lg);
+}
+/* The shell's gap, moved from the flex container onto the body. A closed
+   <details> keeps its content in the ::details-content slot - hidden, but
+   still a flex item - so the gap was reserved under a collapsed header: 9px
+   below "Raw Check Details" against 5px above it, the "empty strip at the
+   bottom". As a margin on the body it lives INSIDE the slot, so it disappears
+   with the content and comes back with it, in step with the open animation. */
+details.card {
+  row-gap: 0;
+}
+details.card > summary + * {
+  margin-top: var(--gl-spacing-2);
+}
+
+/* -- ONE disclosure contract -----------------------------------------------
+   Collapsible card headers share ONE focus ring and marker suppression:
+     1. `card(collapsible=true)` -> `.card-header[role="button"]`  (Archived Courses)
+     2. `<details class="card"> <summary class="card-header">`
+   The ring is `--focus-ring`, keyboard-only (`:focus-visible`). */
+.card-header[role="button"]:focus-visible,
+details.card > summary.card-header:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-lg);
+}
+details.card > summary.card-header {
+  list-style: none;
+}
+details.card > summary.card-header::-webkit-details-marker {
+  display: none;
+}
+
+/* -- Collapsible card header (whole row clickable) -- */
+.card-header[role="button"] {
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-normal);
+}
+.card-header--interactive {
+  cursor: pointer;
+}
+/* ONE hover for every clickable header. `.card-header--interactive` had none at
+   all while `.gl-home-archived .card-header` lit up, so two identical rows
+   answered the cursor differently. Colour only - a header is a row, not a
+   button, and GitLab does not lift or shadow one. */
+.card-header[role="button"]:hover,
+details.card > summary.card-header:hover {
+  background: var(--surface-moderate);
+}
+
+.card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  background: transparent;
+  /* Inset block, same as the header and body: 8px all round, and no divider -
+     the card's flex gap already separates it from the body. */
+  border-radius: var(--radius-lg);
+}
+
+/* -- Card + embedded table: remove double border -- */
+.card .table-responsive .data-table thead th,
+.card .table-responsive .data-table thead td {
+  border-bottom: none;
+}
+.card .data-table {
+  border-top: none;
+}
+.card .data-table tbody tr:last-child td,
+.card .data-table tbody tr:last-child th {
+  border-bottom: none;
+}
+
+/* -- Stats grid -- */
+.stats-grid {
+  display: grid;
+  gap: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-6);
+  /* At most four columns; auto-fit collapses unused tracks in smaller sets. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(180px, calc((100% - 3 * var(--gl-spacing-5)) / 4))), 1fr));
+}
+.stats-grid-5 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+/* Share label and value tracks within each row, including wrapped labels. */
+.stats-grid > .gl-home-stat {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+}
+/* Remove extra margin when stats-grid is last in a card */
+.card-body > .stats-grid:last-child { margin-bottom: 0; }
+@media (max-width: 480px) {
+  /* Fill the final row when a two-column grid has an odd number of cards. */
+  .stats-grid > .gl-home-stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+/* -- Course cards - GitLab project card style -- */
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--gl-spacing-5);
+}
+/* "No courses in this section" is about the whole grid, not about column one -
+   dropped into a grid it landed in the first cell and read as left-aligned
+   under a full-width heading. */
+.courses-grid > .table-empty-state {
+  grid-column: 1 / -1;
+}
+
+.course-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-default);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+}
+/* Hover = calm border + shadow only (GitLab-style). Lift transforms on
+   hover read as jumpy and were removed app-wide - don't re-add them. */
+.course-card:hover {
+  border-color: var(--primary);
+}
+.course-card:active {
+  box-shadow: var(--shadow-sm);
+}
+.course-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.course-card-header {
+  padding: var(--gl-spacing-5) var(--gl-spacing-5) var(--gl-spacing-4);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-2);
+}
+
+.course-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+}
+
+
+.course-card-semester {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.course-card-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+.course-card-description {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.course-card-sync { align-self: flex-start; }
+
+.course-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  /* 8px between the indicator row and the buttons once they wrap: at 4px the
+     20px badge read as sitting on the buttons. */
+  row-gap: var(--gl-spacing-3);
+  column-gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+  border-top: 1px solid var(--border-color);
+}
+.course-card-indicators {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* -- Empty state - GlEmptyState, class for class --
+   @gitlab/ui regions/empty_state: section `gl-flex gl-flex-col gl-text-center`;
+   the illustration at its own 144px in a `gl-max-w-full` box; the content
+   `gl-m-auto gl-p-5`, at most 65ch wide; the title `gl-text-size-h-display
+   gl-leading-36` (28px on a 36px line) with no margin; the description
+   `gl-mt-4 gl-mb-0 gl-text-subtle`; the actions row `gl-mt-5 gl-flex
+   gl-flex-wrap gl-justify-center`, each button `gl-mx-2 gl-mb-3`. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+.empty-state-illustration {
+  max-width: 100%;
+}
+.empty-state-content {
+  margin: auto;
+  padding: var(--gl-spacing-5);
+  max-width: 65ch;
+}
+.empty-state-title {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: var(--gl-font-weight-heading);
+  color: var(--gl-text-color-heading);
+}
+.empty-state-message {
+  margin: var(--gl-spacing-4) 0 0;
+  color: var(--gl-text-color-subtle);
+}
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--gl-spacing-5);
+}
+.empty-state-actions > * {
+  margin: 0 var(--gl-spacing-2) var(--gl-spacing-3);
+}
+
+/* -- Info card -- */
+.info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gl-spacing-5);
+  padding: var(--gl-spacing-5);
+  border-radius: var(--radius);
+  border: 1px solid;
+  transition: box-shadow var(--transition-normal);
+}
+
+/* -- Smooth banner enter / exit --------------------------------------------
+   Banners injected AFTER the page has settled (GitLab-token warning, live
+   "sync failed" card, or any dynamically-added .info-card) must not shove the
+   content below in one jarring jump. GP.revealBanner() / GP.collapseBanner()
+   (core/31-banners.js) animate height + opacity + margin so the surrounding
+   layout eases open and closed. Banners that arrive with a lazy-content swap
+   are handled by the stagger reveal instead, so this only ever runs for genuine
+   dynamic insertions/removals. Fully reduced-motion safe. */
+/* No `.gp-banner-animating` class any more: GP.motion.disclose owns the height,
+   opacity, margin and padding, and it is the SAME contract that opens a
+   <details> and a collapsible card body - one disclosure, not three. */
+/* The shared close button on a dismissible info card, pushed by
+   margin-left:auto so it sits opposite the icon/content. */
+.info-card-dismiss {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+/* When the card has no heading, vertically center the icon against the
+   single-line (or wrapped) body text so the row feels balanced. */
+.info-card:not(:has(.info-card-title)) {
+  align-items: center;
+}
+.info-card-info {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+}
+.info-card-success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+.info-card-warning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+}
+.info-card-danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+.info-card-icon {
+  flex-shrink: 0;
+  /* Render SVG as a pure block - inline-flex from the base .icon rule
+     together with the card's flex parent can produce weird clipping at
+     small line-heights in some browsers. A plain block box keeps the
+     full 24×24 viewBox visible next to the title. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  /* Nudge down ~2px so the icon visually centers with the first
+     baseline of the title (font-weight:600, line-height ~1.4). */
+  margin-top: 2px;
+}
+.info-card-icon .icon { display: block; overflow: visible; }
+.info-card:not(:has(.info-card-title)) .info-card-icon { margin-top: 0; }
+.info-card-info .info-card-icon { color: var(--info); }
+.info-card-success .info-card-icon { color: var(--success); }
+.info-card-warning .info-card-icon { color: var(--warning); }
+.info-card-danger .info-card-icon { color: var(--danger); }
+.info-card-content {
+  flex: 1;
+}
+.info-card-title {
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--gl-spacing-1);
+}
+.info-card-body {
+  font-size: var(--font-size-base);
+}
+
+.nr {
+  background: var(--gl-background-color-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+.nr:hover { border-color: var(--gl-border-color-default); }
+/* The body is rendered server-side via render_gl_description, which
+   converts \n into <br> and wraps fenced ``` blocks in <pre>; we no
+   longer need white-space: pre-line, which would double the spacing. */
+
+/* -- GitLab reference links in MR descriptions & note bodies -- */
+.gl-ref {
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+.gl-ref:hover { text-decoration: underline; }
+.gl-ref--mr    { color: var(--gl-text-color-link); }
+.gl-ref--issue { color: var(--gl-text-color-link); }
+.gl-ref--user  { color: var(--gl-status-brand-text); }
+
+/* -- Rendered GitLab MR/issue descriptions -- */
+.gl-description {
+  line-height: 1.6;
+  word-break: break-word;
+  color: var(--text-primary);
+}
+/* Drop the top margin on a heading and the bottom margin on a fenced
+   block / list when they are the very first or very last child of the
+   description container, so the rendered HTML hugs the panel edges
+   instead of leaving a stray empty line. */
+.gl-description > .gl-desc-h:first-child,
+.gl-description > .gl-desc-pre:first-child,
+.gl-description > .gl-desc-list:first-child { margin-top: 0; }
+.gl-description > .gl-desc-h:last-child,
+.gl-description > .gl-desc-pre:last-child,
+.gl-description > .gl-desc-list:last-child { margin-bottom: 0; }
+/* Inline code - high-contrast pill that mirrors GitLab's web UI.
+   The previous `var(--bg-alt, rgba(0,0,0,0.05))` resolved to nearly
+   the same colour as the surrounding panel on dark theme, so things
+   like `ui.c` and `destroy_board()` were almost invisible. */
+.gl-description code {
+  background: var(--surface-moderate);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  /* Slim vertical padding + clone the box across line breaks so an inline
+     code pill never overlaps the line above/below it ("markdown collides").
+     Horizontal margin keeps the pill from touching the surrounding words. */
+  padding: 0.1em 0.4em;
+  margin: 0 0.25em;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.92em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.gl-description em { font-style: italic; }
+.gl-description strong { font-weight: var(--font-weight-semibold); }
+.gl-description .gl-desc-h {
+  font-weight: var(--font-weight-semibold);
+  margin: 0.4em 0 0.15em;
+  line-height: 1.3;
+}
+.gl-description h3.gl-desc-h { font-size: 1.1em; }
+.gl-description h4.gl-desc-h { font-size: 1.05em; }
+.gl-description h5.gl-desc-h,
+.gl-description h6.gl-desc-h { font-size: 1em; }
+.gl-description .gl-desc-list {
+  margin: 0.3em 0 0.4em;
+  padding-left: 1.4em;
+}
+.gl-description .gl-desc-list li { margin: 0.1em 0; }
+/* The scheme's ground and ink (Preferences > Syntax highlighting), for every
+   fenced block - a block without a language tag was a fixed dark #18171d
+   whatever the scheme and whatever the colour mode. */
+.gl-description .gl-desc-pre {
+  background: var(--syn-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
+  /* Tight margins so a fenced block sitting between two short
+     paragraphs doesn't open up a noticeable visual gap. The renderer
+     already strips the surrounding <br>s; combining 0.5em pre margin
+     + 1.5 line-height of the surrounding text was producing a 1.5-
+     2 line gap above and below every code block. */
+  margin: 0.25em 0;
+  overflow-x: auto;
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: var(--syn-fg);
+}
+.gl-description .gl-desc-pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: pre;
+  display: block;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* -- Syntax highlighting schemes --
+   Every colour the token rules below use is a variable, so a scheme is ten
+   declarations rather than a second copy of the whole token table. Keyed on the
+   root attribute base.html renders from the saved preference, so the choice
+   applies before first paint with no flash. `default` is the palette the app
+   already shipped, byte for byte, so an untouched account renders as before. */
+:root,
+/* "default" is no longer an offered scheme - hydration degrades a stored one to
+   "dark". The selector stays as its alias so a page cached before the change,
+   or a session hydrated by an older release, still paints a real palette
+   instead of falling through to unstyled tokens. */
+html[data-syntax-theme="default"],
+.gl-syntax-preview--default {
+  --syn-bg: #18171d;
+  --syn-fg: #e6e1e8;
+  --syn-comment: #8b8a94;
+  --syn-preproc: #b88dff;
+  --syn-keyword: #ff8df1;
+  --syn-number: #ffb673;
+  --syn-string: #91d4ff;
+  --syn-name: #ffd47a;
+  --syn-operator: #f0f0f5;
+  --syn-punct: #d8d4dd;
+  --syn-deleted: #ff8aa0;
+  --syn-added: #88e0a3;
+}
+
+/* Light: GitLab's own light highlight ground. Without it every scheme on the
+   list painted a dark block, so a reader on a light page had no way to get
+   light code and the setting looked broken. */
+html[data-syntax-theme="light"],
+.gl-syntax-preview--light {
+  --syn-bg: #ffffff;
+  --syn-fg: #303030;
+  --syn-comment: #998;
+  --syn-preproc: #099;
+  --syn-keyword: #000080;
+  --syn-number: #099;
+  --syn-string: #d14;
+  --syn-name: #900;
+  --syn-operator: #000;
+  --syn-punct: #333;
+  --syn-deleted: #a00;
+  --syn-added: #080;
+}
+
+/* Dark: the same palette on GitLab's dark ground, kept distinct from
+   `default` (which follows the app's own ink). */
+html[data-syntax-theme="dark"],
+.gl-syntax-preview--dark {
+  --syn-bg: #1f1e24;
+  --syn-fg: #fafaff;
+  --syn-comment: #83818b;
+  --syn-preproc: #c9a4ff;
+  --syn-keyword: #ff8fd7;
+  --syn-number: #ffb673;
+  --syn-string: #99e6b3;
+  --syn-name: #ffd68c;
+  --syn-operator: #fafaff;
+  --syn-punct: #d5d3dd;
+  --syn-deleted: #ff9c9c;
+  --syn-added: #91d4a8;
+}
+
+/* Monokai, from its own published palette. */
+html[data-syntax-theme="monokai"],
+.gl-syntax-preview--monokai {
+  --syn-bg: #272822;
+  --syn-fg: #f8f8f2;
+  --syn-comment: #75715e;
+  --syn-preproc: #ae81ff;
+  --syn-keyword: #f92672;
+  --syn-number: #ae81ff;
+  --syn-string: #e6db74;
+  --syn-name: #a6e22e;
+  --syn-operator: #f8f8f2;
+  --syn-punct: #f8f8f2;
+  --syn-deleted: #f92672;
+  --syn-added: #a6e22e;
+}
+
+/* Dracula, from its own published palette (draculatheme.com): background
+   #282a36, foreground #f8f8f2, comment #6272a4, and the six accents. GitLab
+   offers it as its sixth scheme (lib/gitlab/color_schemes.rb). */
+html[data-syntax-theme="dracula"],
+.gl-syntax-preview--dracula {
+  --syn-bg: #282a36;
+  --syn-fg: #f8f8f2;
+  --syn-comment: #6272a4;
+  --syn-preproc: #bd93f9;
+  --syn-keyword: #ff79c6;
+  --syn-number: #bd93f9;
+  --syn-string: #f1fa8c;
+  --syn-name: #50fa7b;
+  --syn-operator: #f8f8f2;
+  --syn-punct: #f8f8f2;
+  --syn-deleted: #ff5555;
+  --syn-added: #50fa7b;
+}
+
+/* Solarized dark - Ethan Schoonover's accent set. */
+html[data-syntax-theme="solarized-dark"],
+.gl-syntax-preview--solarized-dark {
+  --syn-bg: #002b36;
+  --syn-fg: #839496;
+  --syn-comment: #586e75;
+  --syn-preproc: #6c71c4;
+  --syn-keyword: #859900;
+  --syn-number: #d33682;
+  --syn-string: #2aa198;
+  --syn-name: #268bd2;
+  --syn-operator: #93a1a1;
+  --syn-punct: #839496;
+  --syn-deleted: #dc322f;
+  --syn-added: #859900;
+}
+
+/* Solarized light uses the same accents on a light ground; the code block's own
+   background comes with it so the text stays readable. */
+html[data-syntax-theme="solarized-light"],
+.gl-syntax-preview--solarized-light {
+  --syn-bg: #fdf6e3;
+  --syn-fg: #657b83;
+  --syn-comment: #93a1a1;
+  --syn-preproc: #6c71c4;
+  --syn-keyword: #859900;
+  --syn-number: #d33682;
+  --syn-string: #2aa198;
+  --syn-name: #268bd2;
+  --syn-operator: #586e75;
+  --syn-punct: #657b83;
+  --syn-deleted: #dc322f;
+  --syn-added: #859900;
+}
+/* A scheme is a GROUND as much as a palette. Only solarized-light used to
+   carry one, so four of the five previews rendered on the same dark block and
+   read as the same scheme with the tokens slightly recoloured - the reported
+   "syntax highlighting is broken". GitLab gives each scheme its own
+   background (white, dark, cream, teal, olive), which is what makes the
+   previews distinguishable at a glance. */
+.gl-desc-pre.highlight {
+  background: var(--syn-bg);
+  color: var(--syn-fg);
+}
+
+/* No highlighting: one ink for the whole block, which is what someone who finds
+   colour noisy is actually asking for. "None" is code in the page's OWN
+   colours - the ground and ink follow the colour mode (a dark block on a dark
+   page, a light one on a light page), so it is the one scheme that is never
+   at odds with the theme around it. It was a fixed dark #18171d in both modes.
+   Comment stays the subtle text so a comment still reads as secondary; diff
+   markers keep the per-mode diff tints for the real diff blocks this scheme
+   also paints. */
+html[data-syntax-theme="none"],
+.gl-syntax-preview--none {
+  --syn-bg: var(--gl-background-color-strong);
+  --syn-fg: var(--gl-text-color-default);
+  --syn-comment: var(--gl-text-color-subtle);
+  --syn-preproc: var(--syn-fg);
+  --syn-keyword: var(--syn-fg);
+  --syn-number: var(--syn-fg);
+  --syn-string: var(--syn-fg);
+  --syn-name: var(--syn-fg);
+  --syn-operator: var(--syn-fg);
+  --syn-punct: var(--syn-fg);
+  --syn-deleted: var(--gl-text-color-danger);
+  --syn-added: var(--gl-text-color-success);
+}
+
+/* -- Pygments token theme (GitLab-ish dark) --
+   Used by `render_gl_description` for fenced code blocks with a
+   recognised language tag.  Token classes are Pygments shorthand
+   (`k` keyword, `kt` keyword.type, `s` string, `c1`/`cm` comment,
+   `nf` name.function, `mi` number, `o` operator, `cp` preprocessor,
+   etc.).  Scoped so we never colour stray `<span>`s elsewhere on the page.
+
+   TWO scopes, not one. Markdown code fences were the only place these ever
+   applied, so the seven schemes in Preferences could not change a DIFF - the
+   place a reader looks at code most, and the page the report came from. The
+   diff cell is `.dn-code-text`; its rows are highlighted server-side now
+   (students.py) with the same Pygments classes.
+
+   THREE scopes. `.diff-line-content` is the Changes block - the full file diff
+   under a merge request, which is the longest look at code the app offers and
+   was the last place shipping it as plain escaped text. Its rows carry the
+   same classes now, so the same seven schemes colour them.
+
+   `:is()` takes the specificity of its most specific argument, so this stays
+   (0,2,0) and outranks nothing it did not already. */
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .c,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .c1,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .cm,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .cs,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .ch,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .cd { color: var(--syn-comment); font-style: italic; }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .cp,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .cpf { color: var(--syn-preproc); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .k,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .kc,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .kd,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .kn,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .kp,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .kr { color: var(--syn-keyword); font-weight: 600; }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .kt { color: var(--syn-number); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .s,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .s1,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .s2,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .sb,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .sc,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .sd,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .se,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .sh,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .si,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .sx,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .sr,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .ss { color: var(--syn-string); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .m,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .mb,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .mf,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .mh,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .mi,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .mo,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .il { color: var(--syn-number); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .nf { color: var(--syn-name); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .nb,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .bp { color: var(--syn-number); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .nc,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .nn { color: var(--syn-name); font-weight: 600; }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .nt { color: var(--syn-keyword); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .na { color: var(--syn-name); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .nv,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .vi,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .vc,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .vg { color: var(--syn-string); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .o,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .ow { color: var(--syn-operator); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .p { color: var(--syn-punct); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .err { color: var(--syn-deleted); background: color-mix(in srgb, var(--syn-deleted) 8%, transparent); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .gd { color: var(--syn-deleted); background: color-mix(in srgb, var(--syn-deleted) 8%, transparent); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .gi { color: var(--syn-added); background: color-mix(in srgb, var(--syn-added) 8%, transparent); }
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .gh,
+:is(.gl-desc-pre.highlight, .dn-code-text, .diff-line-content) .gu { color: var(--syn-string); font-weight: 600; }
+
+/* Summary icon alignment */
+.summary-icon {
+  vertical-align: -2px;
+  margin-right: var(--gl-spacing-2);
+  opacity: 0.7;
+}
+
+/* ============================================
+   PROFILE HEADER - GitLab-style user identity
+   ============================================ */
+.profile-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gl-spacing-5);
+  margin-bottom: var(--gl-spacing-5);
+  padding-bottom: var(--gl-spacing-5);
+  border-bottom: 1px solid var(--border-color);
+  min-width: 0;
+}
+.profile-identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gl-spacing-1);
+  /* Allow identity column to shrink within flex parent so long names /
+     usernames / the "View on GitLab" link do not force horizontal overflow
+     on narrow viewports. */
+  min-width: 0;
+  flex: 1 1 0;
+}
+.profile-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+  /* Wrap a long name instead of overflowing the card. `anywhere` alone does
+     that; `word-break: break-word` beside it also split names that fit. */
+  overflow-wrap: anywhere;
+}
+.profile-username {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+.profile-gitlab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+  font-size: var(--font-size-xs);
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+  /* Keep icon + label on a single line; when the card is very narrow the
+     entire link wraps to its own line thanks to the identity column
+     being a block-flex (flex-direction:column). */
+  align-self: flex-start;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.profile-gitlab-link:hover {
+  color: var(--gl-text-color-link);
+  text-decoration: underline;
+}
+
+/* ============================================
+   USER INFO MODAL - Admin user detail panel
+   ============================================ */
+
+/* Header: avatar + identity, centred on each other. The identity block is two
+   lines - about 45px against a 64px avatar - and top-aligned it left 19px of
+   air under the meta row and none above the name, which read as the text
+   sitting too high. A taller block (a name that wraps, more badges) centres
+   the avatar in itself, which is no worse than the cramped case this used to
+   guard against. */
+.user-info-header {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-5);
+  padding-bottom: var(--gl-spacing-5);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--gl-spacing-5);
+}
+.user-info-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.user-info-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.user-info-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  /* 20px, not 1.4 (= 19.6px): a fractional line box put every icon on a
+     fractional pixel, drawn blurred across two device pixels at 1x. */
+  line-height: var(--gl-line-height-20);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--gl-spacing-4);
+  min-width: 0;
+}
+.user-info-meta-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.user-info-meta-row svg {
+  /* 16px beside 14px text, centred in a 20px line - GitLab's own pairing.
+     At 13px the glyph's ink was centred on the cap height and so sat 1.5px
+     above the middle of a lowercase email, which read as "not centred";
+     at 16px its ink reaches from above the x-height to the baseline. */
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+/* Sections (courses, groups) */
+.user-info-enrich {
+  margin: var(--gl-spacing-3) 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.user-info-section {
+  margin-bottom: var(--gl-spacing-5);
+}
+.user-info-section:last-child {
+  margin-bottom: 0;
+}
+.user-info-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: var(--gl-spacing-3);
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+}
+.user-info-section-title svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.user-info-section-count {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-tertiary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Course / Group list items - staggered card animation */
+.user-info-card {
+  display: flex;
+  /* Align to the TOP so the role badges sit beside the group name on the first
+     line instead of floating in the vertical centre of a tall, wrapped project
+     list (which made them overlap the links). */
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-color);
+  transition: background var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
+  min-width: 0;
+}
+.user-info-card:not(:last-child) {
+  margin-bottom: var(--gl-spacing-2);
+}
+.user-info-card:hover {
+  background: var(--surface-moderate);
+  border-color: var(--gl-border-color-subtle);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.user-info-card-main {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.user-info-card-main a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+.user-info-card-main a:hover {
+  text-decoration: underline;
+}
+.user-info-card-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+/* Links inside the sub line (course + projects) are secondary context, so they
+   stay at the sub's small size and a calmer weight - not the prominent group
+   title style - so a long project list reads as a tidy run-on, not a wall of
+   bold blue that competes with the group name. */
+.user-info-card-sub a {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+}
+.user-info-card-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* A section of a dialog is small: an empty one keeps its art and its line
+   and drops the page-sized air. */
+.user-info-section > .table-empty-state {
+  padding: var(--gl-spacing-3) 0;
+}
+
+/* The collapse chevron sits at the header's trailing edge - the same place the
+   `<details>` disclosure puts `.card-details-chevron`. One disclosure, one
+   anatomy: icon and title on the left, note and count beside them, chevron on
+   the right. It used to lead the title in `card()` and trail it in `<details>`,
+   so the two collapsible cards in the app were mirror images. */
+.card-collapse-btn--trailing {
+  margin-left: auto;
+  order: 99;
+}
+/* No extra margin when a note is present. The header's own gap already
+   separates them, and adding 8px on top made the space between the note and the
+   chevron 16px here against 12px on the `<details>` header - the same two
+   controls, four pixels apart. */
+.card-header:has(.card-header-note) .card-collapse-btn--trailing,
+.card-header:has(.card-actions) .card-collapse-btn--trailing,
+.card-header:has(.card-header-info-tip) .card-collapse-btn--trailing {
+  margin-left: 0;
+}
+
+
+/* -- Danger zone card -- */
+.danger-zone {
+  border: 2px solid var(--color-danger, var(--gl-red-300));
+}
+.danger-zone-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-5);
+  padding: var(--gl-spacing-5) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.danger-zone-item:last-child {
+  border-bottom: none;
+}
+.danger-zone-description {
+  margin: var(--gl-spacing-2) 0 0;
+}
+.danger-zone-label-danger {
+  /* Was red-300 at 2.55:1 - and this is the label on an irreversible action. */
+  color: var(--gl-feedback-danger-text);
+}
+@media (max-width: 600px) {
+  .danger-zone-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--gl-spacing-4);
+  }
+}
+
+/* Static series legend, with GitLab UI GlChartSeriesLabel's 16x4 marker,
+   base text and 8px marker-to-label spacing. */
+.gl-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gl-spacing-2) var(--gl-spacing-5);
+  font-size: var(--font-size-base);
+  color: var(--gl-text-color-strong);
+}
+.gl-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+}
+.gl-chart-legend-marker {
+  flex-shrink: 0;
+  width: 16px;
+  height: 4px;
+}
+.gl-chart-legend-marker--issue   { background: var(--chart-cat-issue); }
+.gl-chart-legend-marker--mr      { background: var(--chart-cat-mr); }
+.gl-chart-legend-marker--review  { background: var(--chart-cat-review); }
+.gl-chart-legend-marker--ci      { background: var(--chart-cat-ci); }
+.gl-chart-legend-marker--quality { background: var(--chart-cat-quality); }
+.gl-chart-legend-marker--custom  { background: var(--chart-cat-custom); }
+.gl-chart-legend-marker--danger  { background: var(--chart-danger); }
+.gl-chart-legend-marker--warning { background: var(--chart-warning); }
+.gl-chart-legend-marker--brand   { background: var(--chart-brand); }

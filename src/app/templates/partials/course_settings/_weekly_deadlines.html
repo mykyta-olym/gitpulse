@@ -1,0 +1,132 @@
+{# -- Weekly Deadlines & Expected Checks -- #}
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import card, block_empty %}
+{% from "components/forms.html" import code_reference, json_drop with context %}
+{% from "components/tables.html" import data_table %}
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn, btn_icon, btn_icon_only %}
+{% from "components/spinner.html" import spinner %}
+
+{% set ct %}{{ t('Weekly Deadlines & Expected Checks') }}{% endset %}
+{% set _wd_locked = not course.is_active %}
+{% set _wd_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _wd_locked else '' %}
+{% set _wd_lock_attrs = {'archived-locked': '1'} if _wd_locked else {} %}
+{# The one action this table has goes in the card HEADER, on the right - where
+   Job History puts its controls and where every other table in the app puts
+   them. It used to sit under the table, which is the one place a reader does
+   not look for what acts on it. #}
+{% set wd_actions %}
+{{ btn_icon(t('Add week'), 'plus', variant='secondary', size='sm', id='btnAddWeeklyDeadline', class='btn-responsive', disabled=_wd_locked, disabled_reason=_wd_reason, data_attrs=dict(_wd_lock_attrs, **{'tippy-content': t('Add a week and pick which checks are expected by then')})) }}
+{% endset %}
+{% call card(title=ct, icon_name='list', header_actions=wd_actions) %}
+    <p class="muted">{{ t('Define what is expected from students each week. Set which compliance checks (R01-R13) should be completed by a given week. This enables progressive evaluation - earlier weeks can require fewer checks while later weeks add more requirements.') }}</p>
+
+    {% set _wd = settings.weekly_deadlines or [] %}
+    {# The table is rendered server-side for first paint and re-rendered by
+       weekly-deadlines.js after every modal edit. The JSON textarea below
+       stays the single source of truth (and what the settings save posts), so
+       the friendly editor needed no new endpoint. #}
+    <div class="weekly-deadlines-summary mb-3{% if not _wd %} d-none{% endif %}" id="weeklyDeadlinesSummary">
+      {# data_table already wraps in .table-scroll > .table-responsive (scrolls
+         horizontally on phones), so no manual .table-responsive is needed. #}
+      {% call data_table(compact=true, class='table-scrollable table-sticky-actions') %}
+        <thead>
+          <tr>
+            <th class="th-w-60">{{ t('Week') }}</th>
+            <th>{{ t('Label') }}</th>
+            <th>{{ t('Expected Checks') }}</th>
+            <th class="th-w-100 text-right">{{ t('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody id="weeklyDeadlinesBody">
+          {% for wd in _wd %}
+          <tr>
+            <td>{{ badge(wd.week, variant='primary') }}</td>
+            <td>{{ wd.label|default('Week ' ~ wd.week) }}</td>
+            <td>
+              {% if wd.expected_checks %}
+              <span class="weekly-check-chips">
+                {% for c in wd.expected_checks %}
+                {{ badge(c, variant='gray', size='sm') }}
+                {% endfor %}
+              </span>
+              {% else %}<span class="muted">-</span>{% endif %}
+            </td>
+            <td class="text-right text-nowrap">
+              <div class="gl-row-actions">
+                {{ btn_icon_only('edit', variant='secondary', size='sm', aria_label=t('Edit week'), disabled=_wd_locked, disabled_reason=_wd_reason, data_attrs=dict(_wd_lock_attrs, **{'action': 'editWeek', 'week-index': loop.index0, 'tippy-content': t('Edit this week')})) }}
+                {{ btn_icon_only('trash', variant='danger', size='sm', aria_label=t('Delete week'), disabled=_wd_locked, disabled_reason=_wd_reason, data_attrs=dict(_wd_lock_attrs, **{'action': 'deleteWeek', 'week-index': loop.index0, 'tippy-content': t('Delete this week')})) }}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      {% endcall %}
+    </div>
+    <div class="mb-3{% if _wd %} d-none{% endif %}" id="weeklyDeadlinesEmpty">
+      {{ block_empty(t('No weekly deadlines yet - every enabled check is expected from week 1. Add a week to phase them in gradually.')) }}
+    </div>
+
+    <div x-data="{ open: false }" class="mt-2">
+      <button type="button" class="btn-ghost d-flex items-center gap-2 form-label cursor-pointer py-1 px-0 wd-toggle-btn" @click="open = !open" :aria-expanded="open" data-tippy-content="{{ t('Show or hide the raw JSON of the weekly schedule') }}">
+        <span class="section-toggle-chevron d-inline-flex" :class="open && 'is-open'">
+          {{ icon('chevron-right', size='sm') }}
+        </span>
+        <span class="d-inline-flex items-center gap-1.5 wd-toggle-title">
+          {{ icon('edit', size='sm') }} {{ t('Edit JSON Configuration') }}
+        </span>
+      </button>
+      {#- The margin is inside what collapses, not on it: on the collapsing
+          element it appeared on the first frame and vanished on the last, a
+          jump at each end of the animation. -#}
+      <div x-show="open" x-collapse><div class="mt-2">
+        {% set _weekly_pre %}[
+  {"week": 3, "label": "Git basics", "expected_checks": ["R01","R02","R04","R05"]},
+  {"week": 5, "label": "Docker", "expected_checks": ["R01","R02","R03","R04","R05","R12"]},
+  {"week": 6, "label": "CI/CD", "expected_checks": ["R01","R02","R03","R04","R05","R06","R07","R12"]},
+  {"week": 10, "label": "Full workflow", "expected_checks": ["R01","R02","R03","R04","R05","R06","R07","R08","R10","R12"]},
+  {"week": 12, "label": "Final", "mr_deadline": "2025-05-20T23:59:00", "merge_deadline": "2025-05-21T23:59:00", "expected_checks": ["R01","R02","R03","R04","R05","R06","R07","R08","R10","R12"]}
+]{% endset %}
+        {{ code_reference(title=t('Format reference'), pre=_weekly_pre) }}
+        {# One surface. This used to be a dashed "Import from file" box sitting
+           directly on top of the JSON textarea - two controls for one value,
+           where the upload silently replaced whatever was in the editor. #}
+        {{ json_drop('weekly_deadlines', rows=8, label=t('Schedule (JSON)'), value=(settings.weekly_deadlines | tojson(indent=2)), help_text=t('Loading a file replaces the whole schedule.')) }}
+      </div></div>
+    </div>
+{% endcall %}
+
+{# -- Weekly deadline editor modal -------------------------------------
+   Form-based alternative to hand-editing JSON. Writes back into the
+   weekly_deadlines textarea, which the settings save already posts. -- #}
+{% from "components/modals.html" import modal with context %}
+{% from "components/forms.html" import text_input, number_input with context %}
+{% call modal('weeklyDeadlineModal', icon('calendar', size='sm') ~ ' ' ~ t('Weekly Deadline'), size='md') %}
+    <input type="hidden" id="wdEditIndex" value="">
+    <div class="form-row">
+      {{ number_input('wd_week', label=t('Week number'), id='wdWeek', min='1', max='30', step='1', value='1', required=true) }}
+      {{ text_input('wd_label', label=t('Label'), id='wdLabel', placeholder=t('e.g. CI/CD'), help_text=t('Shown in analytics and the weekly progress view.')) }}
+    </div>
+    <div class="form-row">
+      {{ text_input('wd_mr_deadline', label=t('MR deadline (optional)'), id='wdMrDeadline', class='datetime-picker') }}
+      {{ text_input('wd_merge_deadline', label=t('Merge deadline (optional)'), id='wdMergeDeadline', class='datetime-picker') }}
+    </div>
+    <div class="form-group">
+      <span class="form-label">{{ t('Expected checks by this week') }}</span>
+      <p class="form-help mb-2">{{ t('Only these checks are scored up to this week, so earlier weeks can require less. The list is built from this course\'s own checks, including custom ones.') }}</p>
+      <div class="wd-check-grid" id="wdCheckGrid">
+        <div class="muted d-flex items-center gap-2 p-3" id="wdCheckGridLoading">
+          {{ spinner(size='xs') }}
+          <span>{{ t('Loading checks...') }}</span>
+        </div>
+      </div>
+      <div class="wd-check-bulk mt-2">
+        {{ btn_icon(t('Select all'), 'check-circle', variant='ghost', size='sm', id='btnWdSelectAll') }}
+        {{ btn_icon(t('Clear'), 'x', variant='ghost', size='sm', id='btnWdClearAll') }}
+      </div>
+    </div>
+    <div class="modal-footer">
+      {{ btn_icon(t('Save week'), 'save', id='btnSaveWeeklyDeadline') }}
+      {{ btn(t('Cancel'), variant='secondary', class='modal-close-btn', data_attrs={'modal-close': 'weeklyDeadlineModal'}) }}
+    </div>
+{% endcall %}

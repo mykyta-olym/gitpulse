@@ -1,0 +1,29 @@
+{
+  "backend_role": {
+    "cluster": [
+      "monitor"
+    ],
+    "indices": [
+      {
+        "names": [
+          "*"
+        ],
+        "privileges": [
+          "read",
+          "write",
+          "manage",
+          "view_index_metadata",
+          "create_index",
+          "create_doc"
+        ],
+        "allow_restricted_indices": false
+      }
+    ],
+    "applications": [],
+    "run_as": [],
+    "metadata": {},
+    "transient_metadata": {
+      "enabled": true
+    }
+  }
+}

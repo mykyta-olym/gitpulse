@@ -1,0 +1,22 @@
+<!-- Alert types = "note", "warning", "flag", "disclaimer" -->
+<!-- Alert aliases: "tip" -> "note", "caution" -> "warning", "important" -> "warning" -->
+
+{{- if eq .Type "alert" -}}
+  {{- $aliases := dict "tip" "note" "caution" "warning" "important" "warning" -}}
+  {{- $alertType := .AlertType | lower -}}
+  {{- $alertType = index $aliases $alertType | default $alertType -}}
+  <div class="alert alert-type-{{ $alertType }} gl-rounded-lg">
+    <div class="alert-icon"></div>
+    <div class="gl-min-w-0">
+    {{- if eq $alertType "disclaimer" -}}
+      {{ T "alerts.disclaimerTxt" }}
+    {{- else -}}
+      {{- .Text | safeHTML -}}
+    {{- end -}}
+    </div>
+  </div>
+{{- else -}}
+  <blockquote>
+    {{- .Text | safeHTML -}}
+  </blockquote>
+{{- end -}}

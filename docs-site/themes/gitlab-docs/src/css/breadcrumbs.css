@@ -1,0 +1,10 @@
+.gl-breadcrumbs {
+  .gl-breadcrumb-list {
+    padding: 0 var(--gl-spacing-scale-3);
+    margin-top: 0;
+  }
+  li.gl-breadcrumb-item,
+  li.gl-new-dropdown-item {
+    margin: 0;
+  }
+}

@@ -1,0 +1,160 @@
+{#
+  Top Bar Component - GitLab Super-Nav
+
+  Full-width top bar with breadcrumb, centered search, action icons, and user avatar.
+  Uses the shared GitLab-aligned navigation and color-mode contracts.
+  ALL elements are fully functional - no decorative-only buttons.
+
+  Usage:
+    {% from "components/header.html" import topbar with context %}
+    {{ topbar(active='dashboard', user_role='admin', username='jsmith') }}
+#}
+
+{% from "components/icons.html" import icon %}
+{% from "components/badges.html" import role_badge %}
+{% from "components/logo.html" import gitpulse_logo %}
+{% from "components/avatar.html" import avatar %}
+{% from "components/dropdown.html" import dropdown_item, dropdown_divider, dropdown_header with context %}
+{% from "components/forms.html" import search_input with context %}
+{% from "components/buttons.html" import btn_icon_only %}
+
+{# Top bar - search + actions + avatar (like GitLab super-topbar) #}
+{% macro topbar(active='dashboard', user_role='', username='', full_name='', is_admin=false, is_teacher=false, avatar_url='') %}
+{% set docs_href = docs_url %}
+{% set api_docs_href = '/docs/#api-reference' %}
+<header class="gl-top-bar" role="banner">
+  <div class="gl-top-bar-left">
+    {# Brand - top-left of the full-width bar, where GitLab keeps its own. The
+       mobile drawer carries the brand itself, so there the mark shows without
+       the wordmark. #}
+    <a href="/dashboard/" class="gl-top-bar-logo" aria-label="GitPulse">
+      {{ gitpulse_logo(id_suffix='Topbar', class='gl-top-bar-logo-svg') }}
+      <span class="gl-top-bar-logo-text">GitPulse</span>
+    </a>
+    {# Mobile sidebar toggle (hidden on desktop) #}
+    {{ btn_icon_only('menu', variant='tertiary', id='mobileMenuBtn', class='gl-mobile-menu-btn', aria_label=t('Toggle menu'), title=t('Toggle menu')) }}
+  </div>
+
+  {# Centered search - GitLab command-palette style #}
+  <div class="gl-top-bar-search" id="topBarSearch">
+    <button type="button" class="gl-search-btn" id="globalSearchBtn" aria-label="{{ t('Search') }}" aria-haspopup="dialog" aria-controls="searchModalBackdrop" aria-expanded="false">
+      {{ icon('search', size='sm') }}
+      <span class="gl-search-btn-text">{{ t('Search or go to...') }}</span>
+      <kbd class="gl-search-shortcut">/</kbd>
+    </button>
+  </div>
+
+  <div class="gl-top-bar-right">
+    {% if user_role %}
+    {# Contextual info bar - semester, date, time. Stays inline on every width
+       (it fits next to the avatar on mobile too); a single source of truth, no
+       duplicate "+" dropdown. #}
+    <div class="gl-top-bar-context" aria-label="{{ t('Semester info') }}">
+      {#- The term the calendar is in - the same answer, in the same words, as
+          the "Current" mark in every period selector and the default of every
+          new course. It used to be a bare year from its own August rule, which
+          in July disagreed with both. Between two terms it names the one about
+          to start and says so. On a phone only the year fits beside the clock;
+          the tooltip still carries the whole term. -#}
+      {%- set _cp = current_period() if current_period is defined else none %}
+      {%- if _cp %}
+      {%- set _cp_term = t('Winter') if _cp.semester == 'winter' else t('Summer') %}
+      <span class="gl-context-item" data-tippy-content="{{ (t('Current semester') if _cp.running else t('Upcoming semester')) ~ ': ' ~ _cp.academic_year ~ ' · ' ~ _cp_term }}">
+        {{ icon('calendar', size='sm') }}
+        <span>{{ _cp.academic_year }}<span class="gl-context-term"> · {{ _cp_term }}</span></span>
+      </span>
+      {%- endif %}
+      <span class="gl-context-separator">·</span>
+      <span class="gl-context-item" id="topBarClock" data-tour="topbar-time" data-tippy-content="{{ t('Current date and time') }}">
+        {{ icon('clock', size='sm') }}
+        <span id="topBarClockText" data-clock-text></span>
+      </span>
+    </div>
+
+    {# User avatar dropdown #}
+    <div class="gl-top-bar-dropdown gl-top-bar-user-wrap gl-dropdown"
+         data-dropdown
+         data-user-menu>
+      <button type="button" class="gl-top-bar-avatar-btn" data-tour="user-menu"
+              data-dropdown-toggle aria-label="{{ username|default('?') }}"
+              aria-haspopup="true" aria-expanded="false">
+        {# 32px, as GitLab's user menu draws it (super_sidebar/user_menu.vue). #}
+        {{ avatar(avatar_url, full_name or username|default('?', true), size=32, loading='eager', priority='high') }}
+      </button>
+      <div class="gl-dropdown-menu gl-dropdown-right gl-user-dropdown"
+           data-tour="user-menu-panel"
+           data-dropdown-menu
+           aria-hidden="true"
+           inert>
+        <div class="gl-user-dropdown-header">
+          <div class="gl-user-dropdown-info">
+            <div class="gl-user-dropdown-name-row">
+              <span class="gl-user-dropdown-name">{{ full_name or username|default('?') }}</span>
+              {{ role_badge(user_role or 'user') }}
+            </div>
+            <div class="gl-user-dropdown-handle">@{{ gitlab_username or username|default('?') }}</div>
+          </div>
+        </div>
+        {{ dropdown_divider() }}
+        {# The colour mode lives on the Preferences page, not here as well.
+           Two places to change one setting is two things to keep in step, and
+           the menu copy was the one with no label, no help text and no room
+           for the rest of the appearance settings beside it. #}
+        {# First item, the way GitLab keeps Preferences at the top of its user
+           menu beside the personal entries rather than down with the
+           navigation ones. Every role has it. #}
+        {{ dropdown_item(t('Preferences'), 'settings', href='/dashboard/preferences') }}
+        {{ dropdown_divider() }}
+        {{ dropdown_item(t('Dashboard'), 'home', href='/dashboard/') }}
+        {% if is_admin %}
+        {{ dropdown_item(t('System status'), 'activity', href='/dashboard/admin/system') }}
+        {% endif %}
+        {{ dropdown_item(t('GitLab'), 'gitlab', href=gitlab_url|default('https://gitlab.example.com'), external=true) }}
+        {{ dropdown_item(t('Take a tour'), 'help-circle', id='globalTourLauncher', data_attrs={'action': 'tour-launch'}) }}
+        {{ dropdown_item(t('Replay tours'), 'refresh-cw', id='globalTourReset', data_attrs={'action': 'tour-reset'}) }}
+        {% if is_teacher or is_admin %}
+        {# `docs_url` is None when the docs feature is off, and an empty href would
+   turn this into a button that goes nowhere. Same fallback the footer uses. #}
+        {{ dropdown_item(t('Documentation'), 'book-open', href=docs_href|default('/docs/', true), external=true) }}
+        {% else %}
+        {% set student_docs_href = '/docs/en/studenti/' if current_locale|default('sk') == 'en' else '/docs/studenti/' %}
+        {{ dropdown_item(t('Documentation'), 'book-open', href=student_docs_href, external=true) }}
+        {% endif %}
+        {{ dropdown_divider() }}
+        {{ dropdown_item(t('Sign out'), 'log-out', href='/dashboard/logout', danger=true) }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</header>
+
+{# -- Search Command Palette Modal --
+   Shared components only, the way GitLab builds its palette: the borderless
+   search box (GlSearchBoxByType), the filters as a dropdown in its field
+   (GlCollapsibleListbox) whose items type their handle into it, and results
+   drawn by search-palette.js as dropdown items under group headers. #}
+<div class="gl-search-modal-backdrop" id="searchModalBackdrop" hidden>
+  <div class="gl-search-modal" role="dialog" aria-label="{{ t('Search') }}">
+    <div class="gl-search-modal-input-wrap">
+      {% call search_input(name='search', id='searchModalInput', placeholder=t('Type to search...'), borderless=true) %}
+      <div class="gl-dropdown" id="searchFilters" data-dropdown data-dropdown-portal>
+        {{ btn_icon_only('filter', variant='tertiary', aria_label=t('Filters'), data_attrs={'dropdown-toggle': '', 'tippy-content': t('Filters')}) }}
+        <div class="gl-dropdown-menu gl-dropdown-right" data-dropdown-menu aria-hidden="true" inert>
+          {{ dropdown_header(t('Filters')) }}
+          {{ dropdown_divider() }}
+          {{ dropdown_item(t('Pages'), data_attrs={'search-handle': '>'}, shortcut='>') }}
+          {% if is_teacher %}
+          {{ dropdown_item(t('Users'), data_attrs={'search-handle': '@'}, shortcut='@') }}
+          {% endif %}
+          {{ dropdown_item(t('Courses'), data_attrs={'search-handle': ':'}, shortcut=':') }}
+          {{ dropdown_item(t('Students'), data_attrs={'search-handle': '#'}, shortcut='#') }}
+        </div>
+      </div>
+      {% endcall %}
+      {{ btn_icon_only('x', variant='tertiary', id='searchCloseBtn', aria_label=t('Close'), class='gl-search-close-btn') }}
+    </div>
+    <div class="gl-search-modal-body gl-scrollbar" id="searchModalResults"></div>
+  </div>
+</div>
+<script defer nonce="{{ csp_nonce|default('') }}" src="{{ static_url('js/header-clock.js') }}"></script>
+{% endmacro %}

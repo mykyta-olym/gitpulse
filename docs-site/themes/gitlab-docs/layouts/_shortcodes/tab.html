@@ -1,0 +1,15 @@
+{{- $title := .Get "title" -}}
+
+{{/* Validate that title parameter is present */}}
+{{- partial "functions/validate-shortcode.html" (dict "shortcodeName" "tab" "paramName" "title" "paramValue" $title "sourceFile" .Position.Filename "lineNumber" .Position.LineNumber "required" true "errorLevel" "error") -}}
+
+<div class="tab">
+  <button class="tab-title">{{ $title | markdownify | plainify  }}</button>
+  <div class="tab-content">
+    <!-- .InnerDeindent is for rendering code within nested tabs. -->
+    <!-- $.Page.RenderString is for rendering string as markdown. -->
+    <!-- The map is to finally render content as markdown with display: block. -->
+    <!-- These conditions together allows for nested tabs, image and markdown links to render properly. -->
+    {{- .InnerDeindent | $.Page.RenderString (dict "display" "block" "markup" "markdown") -}}
+  </div>
+</div>

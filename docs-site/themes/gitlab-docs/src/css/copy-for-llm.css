@@ -1,0 +1,37 @@
+/* Copy for LLM options */
+
+.copy-for-llm {
+  /* The rail is 17rem and this block is inset 2.5rem, so 80% of the rail left
+     54px of it unused and squeezed the label into 112px - nine pixels short of
+     "Kopírovať pre LLM", which arrived as "Kopírovať pre ...". English fits at
+     80% and Slovak does not; the width now follows the column instead of a
+     fraction of it, and the right edge lines up with the rail. */
+  /* ...minus room for the focus ring. The block ended exactly at the right edge
+     of `.sidebar-right`, which scrolls, and the ring is a 3px outline painted
+     OUTSIDE the border box - so focusing either button drew three pixels the
+     rail immediately clipped. Four pixels of slack, measured against that ring. */
+  width: calc(100% - 2.5rem - 4px);
+
+  /* This block draws the line the table of contents sits under. It had padding
+     below the line and nothing after it, so the first heading landed 12px from
+     the rule and read as part of the button group. */
+  margin-bottom: var(--gl-spacing-scale-4);
+
+  .gl-new-dropdown-toggle {
+    padding-left: var(--gl-spacing-scale-3);
+  }
+
+  /* Fill the block. Both blocks are already the same width; the control
+     inside was not, so each button ended where its own label ended and the two
+     right edges sat in different places - one reading as wider than the other
+     for no reason a reader can see. */
+  .gl-new-dropdown,
+  .gl-new-dropdown-toggle {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .gl-new-dropdown-panel {
+    min-width: 11rem;
+  }
+}

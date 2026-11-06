@@ -1,0 +1,174 @@
+{#
+  Sidebar Component - GitLab Pajamas Left Navigation
+
+  A fixed left sidebar with collapsible sections, icons+text nav items,
+  section labels, language switcher, and collapse/expand toggle.
+  Uses the shared GitLab-aligned navigation and color-mode contracts.
+
+  Usage:
+    {% from "components/sidebar.html" import sidebar with context %}
+    {{ sidebar(active='dashboard', ...) }}
+#}
+
+{% from "components/icons.html" import icon %}
+{% from "components/forms.html" import language_selector %}
+{% from "components/logo.html" import gitpulse_logo %}
+
+{% macro sidebar(active='dashboard', user_role='', username='', is_admin=false, is_teacher=false, current_locale='sk', supported_locales=[], current_path_with_query='/dashboard/') %}
+{# `collapsed` is rendered by the SERVER, not added by sidebar.js after paint.
+   The account default only started reaching the page recently, and applying it
+   from JS meant every page painted a 240px sidebar and then snapped it to 48px:
+   the whole content well - the page header and its buttons with it - slid ~190px
+   left one frame in. Measured at 0.115 CLS on the group page. sidebar.js still
+   owns the local override (a reader who toggles it here), which is the only case
+   that can still disagree with what was rendered. #}
+<aside class="gl-sidebar{% if sidebar_collapsed|default(false) %} collapsed{% endif %}" id="appSidebar" data-tour="sidebar">
+  {# Header - logo area (same height as top bar) #}
+  <div class="gl-sidebar-header">
+    <a href="/dashboard/" class="gl-sidebar-brand">
+      {{ gitpulse_logo(id_suffix='Sidebar', class='gl-sidebar-logo') }}
+      <span class="gl-sidebar-brand-text">GitPulse</span>
+    </a>
+  </div>
+
+  {# Scrollable navigation body #}
+  <div class="gl-sidebar-body gl-scrollbar-thin">
+    {# --- Your work section --- #}
+    <div class="gl-sidebar-section">
+      <div class="gl-sidebar-section-label">{{ t('Your work') }}</div>
+      <ul class="gl-sidebar-list">
+        <li>
+          <a href="/dashboard/" class="gl-sidebar-item{% if active == 'dashboard' %} active{% endif %}">
+            {{ icon('home', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Dashboard') }}</span>
+          </a>
+        </li>
+
+        {% if user_role == 'student' %}
+        <li>
+          <a href="/dashboard/#my-courses" class="gl-sidebar-item{% if active == 'my_courses' %} active{% endif %}">
+            {{ icon('folder', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('My Courses') }}</span>
+          </a>
+        </li>
+        {% endif %}
+
+        {% if feature_support_forms and user_role %}
+        <li>
+          <a href="/dashboard/support" class="gl-sidebar-item{% if active == 'support' %} active{% endif %}">
+            {{ icon('life-buoy', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Support') }}</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+
+    {# --- Teaching section (teacher only, not admin - admin has Administration) --- #}
+    {% if is_teacher and not is_admin %}
+    <div class="gl-sidebar-section">
+      <div class="gl-sidebar-section-label">{{ t('Teaching') }}</div>
+      <ul class="gl-sidebar-list">
+        <li>
+          <a href="/dashboard/admin/courses" class="gl-sidebar-item{% if active == 'courses' %} active{% endif %}">
+            {{ icon('book', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('My Courses') }}</span>
+          </a>
+        </li>
+        {% if feature_support_forms %}
+        <li>
+          <a href="/dashboard/support/tickets" class="gl-sidebar-item{% if active == 'support_tickets' %} active{% endif %}">
+            {{ icon('inbox', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Support Tickets') }}</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# --- Administration section (admin only) --- #}
+    {% if is_admin %}
+    <div class="gl-sidebar-section">
+      <div class="gl-sidebar-section-label">{{ t('Administration') }}</div>
+      <ul class="gl-sidebar-list">
+        <li>
+          <a href="/dashboard/admin/users" class="gl-sidebar-item{% if active == 'users' %} active{% endif %}">
+            {{ icon('users', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Users') }}</span>
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard/admin/courses" class="gl-sidebar-item{% if active == 'courses' %} active{% endif %}">
+            {{ icon('book', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Courses') }}</span>
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard/admin/system" class="gl-sidebar-item{% if active == 'system' %} active{% endif %}">
+            {{ icon('settings', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('System') }}</span>
+          </a>
+        </li>
+        {% if feature_support_forms %}
+        <li>
+          <a href="/dashboard/support/tickets" class="gl-sidebar-item{% if active == 'support_tickets' %} active{% endif %}">
+            {{ icon('inbox', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Support Tickets') }}</span>
+          </a>
+        </li>
+        {% endif %}
+        {% if feature_event_pipeline %}
+        <li>
+          <a href="/dashboard/admin/events" class="gl-sidebar-item{% if active == 'events' %} active{% endif %}" data-sidebar-badge-slot="events">
+            {{ icon('activity', size='sm') }}
+            <span class="gl-sidebar-item-text">{{ t('Events') }}</span>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  {# --- Fixed bottom section --- #}
+  <div class="gl-sidebar-bottom">
+    {# Language switcher - styled like other bottom items #}
+    {% if supported_locales %}
+    {{ language_selector(supported_locales, current_locale, current_path_with_query, variant='sidebar') }}
+    {% endif %}
+
+    {# Docs site link - all authenticated users #}
+    {% if user_role %}
+    {% if is_teacher or is_admin %}
+    {% set docs_href = docs_url %}
+    {% else %}
+    {% set docs_href = '/docs/en/studenti/' if current_locale|default('sk') == 'en' else '/docs/studenti/' %}
+    {% endif %}
+    <a href="{{ docs_href }}" target="_blank" rel="noopener noreferrer" class="gl-sidebar-bottom-item">
+      {{ icon('book', size='sm') }}
+      <span class="gl-sidebar-item-text">{{ t('Docs') }}</span>
+    </a>
+    {% endif %}
+
+
+
+    {# Sign out #}
+    {% if user_role %}
+    <a href="/dashboard/logout" class="gl-sidebar-bottom-item gl-sidebar-signout">
+      {{ icon('log-out', size='sm') }}
+      <span class="gl-sidebar-item-text">{{ t('Sign out') }}</span>
+    </a>
+    {% endif %}
+
+    {# Collapse / expand toggle #}
+    <button type="button" class="gl-sidebar-bottom-item gl-sidebar-toggle" id="sidebarToggle" aria-label="{{ t('Collapse sidebar') }}" data-tippy-content="{{ t('Collapse sidebar') }}">
+      {{ icon('chevron-left', size='sm', class='gl-sidebar-toggle-icon') }}
+      <span class="gl-sidebar-item-text">{{ t('Collapse sidebar') }}</span>
+    </button>
+  </div>
+</aside>
+
+{# Mobile sidebar overlay backdrop #}
+<div class="gl-sidebar-overlay" id="sidebarOverlay"></div>
+{% endmacro %}

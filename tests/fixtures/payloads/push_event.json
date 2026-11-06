@@ -1,0 +1,67 @@
+{
+  "object_kind": "push",
+  "event_name": "push",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+  "ref": "refs/heads/feature/user-auth",
+  "checkout_sha": "a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+  "message": "Add user authentication module",
+  "user_id": 42,
+  "user_name": "Jan Novak",
+  "user_username": "jnovak",
+  "user_email": "jan.novak@student.university.edu",
+  "user_avatar": "https://gitlab.example.com/uploads/-/system/user/avatar/42/avatar.png",
+  "project_id": 123,
+  "project": {
+    "id": 123,
+    "name": "team-alpha-project",
+    "description": "ZSI course project - Team Alpha",
+    "web_url": "https://gitlab.example.com/zsi-2025/team-alpha-project",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "git_http_url": "https://gitlab.example.com/zsi-2025/team-alpha-project.git",
+    "namespace": "zsi-2025",
+    "visibility_level": 0,
+    "path_with_namespace": "zsi-2025/team-alpha-project",
+    "default_branch": "main",
+    "ci_config_path": ".gitlab-ci.yml",
+    "homepage": "https://gitlab.example.com/zsi-2025/team-alpha-project",
+    "url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "ssh_url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "http_url": "https://gitlab.example.com/zsi-2025/team-alpha-project.git"
+  },
+  "commits": [
+    {
+      "id": "a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+      "message": "Add user authentication module\n\nImplements JWT-based auth with refresh tokens.\n\nCloses #15",
+      "title": "Add user authentication module",
+      "timestamp": "2025-01-30T14:35:00+01:00",
+      "url": "https://gitlab.example.com/zsi-2025/team-alpha-project/-/commit/a5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+      "author": {
+        "name": "Jan Novak",
+        "email": "jan.novak@student.university.edu"
+      },
+      "added": [
+        "src/auth/jwt_handler.py",
+        "src/auth/routes.py",
+        "tests/test_auth.py"
+      ],
+      "modified": [
+        "src/main.py",
+        "requirements.txt"
+      ],
+      "removed": []
+    }
+  ],
+  "total_commits_count": 1,
+  "push_options": {},
+  "repository": {
+    "name": "team-alpha-project",
+    "url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "description": "ZSI course project - Team Alpha",
+    "homepage": "https://gitlab.example.com/zsi-2025/team-alpha-project",
+    "git_http_url": "https://gitlab.example.com/zsi-2025/team-alpha-project.git",
+    "git_ssh_url": "git@gitlab.example.com:zsi-2025/team-alpha-project.git",
+    "visibility_level": 0
+  }
+}

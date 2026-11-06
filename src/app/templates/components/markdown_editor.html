@@ -1,0 +1,87 @@
+{#
+  Markdown editor - shared write/preview tabs and formatting toolbar.
+
+  Used by the support form and the support ticket reply box.  Eliminates
+  the previous ~30-line copy/paste across three templates and centralises
+  the toolbar markup so future changes (icons, tooltips, accessibility,
+  CSP-safe action handlers) only have to be made in one place.
+
+  The host component must expose:
+    * `<tab_var>`        Alpine string ('write' | 'preview')
+
+  Usage:
+    {% from "components/markdown_editor.html" import md_editor %}
+    {{ md_editor(
+         name='description',
+         id='description',
+         ref='mdTextarea',
+         tab_var='mdTab',
+         rows=10,
+         required=true,
+         placeholder=t('Describe...'),
+         show_paste_hint=true,
+       ) }}
+#}
+
+{% from "components/icons.html" import icon %}
+{% from "components/layout.html" import filter_tabs with context %}
+{% from "components/buttons.html" import btn_icon_only %}
+{% from "components/forms.html" import file_upload %}
+{% from "components/responsive_text.html" import responsive_text %}
+
+{% macro md_editor(
+    name,
+    id='',
+    ref='mdTextarea',
+    tab_var='mdTab',
+    rows=8,
+    required=false,
+    placeholder='',
+    show_paste_hint=false,
+    show_markdown_hint=true,
+    label='',
+    label_sr_only=false
+  ) %}
+{% set field_id = id or name %}
+<div class="gh-md-editor">
+  {% if label and not label_sr_only %}
+  <label class="gh-form-label" for="{{ field_id }}">{{ label }}{% if required %} <span class="required">*</span>{% endif %}</label>
+  {% elif label %}
+  <label class="sr-only" for="{{ field_id }}">{{ label }}</label>
+  {% endif %}
+  <div class="gh-md-header">
+    {{ filter_tabs([
+      {'value': 'write', 'label': t('Write'), 'x_selected': tab_var ~ " === 'write'", 'x_click': tab_var ~ " = 'write'"},
+      {'value': 'preview', 'label': t('Preview'), 'x_selected': tab_var ~ " === 'preview'", 'x_click': "$mdShowPreview('" ~ tab_var ~ "')"}
+    ], active='write', aria_label=t('Markdown editor')) }}
+    <div class="gh-md-toolbar" x-show="{{ tab_var }} === 'write'" role="toolbar" aria-label="{{ t('Markdown formatting') }}">
+      {% for label, glyph, before, after in [
+        ('Heading', 'type', '### ', ''), ('Bold', 'bold', '**', '**'),
+        ('Italic', 'italic', '_', '_'), ('Quote', 'message-square', '> ', ''),
+        ('Code', 'code', '`', '`'), ('Link', 'link', '[', '](url)'),
+        ('Bulleted list', 'list', '- ', '')
+      ] %}
+        {{ btn_icon_only(glyph, variant='tertiary', size='sm', title=t(label), data_attrs={'dirty-action': ''}, x_click="$mdInsert($refs." ~ ref ~ ", '" ~ before ~ "', '" ~ after ~ "')") }}
+      {% endfor %}
+    </div>
+  </div>
+  <textarea x-ref="{{ ref }}" id="{{ field_id }}" name="{{ name }}" class="gh-md-textarea" rows="{{ rows }}"
+            x-show="{{ tab_var }} === 'write'"
+            @invalid="$mdShowWrite('{{ tab_var }}')"
+            {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+            {% if required %}required{% endif %}></textarea>
+  {# Preview HTML is injected by the $mdShowPreview magic (core/18-alpine.js):
+     the @alpinejs/csp build forbids the x-html directive. #}
+  <div class="gh-md-preview" x-show="{{ tab_var }} === 'preview'" x-cloak></div>
+  {% if show_paste_hint %}
+  <div class="gh-md-hint">
+    <span class="flex-1 text-nowrap">{{ responsive_text(t('Paste or drop files (max 50 MB).'), t('Paste/drop · max. 50 MB')) }}</span>
+    {{ file_upload(field_id ~ '_file', multiple=true, data_attrs={'md-upload': ''}) }}
+    {% if show_markdown_hint %}{{ btn_icon_only('info', variant='tertiary', size='sm', title=t('Markdown is supported.')) }}{% endif %}
+  </div>
+  {% endif %}
+  {% if show_markdown_hint and not show_paste_hint %}
+  <p class="gh-md-hint">{{ icon('info', size='xs') }} {{ t('Markdown is supported.') }}</p>
+  {% endif %}
+</div>
+{% endmacro %}

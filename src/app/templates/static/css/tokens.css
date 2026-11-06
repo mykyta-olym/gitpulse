@@ -1,0 +1,1512 @@
+/**
+ * GitPulse - Design Tokens
+ * GitLab Pajamas Design System Aligned
+ * https://design.gitlab.com/
+ *
+ * These tokens replicate the exact colors, spacing, typography,
+ * shadows, and animation curves used by GitLab's Pajamas UI.
+ */
+
+/* -- Global box-sizing reset (GitLab Pajamas standard) -- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* -- Links: the theme's link colour, underlined on hover (GitLab) --
+   There was no base rule at all, so every anchor without a component class of
+   its own - a group name in the course table, "contact support" on an error
+   page, a language link - rendered in the browser's default #0000EE with a
+   permanent underline, in every theme. Components that colour their anchors
+   themselves (.btn, .gl-list-item, .gl-sidebar-item, ...) out-rank this - the
+   `:where()` keeps the hover at a + :hover, so a component's own
+   `.x:hover { text-decoration: none }` wins. As a bare `:not(.btn)` it
+   out-ranked them all, and every sidebar link and menu item underlined. */
+a { color: var(--gl-text-color-link); text-decoration: none; }
+a:where(:not(.btn)):hover { text-decoration: underline; }
+
+/* -- Alpine.js x-cloak: hide elements until Alpine initializes -- */
+/* Prevents dropdown menus from flashing visible before Alpine runs. */
+[x-cloak] { display: none !important; }
+
+/* -- The first-frame gate (base.html sets data-gp-gate; theme-bootstrap.js
+   sets data-gp-ready one frame after DOMContentLoaded). Visibility, not
+   display: the page is laid out in full behind it, so lifting the gate paints
+   the finished page in place with nothing moving. -- */
+html[data-gp-gate]:not([data-gp-ready]) body { visibility: hidden; }
+
+:root {
+  /* Dark color scheme for native form controls */
+  color-scheme: dark;
+
+  /* ----------------------------------------------
+     BRAND & PRIMARY - GitLab Indigo/Blue
+     ---------------------------------------------- */
+  --gl-blue-50:  #e9f3fc;
+  --gl-blue-100: #cbe2f9;
+  --gl-blue-200: #9dc7f1;
+  --gl-blue-300: #63a6e9;
+  --gl-blue-400: #428fdc;
+  --gl-blue-500: #1f75cb;
+  --gl-blue-600: #2f68b4;
+  --gl-blue-700: #2f5ca0;
+  --gl-blue-800: #284779;
+  --gl-blue-900: #213454;
+  --gl-blue-950: #1d283e;
+
+  /* On dark the primary is blue-400, GitLab's own dark step for the tab
+     indicator and the brand marks: blue-500 measured 3.9:1 as text (the
+     sorted column header, the current-week pill) on the gray-900 page. A hover
+     goes lighter on a dark page. */
+  --primary:       var(--gl-blue-400);
+  --primary-hover:  var(--gl-blue-300);
+  --primary-active: var(--gl-blue-500);
+  --primary-light:  var(--gl-blue-950);
+  --primary-dark:   var(--gl-blue-800);
+
+  /* ----------------------------------------------
+     SEMANTIC COLORS - GitLab exact values
+     ---------------------------------------------- */
+  /* Green / Success */
+  --gl-green-50:  #ecf4ee;
+  --gl-green-100: #c3e6cd;
+  --gl-green-200: #91d4a8;
+  --gl-green-300: #52b87a;
+  --gl-green-400: #2da160;
+  --gl-green-500: #108548;
+  --gl-green-600: #2f7549;
+  --gl-green-700: #306440;
+  --gl-green-800: #225131;
+  --gl-green-900: #1e3e28;
+  --gl-green-950: #17291c;
+
+  --success:        var(--gl-green-500);
+  --success-hover:  var(--gl-green-400);
+  --success-bg:     var(--gl-green-950);
+  --success-border: var(--gl-green-800);
+
+  /* Orange / Warning */
+  --gl-orange-50:  #fdf1dd;
+  --gl-orange-100: #f5d9a8;
+  --gl-orange-200: #e9be74;
+  --gl-orange-300: #d99530;
+  --gl-orange-400: #c17d10;
+  --gl-orange-500: #ab6100;
+  --gl-orange-600: #995715;
+  --gl-orange-700: #894b16;
+  --gl-orange-800: #693c14;
+  --gl-orange-900: #532e16;
+  --gl-orange-950: #382315;
+
+  --warning:        var(--gl-orange-500);
+  --warning-hover:  var(--gl-orange-400);
+  --warning-bg:     var(--gl-orange-950);
+  --warning-border: var(--gl-orange-800);
+
+  /* Red / Danger */
+  --gl-red-50:  #fcf1ef;
+  --gl-red-100: #fdd4cd;
+  --gl-red-200: #fcb5aa;
+  --gl-red-300: #f6806d;
+  --gl-red-400: #ec5941;
+  --gl-red-500: #dd2b0e;
+  --gl-red-600: #c02f12;
+  --gl-red-700: #a32c12;
+  --gl-red-800: #812713;
+  --gl-red-900: #582014;
+  --gl-red-950: #3e1a14;
+
+  --danger:        var(--gl-red-500);
+  --danger-hover:  var(--gl-red-400);
+  --danger-bg:     var(--gl-red-950);
+  --danger-border: var(--gl-red-800);
+
+  /* Info (alias to blue) */
+  --info:        var(--gl-blue-500);
+  --info-bg:     var(--gl-blue-950);
+  --info-border: var(--gl-blue-800);
+
+  /* ----------------------------------------------
+     NEUTRAL GRAY SCALE - GitLab exact values
+     ---------------------------------------------- */
+  --gl-gray-0:   #fff;
+  --gl-gray-10:  #fbfafd;
+  --gl-gray-50:  #ececef;
+  --gl-gray-100: #dcdcde;
+  --gl-gray-200: #bfbfc3;
+  --gl-gray-300: #a4a3a8;
+  --gl-gray-400: #89888d;
+  --gl-gray-500: #737278;
+  --gl-gray-600: #626168;
+  --gl-gray-700: #4c4b51;
+  --gl-gray-800: #3a383f;
+  --gl-gray-900: #28272d;
+  --gl-gray-950: #18171d;
+  --gl-gray-1000: #050506;
+
+  /* Alpha overlays (Pajamas) */
+  --alpha-dark-4:  rgba(5, 5, 6, 0.04);
+  --alpha-dark-8:  rgba(5, 5, 6, 0.08);
+  --alpha-dark-16: rgba(5, 5, 6, 0.16);
+  --alpha-dark-24: rgba(5, 5, 6, 0.24);
+  /* @gitlab/ui --gl-color-alpha-light-*, the ink the theme preview uses on a
+     dark panel (the dark counterparts above are for a light one). */
+  --alpha-light-8:  rgba(255, 255, 255, 0.08);
+  --alpha-light-16: rgba(255, 255, 255, 0.16);
+  --alpha-light-24: rgba(255, 255, 255, 0.24);
+  /* --gl-border-radius-lg: var(--gl-spacing-scale-3) = 8px */
+  --gl-border-radius-lg: 8px;
+  --alpha-dark-40: rgba(5, 5, 6, 0.40);
+  --alpha-dark-64: rgba(5, 5, 6, 0.64);
+
+  /* Alpha light overlays - hover/active states on dark bg */
+  --gl-hover-subtle: rgba(255, 255, 255, 0.08);
+  --gl-hover-faint:  rgba(255, 255, 255, 0.02);
+  --gl-hover-muted:  rgba(255, 255, 255, 0.06);
+  --gl-active-subtle: rgba(255, 255, 255, 0.12);
+  --gl-scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --gl-scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+  --gl-overlay-bg-strong: rgba(0, 0, 0, 0.6);
+  --gl-separator-on-filled: rgba(255, 255, 255, 0.15);
+  --gl-text-on-filled-muted: rgba(255, 255, 255, 0.6);
+
+  /* Backward compat aliases - remapped for dark theme */
+  --gray-50:  var(--gl-gray-900);
+  --gray-100: var(--gl-gray-800);
+  --gray-200: var(--gl-gray-100);
+  --gray-300: var(--gl-gray-200);
+  --gray-400: var(--gl-gray-300);
+  --gray-500: var(--gl-gray-500);
+  --gray-600: var(--gl-gray-600);
+  --gray-700: var(--gl-gray-700);
+  --gray-800: var(--gl-gray-800);
+  --gray-900: var(--gl-gray-950);
+
+  /* ----------------------------------------------
+     EXTENDED PALETTE - for badges, charts, tags
+     ---------------------------------------------- */
+  /* Purple */
+  --gl-purple-50:  #f4f0ff;
+  --gl-purple-100: #e1d8f9;
+  --gl-purple-200: #cbbbf2;
+  --gl-purple-300: #ac93e6;
+  --gl-purple-400: #9475db;
+  --gl-purple-500: #7b58cf;
+  --gl-purple-600: #6a4fb4;
+  --gl-purple-700: #5c47a6;
+  --gl-purple-800: #493c83;
+  --gl-purple-900: #342d59;
+  --gl-purple-950: #27243e;
+
+  /* Teal */
+  --gl-teal-50:  #e7f2f8;
+  --gl-teal-100: #b3daef;
+  --gl-teal-300: #6ecde8;
+  --gl-teal-500: #0094b6;
+  --gl-teal-700: #006887;
+  --gl-teal-950: #113b47;
+
+  /* Backward compat color aliases */
+  --red-50:    var(--gl-red-950);
+  --red-100:   var(--gl-red-100);
+  --red-200:   var(--gl-red-200);
+  --red-300:   var(--gl-red-300);
+  --red-400:   var(--gl-red-400);
+  --red-500:   var(--gl-red-500);
+  --red-600:   var(--gl-red-600);
+  --red-700:   var(--gl-red-700);
+  --red-800:   var(--gl-red-800);
+
+  --green-50:  var(--gl-green-950);
+  --green-100: var(--gl-green-100);
+  --green-200: var(--gl-green-200);
+  --green-300: var(--gl-green-300);
+  --green-400: var(--gl-green-400);
+  --green-500: var(--gl-green-500);
+  --green-600: var(--gl-green-600);
+  --green-700: var(--gl-green-700);
+  --green-800: var(--gl-green-800);
+
+  --blue-50:   var(--gl-blue-950);
+  --blue-100:  var(--gl-blue-100);
+  --blue-200:  var(--gl-blue-200);
+  --blue-300:  var(--gl-blue-300);
+  --blue-400:  var(--gl-blue-400);
+  --blue-500:  var(--gl-blue-500);
+  --blue-600:  var(--gl-blue-600);
+  --blue-700:  var(--gl-blue-700);
+
+  --yellow-50:  #fdf4cd;
+  --yellow-100: #f5d565;
+  --yellow-200: #e6c000;
+  --yellow-300: #d4a72c;
+  --yellow-400: #c17d10;
+  --yellow-500: #ab6100;
+  --yellow-600: #9e5400;
+  --yellow-700: #8f4700;
+  --yellow-800: #703800;
+  --yellow-900: #5c2900;
+
+  --amber-50:   var(--gl-orange-950);
+  --amber-900:  var(--gl-orange-900);
+
+  --purple-100: var(--gl-purple-100);
+  --purple-600: var(--gl-purple-500);
+  --purple-700: var(--gl-purple-700);
+
+  --violet-50:  var(--gl-purple-950);
+  --violet-500: var(--gl-purple-500);
+
+  --indigo-700: #3b49c0;
+
+  /* Extended primary scale (backward compat) */
+  --primary-50:  var(--gl-blue-950);
+  --primary-100: var(--gl-blue-100);
+  --primary-200: var(--gl-blue-200);
+  --primary-300: var(--gl-blue-300);
+  --primary-400: var(--gl-blue-400);
+  --primary-500: var(--gl-blue-500);
+  --primary-600: var(--gl-blue-600);
+  --primary-700: var(--gl-blue-700);
+  --primary-800: var(--gl-blue-800);
+  --primary-900: var(--gl-blue-900);
+
+  /* ----------------------------------------------
+     BORDERS - GitLab dark theme
+     ---------------------------------------------- */
+  --border-color: var(--gl-gray-700);
+  --border-color-strong: var(--gl-gray-600);
+  --border-width: 1px;
+
+  /* ----------------------------------------------
+     BORDER RADIUS - GitLab Pajamas exact
+     base = 0.25rem (4px), large = 0.5rem (8px)
+     ---------------------------------------------- */
+  --radius-sm:   2px;
+  --radius:      4px;
+  --radius-md:   8px;
+  --radius-lg:   8px;
+  /* 12px, not 16px. Resolved from @gitlab/ui 136.3.0:
+     --gl-border-radius-xl -> --gl-spacing-scale-4 -> 0.75rem. */
+  --radius-xl:   12px;
+  --radius-full: 9999px;
+
+  /* Per-component radii, straight from @gitlab/ui 136.1.0 (--gl-*-border-radius
+     in src/tokens/build/css/tokens.css). GitLab does NOT put one radius on
+     everything: the generic scale above says nothing about which component uses
+     which, and picking --radius (4px) for buttons and inputs is what made our
+     controls read as visibly squarer than GitLab's in side-by-side screenshots.
+     Cross-checked live: button 8px and nav item 8px on gitlab.com, input 8px,
+     card 12px and alert 8px on design.gitlab.com. */
+  --gl-action-border-radius:   8px;  /* buttons, nav items   (gl radius lg)  */
+  --gl-control-border-radius:  8px;  /* input/select/textarea (gl radius lg) */
+  --gl-card-border-radius:    12px;  /* cards                (gl radius xl)  */
+  /* The inset block a card carries (header, body) and every edge that ends
+     flush with it - a table's top or bottom, a pagination bar, a note above a
+     table. One value, so an inner corner never draws a different arc than the
+     block that clips it: a 12px table corner inside an 8px body showed a
+     notch of body ground at both bottom corners of every striped last row. */
+  --gl-card-inner-radius:      calc(var(--gl-card-border-radius) - var(--gl-spacing-2));
+  --gl-modal-border-radius:   16px;  /* modals               (gl radius 2xl) */
+  --gl-dropdown-border-radius: 8px;  /* dropdown panels      (gl radius lg)  */
+  --gl-alert-border-radius:    8px;  /* alerts, feedback     (gl radius lg)  */
+  --gl-feedback-border-radius: 8px;  /* toasts, tooltips     (gl radius lg)  */
+
+  /* ----------------------------------------------
+     SHADOWS - GitLab dark theme (rgba-based)
+     ---------------------------------------------- */
+  /* @gitlab/ui builds --gl-shadow-{sm,md,lg} on ONE colour,
+     --gl-shadow-color-default: --gl-color-alpha-dark-16. */
+  --gl-shadow-color-default: var(--alpha-dark-16);
+  --gl-shadow-color: var(--alpha-dark-40);
+  --shadow-sm: 0 0 2px var(--gl-shadow-color), 0 1px 4px var(--gl-shadow-color);
+  --shadow: 0 0 1px var(--gl-shadow-color), 0 0 2px var(--gl-shadow-color), 0 2px 8px var(--gl-shadow-color);
+  --shadow-md: var(--shadow);
+  --shadow-lg: 0 0 2px var(--gl-shadow-color), 0 0 2px var(--gl-shadow-color), 0 4px 12px var(--gl-shadow-color);
+  --shadow-xl: 0 8px 24px var(--alpha-dark-64);
+
+  /* Focus ring - GitLab dark: 1px inner gap + 3px blue-400 outer (exact Pajamas) */
+  --focus-ring:       0 0 0 1px var(--gl-gray-950), 0 0 0 3px var(--gl-blue-400);
+  --focus-ring-inset: inset 0 0 0 2px var(--gl-blue-400);
+
+  /* ----------------------------------------------
+     TYPOGRAPHY - GitLab: -apple-system, 14px base
+     ---------------------------------------------- */
+  --font-family: 'GitLab Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Noto Sans', Ubuntu, Cantarell, 'Helvetica Neue', sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+  --font-mono: 'GitLab Mono', 'JetBrains Mono', 'Menlo', 'DejaVu Sans Mono',
+    'Liberation Mono', 'Consolas', 'Ubuntu Mono', 'Courier New', 'andale mono',
+    'lucida console', monospace;
+  /* GitLab's type scale in practice is 12 / 14 / 16 / 21 / 30 - measured over
+     every visible element on a real page at 1920, where 13px and 11px appear
+     ZERO times. Ours put 88 elements on 13px and 12 on 11px, which is why the
+     same screens read smaller than GitLab's. Both now round up to the nearest
+     size GitLab actually uses, so `sm` and `2xs` stay meaningful names without
+     introducing a size GitLab does not have. */
+  --font-size-xs:   0.75rem;   /* 12px */
+  --font-size-sm:   0.875rem;  /* 14px = their --gl-font-size-300 */
+  /* 14px. Their token scale calls 1rem "font-size-400", but that is the scale
+     value, not what their product renders: measured on gitlab.example.com the
+     GitLab application's body text is 12px/20px, and docs.gitlab.com is 16px.
+     This sits between the two, and moving it to 1rem would match their DOCS
+     while diverging from their APP. */
+  --font-size-base: 0.875rem;
+  --font-size-md:   1rem;      /* 16px */
+  --font-size-lg:   1.125rem;  /* 18px */
+  --font-size-xl:   1.25rem;   /* 20px */
+  --font-size-2xl:  1.5rem;    /* 24px */
+  --font-size-3xl:  1.875rem;  /* 30px - GitLab gl-heading-1 */
+
+  --line-height-tight:  1.2;
+  /* GitLab's body line-height is 1.5 - measured on gitlab.com, 14px text sits
+     on a 21px line. We ran at 1.4 (19.6px), which made every paragraph, table
+     cell and card denser than the same content in GitLab. */
+  --line-height-normal: 1.5;
+  --line-height-loose:  1.6;
+
+  /* GitLab Pajamas' scale. `semibold` used to be 500 - IDENTICAL to `medium` -
+     so the ladder had four names for three values and every one of the 276
+     places asking for semibold silently got medium instead. That is why two
+     headings of the same level could render at different weights: one asked for
+     semibold (got 500), the other for bold (got 600), and nothing in between
+     existed. GitLab Sans is a VARIABLE font with a 100-900 axis, so 600 and 700
+     render natively - no synthesised bold. */
+  --font-weight-light:    300;
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  /* ----------------------------------------------
+     SPACING - 4px grid (GitLab Pajamas)
+     ---------------------------------------------- */
+  --gl-spacing-1:  2px;
+  --gl-spacing-2:  4px;
+  --gl-spacing-3:  8px;
+  --gl-spacing-4:  12px;
+  --gl-spacing-5:  16px;
+  --gl-spacing-6:  24px;
+  --gl-spacing-7:  32px;
+  --gl-spacing-8:  40px;
+  --gl-spacing-9:  48px;
+  --gl-spacing-10: 56px;
+  --gl-spacing-11: 64px;
+  --gl-spacing-12: 80px;
+
+  /* ----------------------------------------------
+     TRANSITIONS - GitLab: mostly 100-200ms ease
+     ---------------------------------------------- */
+  --transition-fast:   var(--motion-duration-fast) var(--motion-ease-standard);
+  /* One timing per ROLE, each GitLab's own (@gitlab/ui 137.3.1):
+       --transition-normal  a CONTROL - button, close / icon button, badge, tab,
+                            pagination, toggle, chip, link, card hover, chevron:
+                            200ms out-cubic ($gl-transition-duration-medium)
+       --transition-fast    an ITEM - dropdown / menu / list item, table row:
+                            100ms (gl-new-dropdown-item background-color)
+       --transition-control a FIELD - input, select, textarea, checkbox:
+                            .15s ease-in-out ($input-transition,
+                            $custom-control-transition)
+     A component picks its role's token and nothing else. */
+  --transition-control: 150ms ease-in-out;
+  --transition-normal: var(--motion-duration-normal) var(--motion-ease-standard);
+  --transition-slow:   var(--motion-duration-slow) var(--motion-ease-emphasized);
+
+  /* -- Animation durations (used in animation shorthand) -- */
+  --gl-anim-fast:          var(--motion-duration-fast);   /* micro: checkbox, details, fade-exit */
+  --gl-anim-normal:        var(--motion-duration-normal);   /* standard: fade-in, row anim, page entry */
+  --gl-anim-slow:          var(--motion-duration-slow);   /* emphasis: badge pop, state transition */
+  /* EVERY fill - progress bar, meter, compliance ring, job bar - runs 600ms:
+     GlProgressBar's `transform 0.6s out-cubic`. They ran at 300, 500 and
+     600ms depending on which page drew them. */
+  --gl-anim-progress:      600ms;   /* progress/meter WIDTH fill transition */
+  /* ONE rotation speed for every spinner in the app. GitLab's is
+     `animation: spin 0.6s infinite linear` (@gitlab/ui tailwind.defaults.js
+     `animation.spin`), applied to `.gl-spinner` via `gl-animate-spin`.
+     There used to be three (`--gl-anim-spinner` 800ms, this one at 1s, and the
+     button spinner borrowing --gl-anim-progress 600ms) plus an unused 1.2s
+     `--gl-anim-health-spin`, so the same mark turned at a different speed
+     depending on which component drew it. */
+  --gl-anim-spin:          0.6s;    /* THE spinner rotation - GitLab's number */
+  /* ONE pulse for every live mark (status dots, running badges, offline
+     banners) - they pulsed at 1.5s or 2s, and one keyframe did not exist. */
+  --gl-anim-loop:          1.5s;    /* continuous loops: pulse, bounce */
+  /* Change feedback. Was 2s, which is 120 frames of main-thread style
+     recalculation PER FLASHED ELEMENT: a live dashboard update that touched a
+     whole table burned 800ms of recalc in a 2.4s window. It also simply reads
+     as slow - the hint is still fading long after the user has moved on.
+     `--gl-anim-flash-danger` (1.5s) was deleted with it: nothing used it. */
+  --gl-anim-flash:         600ms;   /* change highlight - see GP.motion.flash */
+  --gl-anim-highlight:     1.8s;    /* target arrival highlight - see GP.motion.highlight */
+  --gl-highlight-opacity:  0.25;    /* target arrival cell background opacity */
+
+  /* ----------------------------------------------
+     Z-INDEX LAYERS
+     ---------------------------------------------- */
+  --z-base:           1;    /* local stacking within positioned parents */
+  --z-dropdown:       100;
+  --z-sticky:         200;
+  --z-fixed:          300;
+  --z-modal-backdrop: 1000;
+  --z-modal:          1001;
+  --z-popover:        1010;
+  --z-tooltip:        1020;
+  --z-cookie-banner:  1040;
+  --z-tour-welcome:   1045;  /* tour welcome card, just above cookie banner */
+  --z-app-loader:     1050;
+  --z-toast:          1060;  /* toasts must clear cookie banner / help menu / welcome */
+
+  /* ----------------------------------------------
+     LAYOUT - GitLab content widths & layout tokens
+     Matches GitLab Pajamas design system:
+       Fixed: maximum of 1280px wide ($limited-layout-width / .container-limited)
+       Fluid: spans 100% of page width (.container-fluid)
+     ---------------------------------------------- */
+  --content-width-xs:  540px;
+  --content-width-sm:  720px;
+  --content-width-md:  990px;
+  --content-width-lg:  1280px;
+
+  /* Standard GitLab Pajamas layout tokens */
+  --gl-layout-width-fixed:   1280px;
+  --gl-layout-width-fluid:   100%;
+  --gl-layout-width-limited: 1280px;
+  --gl-layout-width-max:     1280px;
+  --gl-layout-width:         var(--gl-layout-width-fixed);
+  --content-width-fixed:     1280px;
+  --content-width-fluid:     100%;
+  --gl-home-sidebar-width:   320px;
+
+  /* GitLab's heading-2, the size its settings sections use. Verbatim from
+     @gitlab/ui 136.3.0 tokens.css - a responsive clamp, not a fixed size, so
+     the heading grows with the viewport exactly as GitLab's does.
+       --gl-font-size-600      21px -> 25px
+       --gl-line-height-heading    1.25
+       --gl-letter-spacing-heading -0.01em
+       --gl-font-weight-heading    600 (font-weight-bold) */
+  --gl-font-size-600: clamp(1.3125rem, 0.8680555556rem + 0.9259259259vw, 1.5625rem);
+  --gl-line-height-heading: 1.25;
+  --gl-letter-spacing-heading: -0.01em;
+  --gl-font-weight-heading: 600;
+
+/* Preferences > Behavior > "Layout width".
+   FIVE elements cap themselves at --content-width-lg: .main-container, the
+   job bar, the cookie banner and both global banners. Uncapping only the main
+   container left the chrome above it still narrow, so "Fluid" looked broken
+   rather than wide. Flipping the TOKEN moves all five together, and any
+   wrapper added later inherits the behaviour for free.
+   On <html> so it lands before first paint. */
+  /* GitLab has ONE fixed-layout width - 1280px ($limited-layout-width) in
+     framework/variables.scss - which is exactly `--content-width-lg` above.
+     Matching GitLab's 1280px specification keeps the layout aligned with Pajamas
+     and ensures consistency with the preferences description:
+     "Content will be a maximum of 1280 pixels wide." */
+  --content-width-xl:  1280px;
+
+  --navbar-height: 48px;   /* GitLab's super-topbar measures 48px */
+
+  /* ----------------------------------------------
+     SURFACE COLORS - GitLab dark theme
+     ---------------------------------------------- */
+  --surface-default:  var(--gl-gray-900);
+  --surface-strong:   var(--gl-gray-800);
+  --surface-moderate: var(--gl-gray-700);
+  --surface-subtle:   var(--gl-gray-850, #1e2229);
+  --app-shell-bg: var(--gl-gray-900);
+  --app-navigation-bg: var(--gl-gray-900);
+
+  --text-primary:   var(--gl-gray-50);
+  --text-secondary: var(--gl-gray-200);
+  --text-tertiary:  var(--gl-gray-300);
+  --text-disabled:  var(--gl-gray-500);
+
+  --danger-light: var(--gl-red-900);
+
+  /* Common aliases */
+  --white: var(--gl-gray-0);
+
+  /* ----------------------------------------------
+     PAJAMAS SEMANTIC TOKENS - GitLab dark theme
+     ---------------------------------------------- */
+  /* Text color roles - dark theme */
+  --gl-text-color-default:  var(--gl-gray-50);
+  --gl-text-color-subtle:   var(--gl-gray-200);
+  --gl-text-color-secondary: var(--gl-gray-200);
+  --gl-text-color-strong:   var(--gl-gray-0);
+  --gl-text-color-heading:  var(--gl-gray-0);
+  --gl-text-color-link:     var(--gl-blue-200);
+  --gl-text-color-disabled: var(--gl-gray-500);
+  --gl-text-color-danger:   var(--gl-red-300);
+  --gl-text-color-success:  var(--gl-green-300);
+  --gl-text-color-warning:  var(--gl-orange-300);
+
+  /* Background color roles - dark theme */
+  --gl-background-color-default:  var(--gl-gray-950);
+  --gl-background-color-subtle:   var(--gl-gray-900);
+  --gl-background-color-strong:   var(--gl-gray-800);
+  --gl-background-color-disabled: var(--gl-gray-900);
+  --gl-background-color-overlap:  var(--gl-gray-900);
+  --gl-background-color-section:  var(--gl-gray-800);
+  --gl-background-color-overlay:  rgba(0, 0, 0, 0.64);
+
+  /* Border color roles - dark theme */
+  --gl-border-color-default: var(--gl-gray-700);
+  --gl-border-color-subtle:  var(--gl-gray-800);
+  --gl-border-color-strong:  var(--gl-gray-600);
+  --gl-border-color-section: var(--gl-border-color-default);
+
+  /* Form control tokens - dark theme (GitLab exact) */
+  --gl-control-bg-default:        rgba(5, 5, 6, 0.40);
+  --gl-control-bg-disabled:       rgba(255, 255, 255, 0.04);
+  --gl-control-bg-readonly:       rgba(255, 255, 255, 0.08);
+  /* A checked checkbox/radio is a SELECTED state, and on dark it carries the
+     theme's selection colour - the accent, blue-500 by default - with a white
+     tick. GitLab's dark token is neutral-50, a white square on a dark page.
+     Light keeps GitLab's neutral-800; the accent block at the end of this
+     file retints both modes. */
+  --gl-control-bg-selected:       var(--gl-blue-500);
+  --gl-control-bg-selected-hover: var(--gl-blue-600);
+  --gl-control-border-default:    var(--gl-gray-500);
+  --gl-control-border-hover:      var(--gl-gray-300);
+  --gl-control-border-focus:      var(--gl-gray-50);
+  --gl-control-border-disabled:   var(--gl-gray-800);
+  /* The tick of a checked, disabled checkbox (GitLab control.indicator.color.disabled). */
+  --gl-control-indicator-disabled: var(--gl-gray-400);
+  /* A disabled pager arrow or other bare action (GitLab action.disabled.foreground.color). */
+  --gl-action-disabled-text:       var(--gl-gray-500);
+  --gl-control-border-error:      var(--gl-red-300);
+  --gl-control-border-selected:   var(--gl-blue-500);
+  --gl-control-placeholder-color: var(--gl-gray-400);
+  --gl-control-indicator-selected: var(--gl-gray-0);
+  /* The select's chevron ($gl-icon-select-chevron-down) and the input's busy
+     dots (GlAnimatedLoaderIcon), both @gitlab/ui's own glyphs, are background
+     images - a data URI cannot read a token, so each mode carries its own image
+     with the mode's icon grey baked in (gray-300 here, gray-500 on light). One
+     grey served both modes before. */
+  --gl-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0.21967 0.21967C0.512563 -0.0732232 0.987437 -0.0732232 1.28033 0.21967L4 2.93934L6.71967 0.21967C7.01256 -0.073223 7.48744 -0.0732229 7.78033 0.21967C8.07322 0.512563 8.07322 0.987437 7.78033 1.28033L4.53033 4.53033C4.23744 4.82322 3.76256 4.82322 3.46967 4.53033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z' fill='%23a4a3a8'/%3E%3C/svg%3E");
+  --gl-input-busy-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='2' fill='%23a4a3a8'/%3E%3Ccircle cx='14' cy='8' r='2' fill='%23a4a3a8'/%3E%3Ccircle cx='2' cy='8' r='2' fill='%23a4a3a8'/%3E%3C/svg%3E");
+
+  /* Full Pajamas control token aliases */
+  --gl-control-background-color-default: var(--gl-control-bg-default);
+  --gl-control-border-color-default:     var(--gl-control-border-default);
+  --gl-control-border-color-hover:       var(--gl-control-border-hover);
+
+  /* Segmented control tokens (GitLab Pajamas) */
+  --gl-segmented-control-track-bg:        var(--gl-background-color-strong);
+  --gl-segmented-control-track-border:    var(--gl-border-color-subtle);
+  --gl-segmented-control-btn-active-bg:   var(--gl-gray-600);
+  --gl-segmented-control-btn-active-color:var(--gl-gray-0);
+
+  /* Alpha tokens (from tokens.dark.css) */
+  --gl-color-alpha-light-8:  rgba(255, 255, 255, 0.08);
+  --gl-color-alpha-light-16: rgba(255, 255, 255, 0.16);
+  --gl-color-alpha-light-24: rgba(255, 255, 255, 0.24);
+  --gl-color-alpha-blue-25:  rgba(104, 168, 232, 0.25);
+  --gl-color-alpha-blue-32:  rgba(104, 168, 232, 0.32);
+
+  /* Line heights (from tokens.dark.css) */
+  --gl-line-height-20: 1.25rem;
+
+  /* Feedback tokens - dark theme (GitLab exact from tokens.dark.css) */
+  --gl-feedback-strong-bg:        var(--gl-gray-800);
+  --gl-feedback-strong-text:      var(--gl-gray-0);
+  --gl-feedback-neutral-bg:       var(--gl-gray-900);
+  --gl-feedback-neutral-text:     var(--gl-gray-200);
+  --gl-feedback-neutral-icon:     var(--gl-gray-300);
+  --gl-feedback-info-bg:          var(--gl-blue-950);
+  --gl-feedback-info-text:        var(--gl-blue-200);
+  --gl-feedback-info-icon:        var(--gl-blue-300);
+  --gl-feedback-success-bg:       var(--gl-green-900);
+  --gl-feedback-success-text:     var(--gl-green-200);
+  --gl-feedback-success-icon:     var(--gl-green-300);
+  --gl-feedback-warning-bg:       var(--gl-orange-900);
+  --gl-feedback-warning-text:     var(--gl-orange-200);
+  --gl-feedback-warning-icon:     var(--gl-orange-300);
+  --gl-feedback-danger-bg:        var(--gl-red-900);
+  --gl-feedback-danger-text:      var(--gl-red-200);
+  --gl-feedback-danger-icon:      var(--gl-red-300);
+
+  /* Status tokens - dark theme (GitLab exact) */
+  --gl-status-neutral-bg:   var(--gl-gray-800);
+  --gl-status-neutral-text: var(--gl-gray-200);
+  --gl-status-neutral-icon: var(--gl-gray-300);
+  --gl-status-info-bg:      var(--gl-blue-800);
+  --gl-status-info-text:    var(--gl-blue-200);
+  --gl-status-info-icon:    var(--gl-blue-300);
+  --gl-status-success-bg:   var(--gl-green-800);
+  --gl-status-success-text: var(--gl-green-200);
+  --gl-status-success-icon: var(--gl-green-300);
+  --gl-status-warning-bg:   var(--gl-orange-800);
+  --gl-status-warning-text: var(--gl-orange-200);
+  --gl-status-warning-icon: var(--gl-orange-300);
+  --gl-status-danger-bg:    var(--gl-red-800);
+  --gl-status-danger-text:  var(--gl-red-200);
+  --gl-status-danger-icon:  var(--gl-red-300);
+  --gl-status-brand-bg:     var(--gl-purple-900);
+  --gl-status-brand-text:   var(--gl-purple-300);
+  --gl-status-brand-icon:   var(--gl-purple-500);
+
+  /* Badge tokens - dark theme (GitLab exact: bright bg, dark text) */
+  /* Badges follow GitLab's --gl-status-* pair: a MUTED 800-level chip with
+     200-level text, not a bright 300-level chip with near-black text.
+     Confirmed against live gitlab.com (neutral #dcdcde/#4c4b51 on light). */
+  /* Badges INVERT in dark. @gitlab/ui's dark theme gives every badge a LIGHT
+     -300 background with DARK -950 text; the light theme is -100 on -700.
+     This block used to keep the light theme's polarity (a dark -800 chip with
+     light -200 text), so every badge in the app was the photographic negative
+     of the same badge in GitLab. Light already matched exactly - only dark
+     was wrong. */
+  --gl-badge-muted-bg:      var(--gl-gray-400);
+  --gl-badge-muted-text:    var(--gl-gray-950);
+  --gl-badge-neutral-bg:    var(--gl-gray-300);
+  --gl-badge-neutral-text:  var(--gl-gray-950);
+  --gl-badge-info-bg:       var(--gl-blue-300);
+  --gl-badge-info-text:     var(--gl-blue-950);
+  --gl-badge-success-bg:    var(--gl-green-300);
+  --gl-badge-success-text:  var(--gl-green-950);
+  --gl-badge-warning-bg:    var(--gl-orange-300);
+  --gl-badge-warning-text:  var(--gl-orange-950);
+  --gl-badge-danger-bg:     var(--gl-red-300);
+  --gl-badge-danger-text:   var(--gl-red-950);
+  --gl-badge-tier-bg:       var(--gl-purple-300);
+  --gl-badge-tier-text:     var(--gl-purple-950);
+  /* teal has no @gitlab/ui badge variant; it follows the same polarity so it
+     does not stand out beside the six that do. */
+  --gl-badge-teal-bg:       var(--gl-teal-300);
+  --gl-badge-teal-text:     var(--gl-teal-950);
+
+  /* Avatar tokens - dark theme, 1:1 with @gitlab/ui tokens.dark.css
+     (--gl-avatar-*): GlAvatar's edge and its identicon fallback colours. */
+  --gl-avatar-border-color-default: var(--alpha-light-8);
+  --gl-avatar-fallback-background-color-red:     rgba(255, 175, 184, 0.24);
+  --gl-avatar-fallback-background-color-purple:  rgba(201, 190, 239, 0.24);
+  --gl-avatar-fallback-background-color-blue:    rgba(157, 200, 242, 0.24);
+  --gl-avatar-fallback-background-color-green:   rgba(132, 212, 182, 0.24);
+  --gl-avatar-fallback-background-color-orange:  rgba(247, 185, 81, 0.24);
+  --gl-avatar-fallback-background-color-neutral: rgba(191, 191, 195, 0.24);
+  --gl-avatar-fallback-text-color-red:     var(--gl-red-200);
+  --gl-avatar-fallback-text-color-purple:  var(--gl-purple-200);
+  --gl-avatar-fallback-text-color-blue:    var(--gl-blue-200);
+  --gl-avatar-fallback-text-color-green:   var(--gl-green-200);
+  --gl-avatar-fallback-text-color-orange:  var(--gl-orange-200);
+  --gl-avatar-fallback-text-color-neutral: var(--gl-gray-200);
+
+  /* Button tokens - dark theme.
+     Values taken 1:1 from @gitlab/ui 136.1.0 src/tokens/build/css/tokens.dark.css
+     (--gl-button-*). Note that GitLab's confirm/primary button is NEUTRAL, not
+     blue: light theme paints it neutral-800, dark theme neutral-50. Blue is
+     reserved for --gl-action-strong-confirm-*, i.e. rare emphasis CTAs.
+     Dark-theme buttons carry no border at all - the fill provides the edge. */
+  /* Default (secondary) - translucent gray, no border */
+  --gl-btn-default-text:           var(--gl-gray-50);
+  --gl-btn-default-bg:             rgba(137, 136, 141, 0.4);
+  --gl-btn-default-bg-hover:       rgba(137, 136, 141, 0.64);
+  --gl-btn-default-bg-active:      rgba(137, 136, 141, 0.32);
+  --gl-btn-default-border:         transparent;
+  --gl-btn-default-border-hover:   transparent;
+  --gl-btn-default-border-active:  transparent;
+
+  /* Confirm (primary). GitLab's dark token is the light one inverted -
+     neutral-50, a white block - and on a dark page every white fill reads as
+     a highlight that does not belong to the theme. The dark confirm button is
+     blue-600 with white text (5.5:1): one step calmer than the light-mode
+     blue-500, which next to the translucent grey secondaries was the one
+     saturated block on the page ("the blue button does not sit with the
+     rest"). Hover brightens to blue-500 - on a dark page a hover goes lighter
+     - and :active settles on blue-700. Light keeps GitLab's neutral-800. The
+     accent block at the end of this file retints it per theme. */
+  --gl-btn-confirm-text:           var(--gl-gray-0);
+  --gl-btn-confirm-bg:             var(--gl-blue-600);
+  --gl-btn-confirm-bg-hover:       var(--gl-blue-500);
+  --gl-btn-confirm-bg-active:      var(--gl-blue-700);
+  --gl-btn-confirm-border:         transparent;
+  --gl-btn-confirm-border-hover:   transparent;
+  --gl-btn-confirm-border-active:  transparent;
+
+  /* Confirm secondary (outlined confirm) - the selected tint, not a white wash */
+  --gl-btn-confirm-secondary-text:      var(--gl-blue-200);
+  --gl-btn-confirm-secondary-bg:        var(--gl-color-alpha-blue-25);
+  --gl-btn-confirm-secondary-bg-hover:  var(--gl-color-alpha-blue-32);
+  --gl-btn-confirm-secondary-bg-active: rgba(104, 168, 232, 0.40);
+  --gl-btn-confirm-secondary-border:    var(--gl-blue-400);
+
+  /* Danger primary - bright red bg, dark text */
+  --gl-btn-danger-text:            var(--gl-gray-950);
+  --gl-btn-danger-bg:              var(--gl-red-300);
+  --gl-btn-danger-bg-hover:        var(--gl-red-200);
+  --gl-btn-danger-bg-active:       var(--gl-red-400);
+  --gl-btn-danger-border:          transparent;
+  --gl-btn-danger-border-hover:    transparent;
+  --gl-btn-danger-border-active:   transparent;
+
+  /* Danger secondary (outlined danger) */
+  --gl-btn-danger-secondary-text:      var(--gl-red-100);
+  --gl-btn-danger-secondary-bg:        rgba(236, 89, 65, 0.40);
+  --gl-btn-danger-secondary-bg-hover:  rgba(236, 89, 65, 0.64);
+  --gl-btn-danger-secondary-bg-active: rgba(236, 89, 65, 0.32);
+  --gl-btn-danger-secondary-border:    transparent;
+
+  /* Success / warning buttons - the dark ramp is GitLab's danger button
+     pattern in the other hues: a bright -300 fill with -950 text. These were
+     written straight into buttons.css as the one ramp for both modes, so the
+     light theme got a pastel button with near-black text. */
+  --gl-btn-success-text:      var(--gl-green-950);
+  --gl-btn-success-bg:        var(--gl-green-300);
+  --gl-btn-success-bg-hover:  var(--gl-green-200);
+  --gl-btn-success-bg-active: var(--gl-green-400);
+  --gl-btn-warning-text:      var(--gl-orange-950);
+  --gl-btn-warning-bg:        var(--gl-orange-300);
+  --gl-btn-warning-bg-hover:  var(--gl-orange-200);
+  --gl-btn-warning-bg-active: var(--gl-orange-400);
+
+  /* Disabled */
+  --gl-btn-disabled-text:   var(--gl-gray-400);
+  --gl-btn-disabled-bg:     rgba(137, 136, 141, 0.16);
+  --gl-btn-disabled-border: transparent;
+
+  /* Tertiary (ghost) action backgrounds */
+  --gl-action-neutral-bg-default:  transparent;
+  --gl-action-neutral-bg-hover:    rgba(137, 136, 141, 0.4);
+  --gl-action-neutral-bg-active:   rgba(137, 136, 141, 0.16);
+  --gl-action-confirm-bg-default:  transparent;
+  --gl-action-confirm-bg-hover:    var(--alpha-light-6, rgba(255, 255, 255, 0.06));
+  --gl-action-confirm-bg-active:   var(--alpha-light-16, rgba(255, 255, 255, 0.16));
+  --gl-action-confirm-text:        var(--gl-gray-50);
+  /* GitLab uses the same danger wash in both themes (--gl-action-danger-*). */
+  --gl-action-danger-bg-default:   rgba(245, 127, 108, 0);
+  --gl-action-danger-bg-hover:     rgba(245, 127, 108, 0.16);
+  --gl-action-danger-bg-active:    rgba(174, 24, 0, 0.24);
+  --gl-action-danger-text:         var(--gl-red-200);
+  /* "Selected" - the ONE highlight every selected control shares: the active
+     navigation item, the week pill, the filter pill, the member chip, the
+     current page, the mode switcher. GitLab's own --gl-action-selected-* is
+     the confirm ramp inverted (near-white on dark), which on a dark page is a
+     white block, not a highlight. The highlight here is the super-sidebar's:
+     the accent at an alpha, so the fill is a TINT of the page and the text a
+     tint of the page's own. Preferences > Theme retints all of it at once
+     (the accent block at the end of this file). */
+  --gl-action-selected-bg-default: var(--gl-color-alpha-blue-25);
+  --gl-action-selected-bg-hover:   var(--gl-color-alpha-blue-32);
+  --gl-action-selected-bg-active:  rgba(104, 168, 232, 0.40);
+  --gl-action-selected-border:     var(--gl-blue-400);
+  --gl-action-selected-text:       var(--gl-nav-item-selected-text);
+
+  /* Selected button */
+  --gl-btn-selected-bg:     var(--gl-action-selected-bg-default);
+  --gl-btn-selected-text:   var(--gl-action-selected-text);
+
+  /* Illustration palette - dark counterpart, see the light block for why. */
+  --gl-illustration-stroke-color-default: #e3e3e8;
+  --gl-illustration-fill-color-default: #423f4f;
+  --gl-illustration-accent-stroke-color-strong: #aea5d6;
+  --gl-illustration-accent-stroke-color-orange: #e3865f;
+  --gl-illustration-accent-stroke-color-teal: #6baea3;
+  --gl-illustration-accent-fill-color-subtle: #5c5371;
+  --gl-illustration-accent-fill-color-strong: #6f6796;
+  --gl-illustration-accent-fill-color-orange: #aa563a;
+  --gl-illustration-accent-fill-color-teal: #3b8581;
+  --gl-illustration-base-fill-color: #32303c;
+  --gl-illustration-status-fill-color-neutral: #6f6796;
+  --gl-illustration-status-fill-color-success: #3b8581;
+  --gl-illustration-status-fill-color-warning: #ab752f;
+  --gl-illustration-status-fill-color-danger: #aa563a;
+
+  /* Top-bar search trigger and its `/` badge, measured on gitlab.com.
+     Dark: a light translucent wash, NOT a dark one with a solid grey border. */
+  /* Selected sidebar item label. GitLab tints it toward the selection colour
+     instead of using plain white / near-black - measured on gitlab.com. */
+  --gl-nav-item-selected-text: rgb(202, 224, 247);
+
+  /* Top-of-scroll scrim. GitLab: alpha-dark-8 on light, alpha-dark-24 on dark. */
+  --gl-scrim-color: var(--alpha-dark-24);
+
+  --gl-topbar-search-bg:     rgba(255, 255, 255, 0.08);
+  --gl-topbar-search-border: rgba(255, 255, 255, 0.16);
+  --gl-topbar-search-border-hover: rgba(255, 255, 255, 0.4);
+  --gl-kbd-bg:               var(--gl-gray-900);
+  --gl-kbd-border:           transparent;
+
+  /* Dropdown tokens - dark theme (GitLab exact) */
+  --gl-dropdown-bg:                var(--gl-gray-900);
+  --gl-dropdown-border:            var(--gl-gray-700);
+  --gl-dropdown-divider:           var(--gl-gray-800);
+  --gl-dropdown-item-text:         var(--gl-gray-50);
+  --gl-dropdown-item-hover-bg:     rgba(137, 136, 141, 0.4);
+  --gl-dropdown-item-active-bg:    rgba(137, 136, 141, 0.16);
+  --gl-dropdown-item-selected-bg:  var(--gl-gray-800);
+  --gl-dropdown-search-bg:         rgba(5, 5, 6, 0.24);
+
+  /* Alert tokens - dark. From @gitlab/ui tokens.dark.css: in dark EVERY alert
+     shares one background (background-subtle) and the TITLE carries the
+     variant colour. Light is the inverse - a tinted background under a
+     heading-coloured title. Every alert border ships rgba(0,0,0,0); GitLab
+     draws no rule on an alert at all. */
+  --gl-alert-neutral-border:  rgba(0, 0, 0, 0);
+  --gl-alert-info-border:     rgba(0, 0, 0, 0);
+  --gl-alert-success-border:  rgba(0, 0, 0, 0);
+  --gl-alert-warning-border:  rgba(0, 0, 0, 0);
+  --gl-alert-danger-border:   rgba(0, 0, 0, 0);
+
+  --gl-alert-neutral-bg:  var(--gl-background-color-subtle);
+  --gl-alert-info-bg:     var(--gl-background-color-subtle);
+  --gl-alert-success-bg:  var(--gl-background-color-subtle);
+  --gl-alert-warning-bg:  var(--gl-background-color-subtle);
+  --gl-alert-danger-bg:   var(--gl-background-color-subtle);
+
+  --gl-alert-neutral-title:  var(--gl-text-color-heading);
+  --gl-alert-info-title:     var(--gl-blue-300);
+  --gl-alert-success-title:  var(--gl-green-300);
+  --gl-alert-warning-title:  var(--gl-orange-300);
+  --gl-alert-danger-title:   var(--gl-red-300);
+
+  /* Progress bar - dark theme */
+  --gl-progress-track: var(--gl-gray-700);
+
+  /* Table - dark theme (GitHub Primer-inspired)
+     Solid opaque colors pre-computed against body bg #28272d
+     to eliminate rgba compositing / double-paint issues. */
+  /* Was a hand-picked #2d2c32, which is on no GitLab scale - it sat between
+     gray-900 (#28272d) and gray-800 (#3a383f). gray-900 is the on-scale step
+     just above the gray-950 surface a striped table sits on, and its light
+     counterpart below already referenced the scale rather than a raw hex. */
+  --gl-table-row-stripe-bg: var(--gl-gray-900);
+  --gl-table-row-hover-bg: color-mix(in srgb, var(--gl-action-selected-border) 8%, var(--gl-background-color-default));
+  /* The row a reader was sent to (GP.motion.highlight) and the row whose
+     navigation is in flight: the theme's own selected colour laid over the
+     page, opaque, so the sticky actions column never shows text through it.
+     --gl-action-selected-border is blue-400 here and the accent under a
+     Preferences theme, so every theme retints this without a rule of its own. */
+  --gl-table-row-selected-bg: color-mix(in srgb, var(--gl-action-selected-border) 16%, var(--gl-background-color-default));
+  --gl-table-header-bg: var(--gl-background-color-subtle);
+
+  /* Tab - dark theme */
+  --gl-tab-selected-indicator: var(--gl-blue-400);
+  /* The brand series in charts - the score trend line, the skill profile, the
+     live-intelligence line. Read by GP.chartTheme (core/47-chart-theme.js). */
+  --chart-brand: var(--gl-blue-400);
+  /* The categorical palette - one colour per check category (Teacher's
+     Checklist, the week explorer, the legend dots). Read by GP.chartTheme and
+     by the legend CSS from the same tokens, so a dot and its bars cannot
+     drift. Dark takes the -400/-300 steps of GitLab's ramps, light the -500
+     to -700; the two hues GitLab's palette has no ramp for (quality, custom)
+     are given per mode here. They were six literal hex values written into
+     three files, the same on both themes. */
+  --chart-cat-issue:   var(--gl-purple-400);
+  --chart-cat-mr:      var(--gl-blue-400);
+  --chart-cat-review:  var(--gl-orange-300);
+  --chart-cat-ci:      var(--gl-teal-500);
+  --chart-cat-quality: #ec4899;
+  --chart-cat-custom:  #a855f7;
+  /* Grid and axis lines. Dark charts are drawn on the strong surface
+     (gray-800), which is exactly what --gl-border-color-subtle resolves to
+     in this mode - the score trend's grid and the skill radar's web vanished
+     into it. One step lighter than the surface they sit on. */
+  --chart-grid: var(--gl-gray-700);
+  /* The semantic chart colours - a passing / at-risk / failing bar or dot,
+     the severity of an issue - and the diff colours, per mode. The charts read
+     --gl-green-500 / --gl-orange-400 / --gl-red-400 for both modes before,
+     and the diff lines carried GitHub's greens and reds as rgba literals. */
+  --chart-success: var(--gl-green-400);
+  --chart-warning: var(--gl-orange-300);
+  --chart-danger:  var(--gl-red-300);
+  --gl-diff-color-added:   var(--gl-green-300);
+  --gl-diff-color-removed: var(--gl-red-300);
+  --gl-diff-added-bg:      color-mix(in srgb, var(--gl-green-500) 20%, transparent);
+  --gl-diff-added-num-bg:  color-mix(in srgb, var(--gl-green-500) 30%, transparent);
+  --gl-diff-removed-bg:    color-mix(in srgb, var(--gl-red-500) 20%, transparent);
+  --gl-diff-removed-num-bg: color-mix(in srgb, var(--gl-red-500) 30%, transparent);
+  --gl-diff-hunk-bg:       color-mix(in srgb, var(--gl-blue-500) 14%, transparent);
+  --gl-diff-hunk-num-bg:   color-mix(in srgb, var(--gl-blue-500) 22%, transparent);
+
+  /* Overlay - dark theme uses slightly stronger opacity */
+  --gl-overlay-bg: rgba(0, 0, 0, 0.64);
+
+  /* ----------------------------------------------
+     LIST ITEMS - GitLab project/group/issue row
+     ---------------------------------------------- */
+  --gl-list-border: var(--gl-gray-700);
+  --gl-list-hover-bg: var(--gl-gray-800);
+
+  /* ----------------------------------------------
+     ILLUSTRATIONS - GitLab isometric SVG tokens
+     ---------------------------------------------- */
+  --gl-illustration-isometric-base-side-fill-color: #524f7a;
+  --gl-illustration-isometric-base-top-fill-color: #3d3a5f;
+  --gl-illustration-isometric-stroke-color-default: #e8e4f0;
+  --gl-illustration-stroke-width-default: 2;
+  --gl-illustration-isometric-glyph-front-fill-color: #ffffff;
+  --gl-illustration-isometric-glyph-top-fill-color: #1d665e;
+  --gl-illustration-isometric-glyph-side-fill-color: #1d9e8e;
+  --gl-illustration-isometric-glyph-shadow-fill-color: #0f6d63;
+  --gl-illustration-isometric-object-front-fill-color: #7d5841;
+  --gl-illustration-isometric-object-top-fill-color: #aa6c3c;
+  --gl-illustration-isometric-object-side-fill-color: #8b5028;
+  --gl-illustration-isometric-object-highlight-fill-color: #3d3a5f;
+  --login-logo-filter: brightness(0) invert(1);
+
+  /* -- Premium Motion Tokens (Dark/Default Scheme) --
+     Durations deliberately err on the calmer side: a touch slower than the
+     Material baseline so motion reads as smooth/premium rather than snappy or
+     "flickery". Micro-interactions stay responsive; reveals decelerate gently. */
+  /* GitLab's published timing scale, verbatim: @gitlab/ui 136.1.0
+     src/scss/variables.scss declares $gl-transition-duration-fast: 0.1s,
+     -medium: 0.2s and -slow: 0.4s. Measured live on gitlab.com with reduced
+     motion explicitly OFF, the only durations in use are 0.1s / 0.15s / 0.2s -
+     nothing near the 290ms and 500ms we used to run at, which is why every
+     transition here read as slower than the same interaction in GitLab.
+     `cinematic` is reserved for the page-wide theme reveal. */
+  --motion-duration-instant: 0ms;
+  --motion-duration-fast: 100ms;
+  --motion-duration-normal: 200ms;
+  /* GitLab's longest component transition is .3s. Counted in @gitlab/ui
+     136.3.0: .2s x54, .15s x40, .1s x7, .3s x6 - nothing between .3s and the
+     1s spinner. This was 400ms, longer than anything they ship. */
+  --motion-duration-slow: 300ms;
+  --motion-duration-cinematic: 600ms;
+  --motion-duration-tour: 400ms;
+
+  /* Two-curve motion language (kept deliberately small so motion reads as ONE
+     system, the way Linear / Vercel / Stripe feel):
+       - standard  : snappy ease-out for micro-interactions (hover, color, small
+                     moves) where a long tail would feel sluggish.
+       - emphasized: the premium ease-out-expo used for EVERY reveal / entrance /
+                     large move (page enter, lazy swap, loading hand-off, scroll
+                     reveal, compliance ring, progress fills). `entrance` is an
+                     alias of it so both names resolve to the same feel - two
+                     near-identical curves must never drift apart visually.
+     `exit` and `spring` stay distinct because they do a different job. */
+  /* standard = GitLab Pajamas ease-out-cubic (focus / action / micro-interactions,
+     design.gitlab.com/product-foundations/motion). */
+  --motion-ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* GitLab ships exactly ONE curve. Counted in @gitlab/ui 136.3.0's compiled
+     stylesheet: cubic-bezier(.22,.61,.36,1) appears 53 times and no other
+     cubic-bezier appears at all. `emphasized` was (0.16, 1, 0.3, 1) - a curve
+     their component library never uses, which is what made larger movements
+     here read as not-quite-GitLab. It is now the same curve, so the whole app
+     moves on one. */
+  --motion-ease-emphasized: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --motion-ease-entrance: var(--motion-ease-emphasized);
+  /* GitLab dismisses with the SAME ease-out it enters with. Measured on
+     gitlab.example.com, its modal carries
+     `transition: opacity 0.2s cubic-bezier(0.22, 0.61, 0.36, 1)` on the way out
+     - 57% gone after 7ms, 99% after 73ms. Ours was cubic-bezier(0.4, 0, 1, 1),
+     an ease-IN we invented: it holds the element at full opacity for the first
+     third of the duration, which is what reads as a slow fade-out GitLab does
+     not have. Aliased rather than re-declared so exits and micro-interactions
+     can never drift apart again. */
+  --motion-ease-exit: var(--motion-ease-standard);
+  /* No spring and no shake curve. GitLab's whole easing set is three entries -
+     `linear`, `ease`, and out-cubic (@gitlab/ui 136.2.0
+     src/scss/variables.scss:203-205) - and an overshoot spends its last third
+     travelling back towards a target it had already reached, which is what made
+     our entrances read as slower than their duration. The two curves that were
+     here (`--motion-ease-spring`, `--motion-ease-shake`) are gone along with
+     GP.motion's `back.out` / `elastic.out` easings. */
+  --motion-ease-loop: cubic-bezier(0.42, 0, 0.58, 1);
+
+  /* Stagger step between sibling blocks in a synchronized reveal. `normal` is
+     the default cadence (used by the dots loader). */
+  --motion-stagger-short: 40ms;
+
+  --shadow-card-rest: var(--shadow-sm);
+  --shadow-card-hover: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.15);
+
+  /* The --status-*-pulse halo colours were deleted with the halo itself (an
+     infinite blurred-shadow animation on every course card - see
+     animations.css). Nothing else ever read them. */
+}
+
+/* ---------------------------------------------------------
+   LIGHT MODE
+
+   Constant palette values above remain stable across modes. Only semantic
+   tokens change here, which keeps components mode-aware without local
+   light/dark overrides. The no-attribute selector makes light mode the
+   progressive-enhancement default before the bootstrap script executes.
+   --------------------------------------------------------- */
+html:not([data-theme]),
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --gl-highlight-opacity:  0.20;    /* target arrival cell opacity on light theme */
+
+  --primary: var(--gl-blue-500);
+  --primary-hover: var(--gl-blue-600);
+  --primary-active: var(--gl-blue-700);
+  --primary-light: var(--gl-blue-50);
+  --primary-dark: var(--gl-blue-700);
+
+  --success: var(--gl-green-500);
+  --success-hover: var(--gl-green-600);
+  --success-bg: var(--gl-green-50);
+  --success-border: var(--gl-green-200);
+  --warning: var(--gl-orange-500);
+  --warning-hover: var(--gl-orange-600);
+  --warning-bg: var(--gl-orange-50);
+  --warning-border: var(--gl-orange-200);
+  --danger: var(--gl-red-500);
+  --danger-hover: var(--gl-red-600);
+  --danger-bg: var(--gl-red-50);
+  --danger-border: var(--gl-red-200);
+  --danger-light: var(--gl-red-50);
+  --info: var(--gl-blue-500);
+  --info-bg: var(--gl-blue-50);
+  --info-border: var(--gl-blue-200);
+
+  --gl-hover-subtle: var(--alpha-dark-8);
+  --gl-hover-faint: var(--alpha-dark-4);
+  --gl-hover-muted: var(--alpha-dark-6, rgba(5, 5, 6, 0.06));
+  --gl-active-subtle: var(--alpha-dark-16);
+  --gl-scrollbar-thumb: rgba(5, 5, 6, 0.18);
+  --gl-scrollbar-thumb-hover: rgba(5, 5, 6, 0.32);
+  --gl-separator-on-filled: rgba(255, 255, 255, 0.24);
+  --gl-text-on-filled-muted: rgba(255, 255, 255, 0.8);
+
+  --gray-50: var(--gl-gray-50);
+  --gray-100: var(--gl-gray-100);
+  --gray-200: var(--gl-gray-200);
+  --gray-300: var(--gl-gray-300);
+  --gray-400: var(--gl-gray-400);
+  --gray-500: var(--gl-gray-500);
+  --gray-600: var(--gl-gray-600);
+  --gray-700: var(--gl-gray-700);
+  --gray-800: var(--gl-gray-800);
+  --gray-900: var(--gl-gray-900);
+  --red-50: var(--gl-red-50);
+  --green-50: var(--gl-green-50);
+  --blue-50: var(--gl-blue-50);
+  --amber-50: var(--gl-orange-50);
+  --violet-50: var(--gl-purple-50);
+  --primary-50: var(--gl-blue-50);
+
+  /* Light mode: cards/panels are white on a gray canvas, so the border is the
+     main separator - keep it one step darker than the canvas (gray-200, not the
+     near-invisible gray-100) so every card, table and section edge stays clearly
+     visible. Dark mode (separate :root block) is unaffected. */
+  --border-color: var(--gl-gray-200);
+  --border-color-strong: var(--gl-gray-300);
+  --gl-shadow-color: var(--alpha-dark-16);
+  --shadow-sm: 0 0 2px var(--gl-shadow-color), 0 1px 4px var(--gl-shadow-color);
+  --shadow: 0 0 1px var(--gl-shadow-color), 0 0 2px var(--gl-shadow-color), 0 2px 8px var(--gl-shadow-color);
+  --shadow-md: var(--shadow);
+  --shadow-lg: 0 0 2px var(--gl-shadow-color), 0 0 2px var(--gl-shadow-color), 0 4px 12px var(--gl-shadow-color);
+  --shadow-xl: 0 8px 24px var(--alpha-dark-24);
+  --focus-ring: 0 0 0 1px var(--gl-gray-0), 0 0 0 3px var(--gl-blue-500);
+  --focus-ring-inset: inset 0 0 0 2px var(--gl-blue-500);
+
+  --surface-default: var(--gl-gray-0);
+  --surface-strong: var(--gl-gray-50);
+  --surface-moderate: var(--gl-gray-100);
+  --surface-subtle: var(--gl-gray-10);
+  --app-shell-bg: var(--gl-gray-50);
+  /* Sidebar shares the shell/page background so the navigation reads as part of
+     the same layout surface (matches dark mode, where both are gl-gray-900).
+     White cards/panels provide the contrast on top. */
+  --app-navigation-bg: var(--gl-gray-50);
+  --text-primary: var(--gl-gray-800);
+  --text-secondary: var(--gl-gray-600);
+  --text-tertiary: var(--gl-gray-500);
+  --text-disabled: var(--gl-gray-400);
+
+  --gl-text-color-default: var(--gl-gray-800);
+  --gl-text-color-subtle: var(--gl-gray-600);
+  --gl-text-color-secondary: var(--gl-gray-600);
+  --gl-text-color-strong: var(--gl-gray-950);
+  --gl-text-color-heading: var(--gl-gray-950);
+  --gl-text-color-link: var(--gl-blue-700);
+  --gl-text-color-disabled: var(--gl-gray-400);
+  --gl-text-color-danger: var(--gl-red-600);
+  --gl-text-color-success: var(--gl-green-600);
+  --gl-text-color-warning: var(--gl-orange-600);
+
+  --gl-background-color-default: var(--gl-gray-0);
+  --gl-background-color-subtle: var(--gl-gray-10);
+  --gl-background-color-strong: var(--gl-gray-50);
+  --gl-background-color-disabled: var(--gl-gray-50);
+  --gl-background-color-overlap: var(--gl-gray-0);
+  --gl-background-color-section: var(--gl-gray-0);
+  --gl-background-color-overlay: var(--alpha-dark-24);
+  --gl-border-color-default: var(--gl-gray-200);
+  --gl-border-color-subtle: var(--gl-gray-100);
+  --gl-border-color-strong: var(--gl-gray-300);
+  --gl-border-color-section: var(--gl-border-color-default);
+
+  --gl-control-bg-default: var(--gl-gray-0);
+  --gl-control-bg-disabled: var(--gl-gray-50);
+  --gl-control-bg-readonly: var(--gl-gray-10);
+  --gl-control-bg-selected: var(--gl-gray-800);
+  --gl-control-bg-selected-hover: var(--gl-gray-950);
+  --gl-control-border-default: var(--gl-gray-400);
+  --gl-control-border-hover: var(--gl-gray-600);
+  --gl-control-border-focus: var(--gl-gray-900);
+  --gl-control-border-disabled: var(--gl-gray-100);
+  --gl-control-indicator-disabled: var(--gl-gray-500);
+  --gl-action-disabled-text: var(--gl-gray-400);
+  --gl-control-border-error: var(--gl-red-500);
+  --gl-control-border-selected: var(--gl-gray-800);
+  --gl-control-placeholder-color: var(--gl-gray-500);
+  --gl-control-indicator-selected: var(--gl-gray-0);
+  --gl-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M0.21967 0.21967C0.512563 -0.0732232 0.987437 -0.0732232 1.28033 0.21967L4 2.93934L6.71967 0.21967C7.01256 -0.073223 7.48744 -0.0732229 7.78033 0.21967C8.07322 0.512563 8.07322 0.987437 7.78033 1.28033L4.53033 4.53033C4.23744 4.82322 3.76256 4.82322 3.46967 4.53033L0.21967 1.28033C-0.0732233 0.987437 -0.0732233 0.512563 0.21967 0.21967Z' fill='%23737278'/%3E%3C/svg%3E");
+  --gl-input-busy-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='2' fill='%23737278'/%3E%3Ccircle cx='14' cy='8' r='2' fill='%23737278'/%3E%3Ccircle cx='2' cy='8' r='2' fill='%23737278'/%3E%3C/svg%3E");
+
+  --gl-color-alpha-light-8: var(--alpha-dark-8);
+  --gl-color-alpha-light-16: var(--alpha-dark-16);
+  --gl-color-alpha-light-24: var(--alpha-dark-24);
+  --gl-color-alpha-blue-25: rgba(31, 117, 203, 0.16);
+  --gl-color-alpha-blue-32: rgba(31, 117, 203, 0.2);
+
+  --gl-feedback-strong-bg: var(--gl-gray-800);
+  --gl-feedback-strong-text: var(--gl-gray-0);
+  --gl-feedback-neutral-bg: var(--gl-gray-50);
+  --gl-feedback-neutral-text: var(--gl-gray-800);
+  --gl-feedback-neutral-icon: var(--gl-gray-600);
+  --gl-feedback-info-bg: var(--gl-blue-50);
+  --gl-feedback-info-text: var(--gl-blue-800);
+  --gl-feedback-info-icon: var(--gl-blue-500);
+  --gl-feedback-success-bg: var(--gl-green-50);
+  --gl-feedback-success-text: var(--gl-green-800);
+  --gl-feedback-success-icon: var(--gl-green-500);
+  --gl-feedback-warning-bg: var(--gl-orange-50);
+  --gl-feedback-warning-text: var(--gl-orange-800);
+  --gl-feedback-warning-icon: var(--gl-orange-500);
+  --gl-feedback-danger-bg: var(--gl-red-50);
+  --gl-feedback-danger-text: var(--gl-red-800);
+  --gl-feedback-danger-icon: var(--gl-red-500);
+
+  --gl-status-neutral-bg: var(--gl-gray-100);
+  --gl-status-neutral-text: var(--gl-gray-700);
+  --gl-status-neutral-icon: var(--gl-gray-600);
+  --gl-status-info-bg: var(--gl-blue-100);
+  --gl-status-info-text: var(--gl-blue-800);
+  --gl-status-info-icon: var(--gl-blue-600);
+  --gl-status-success-bg: var(--gl-green-100);
+  --gl-status-success-text: var(--gl-green-800);
+  --gl-status-success-icon: var(--gl-green-600);
+  --gl-status-warning-bg: var(--gl-orange-100);
+  --gl-status-warning-text: var(--gl-orange-800);
+  --gl-status-warning-icon: var(--gl-orange-600);
+  --gl-status-danger-bg: var(--gl-red-100);
+  --gl-status-danger-text: var(--gl-red-800);
+  --gl-status-danger-icon: var(--gl-red-600);
+  --gl-status-brand-bg: var(--gl-purple-100);
+  --gl-status-brand-text: var(--gl-purple-800);
+  --gl-status-brand-icon: var(--gl-purple-600);
+
+  --gl-badge-muted-bg: var(--gl-gray-50);
+  --gl-badge-muted-text: var(--gl-gray-600);
+  --gl-badge-neutral-bg: var(--gl-gray-100);
+  --gl-badge-neutral-text: var(--gl-gray-700);
+  --gl-badge-info-bg: var(--gl-blue-100);
+  --gl-badge-info-text: var(--gl-blue-700);
+  --gl-badge-success-bg: var(--gl-green-100);
+  --gl-badge-success-text: var(--gl-green-700);
+  --gl-badge-warning-bg: var(--gl-orange-100);
+  --gl-badge-warning-text: var(--gl-orange-700);
+  --gl-badge-danger-bg: var(--gl-red-100);
+  --gl-badge-danger-text: var(--gl-red-700);
+  --gl-badge-tier-bg: var(--gl-purple-100);
+  --gl-badge-tier-text: var(--gl-purple-700);
+  --gl-badge-teal-bg: var(--gl-teal-100);
+  --gl-badge-teal-text: var(--gl-teal-700);
+
+  /* Avatar tokens - light theme, 1:1 with @gitlab/ui tokens.css (--gl-avatar-*). */
+  --gl-avatar-border-color-default: var(--alpha-dark-8);
+  --gl-avatar-fallback-text-color-red:     var(--gl-red-800);
+  --gl-avatar-fallback-text-color-purple:  var(--gl-purple-800);
+  --gl-avatar-fallback-text-color-blue:    var(--gl-blue-800);
+  --gl-avatar-fallback-text-color-green:   var(--gl-green-800);
+  --gl-avatar-fallback-text-color-orange:  var(--gl-orange-800);
+  --gl-avatar-fallback-text-color-neutral: var(--gl-gray-800);
+
+  /* Button tokens - light theme, 1:1 with @gitlab/ui 136.1.0 tokens.css
+     (--gl-button-*). The confirm/primary button is neutral-800, not blue - see
+     the dark-theme block above for why. */
+  --gl-btn-default-text: var(--gl-gray-800);
+  --gl-btn-default-bg: var(--gl-gray-0);
+  --gl-btn-default-bg-hover: var(--gl-gray-50);
+  --gl-btn-default-bg-active: var(--gl-gray-100);
+  --gl-btn-default-border: var(--gl-gray-200);
+  --gl-btn-default-border-hover: var(--gl-gray-400);
+  --gl-btn-default-border-active: var(--gl-gray-600);
+  --gl-btn-confirm-text: var(--gl-gray-0);
+  --gl-btn-confirm-bg: var(--gl-gray-800);
+  --gl-btn-confirm-bg-hover: var(--gl-gray-950);
+  --gl-btn-confirm-bg-active: var(--gl-gray-1000);
+  --gl-btn-confirm-secondary-text: var(--gl-gray-800);
+  --gl-btn-confirm-secondary-bg: var(--gl-gray-0);
+  --gl-btn-confirm-secondary-bg-hover: var(--gl-gray-50);
+  --gl-btn-confirm-secondary-bg-active: var(--gl-gray-100);
+  --gl-btn-confirm-secondary-border: var(--gl-gray-800);
+  --gl-btn-danger-text: var(--gl-gray-0);
+  --gl-btn-danger-bg: var(--gl-red-500);
+  --gl-btn-danger-bg-hover: var(--gl-red-600);
+  --gl-btn-danger-bg-active: var(--gl-red-800);
+  --gl-btn-danger-border: var(--gl-red-600);
+  --gl-btn-danger-border-hover: var(--gl-red-800);
+  --gl-btn-danger-border-active: var(--gl-red-900);
+  --gl-btn-danger-secondary-text: var(--gl-red-500);
+  --gl-btn-danger-secondary-bg: var(--gl-gray-0);
+  --gl-btn-danger-secondary-bg-hover: var(--gl-red-50);
+  --gl-btn-danger-secondary-bg-active: var(--gl-red-100);
+  --gl-btn-danger-secondary-border: var(--gl-red-500);
+  --gl-btn-success-text: var(--gl-gray-0);
+  --gl-btn-success-bg: var(--gl-green-500);
+  --gl-btn-success-bg-hover: var(--gl-green-600);
+  --gl-btn-success-bg-active: var(--gl-green-700);
+  --gl-btn-warning-text: var(--gl-gray-0);
+  --gl-btn-warning-bg: var(--gl-orange-500);
+  --gl-btn-warning-bg-hover: var(--gl-orange-600);
+  --gl-btn-warning-bg-active: var(--gl-orange-700);
+  --gl-btn-disabled-text: var(--gl-gray-500);
+  --gl-btn-disabled-bg: var(--gl-gray-10);
+  --gl-btn-disabled-border: var(--gl-gray-100);
+  --gl-action-neutral-bg-default: transparent;
+  --gl-action-neutral-bg-hover: var(--alpha-dark-8);
+  --gl-action-neutral-bg-active: var(--alpha-dark-16);
+  --gl-action-confirm-bg-default: transparent;
+  --gl-action-confirm-bg-hover: var(--alpha-dark-6, rgba(5, 5, 6, 0.06));
+  --gl-action-confirm-bg-active: var(--alpha-dark-16, rgba(5, 5, 6, 0.16));
+  --gl-action-confirm-text: var(--gl-gray-800);
+  --gl-action-danger-bg-default: rgba(245, 127, 108, 0);
+  --gl-action-danger-bg-hover: rgba(245, 127, 108, 0.16);
+  --gl-action-danger-bg-active: rgba(174, 24, 0, 0.24);
+  --gl-action-danger-text: var(--gl-red-500);
+  --gl-action-selected-bg-default: var(--gl-color-alpha-blue-25);
+  --gl-action-selected-bg-hover: var(--gl-color-alpha-blue-32);
+  --gl-action-selected-bg-active: rgba(31, 117, 203, 0.26);
+  --gl-action-selected-border: var(--gl-blue-500);
+  --gl-action-selected-text: var(--gl-nav-item-selected-text);
+  --gl-btn-selected-bg: var(--gl-action-selected-bg-default);
+  --gl-btn-selected-text: var(--gl-action-selected-text);
+
+  /* Illustration palette - GitLab empty-state SVGs read these via var() with a
+     light fallback baked in, so they only theme correctly when INLINED (a linked
+     image element cannot see page variables). @gitlab/ui 136.1.0 --gl-illustration-*. */
+  --gl-illustration-stroke-color-default: #171321;
+  --gl-illustration-stroke-width-default: 2;
+  --gl-illustration-fill-color-default: #fff;
+  --gl-illustration-accent-stroke-color-strong: #aea5d6;
+  --gl-illustration-accent-stroke-color-orange: #ff9d73;
+  --gl-illustration-accent-stroke-color-teal: #6fdac9;
+  --gl-illustration-accent-fill-color-subtle: #d0c5e2;
+  --gl-illustration-accent-fill-color-strong: #aea5d6;
+  --gl-illustration-accent-fill-color-orange: #ff9d73;
+  --gl-illustration-accent-fill-color-teal: #6fdac9;
+  --gl-illustration-base-fill-color: #e7e4f2;
+  --gl-illustration-status-fill-color-neutral: #aea5d6;
+  --gl-illustration-status-fill-color-success: #6fdac9;
+  --gl-illustration-status-fill-color-warning: #fca326;
+  --gl-illustration-status-fill-color-danger: #ff9d73;
+
+  --gl-nav-item-selected-text: rgb(24, 51, 78);
+
+  --gl-scrim-color: var(--alpha-dark-8);
+
+  --gl-topbar-search-bg:     var(--gl-gray-0);
+  --gl-topbar-search-border: rgba(5, 5, 6, 0.24);
+  --gl-topbar-search-border-hover: rgba(5, 5, 6, 0.4);
+  --gl-kbd-bg:               var(--gl-gray-10);
+  --gl-kbd-border:           var(--gl-gray-200);
+
+  --gl-dropdown-bg: var(--gl-gray-0);
+  --gl-dropdown-border: var(--gl-gray-200);
+  --gl-dropdown-divider: var(--gl-gray-100);
+  --gl-dropdown-item-text: var(--gl-gray-950);
+  --gl-dropdown-item-hover-bg: var(--alpha-dark-8);
+  --gl-dropdown-item-active-bg: var(--alpha-dark-16);
+  --gl-dropdown-item-selected-bg: var(--gl-blue-50);
+  --gl-dropdown-search-bg: var(--gl-gray-10);
+
+  /* Alert tokens - light. Backgrounds are GitLab's -50 tints
+     (#e9f3fc / #ecf4ee / #fdf1dd / #fcf1ef / #ececef); the title is the
+     heading colour on every variant. Borders transparent, as in dark. */
+  --gl-alert-neutral-border: rgba(0, 0, 0, 0);
+  --gl-alert-info-border: rgba(0, 0, 0, 0);
+  --gl-alert-success-border: rgba(0, 0, 0, 0);
+  --gl-alert-warning-border: rgba(0, 0, 0, 0);
+  --gl-alert-danger-border: rgba(0, 0, 0, 0);
+
+  --gl-alert-neutral-bg: var(--gl-gray-50);
+  --gl-alert-info-bg: var(--gl-blue-50);
+  --gl-alert-success-bg: var(--gl-green-50);
+  --gl-alert-warning-bg: var(--gl-orange-50);
+  --gl-alert-danger-bg: var(--gl-red-50);
+
+  --gl-alert-neutral-title: var(--gl-text-color-heading);
+  --gl-alert-info-title: var(--gl-text-color-heading);
+  --gl-alert-success-title: var(--gl-text-color-heading);
+  --gl-alert-warning-title: var(--gl-text-color-heading);
+  --gl-alert-danger-title: var(--gl-text-color-heading);
+  --gl-progress-track: var(--gl-gray-100);
+  --gl-table-row-stripe-bg: var(--gl-gray-10);
+  --gl-table-row-hover-bg: color-mix(in srgb, var(--gl-action-selected-border) 6%, var(--gl-background-color-default));
+  --gl-table-row-selected-bg: color-mix(in srgb, var(--gl-action-selected-border) 12%, var(--gl-background-color-default));
+  --gl-table-header-bg: var(--gl-background-color-subtle);
+  --gl-tab-selected-indicator: var(--gl-blue-500);
+
+  /* Segmented control tokens (GitLab Pajamas - light) */
+  --gl-segmented-control-track-bg:        var(--gl-gray-50);
+  --gl-segmented-control-track-border:    var(--gl-border-color-subtle);
+  --gl-segmented-control-btn-active-bg:   var(--gl-gray-0);
+  --gl-segmented-control-btn-active-color:var(--gl-gray-900);
+  --chart-brand: var(--gl-blue-500);
+  --chart-cat-issue: var(--gl-purple-500);
+  --chart-cat-mr: var(--gl-blue-500);
+  --chart-cat-review: var(--gl-orange-500);
+  --chart-cat-ci: var(--gl-teal-700);
+  --chart-cat-quality: #be185d;
+  --chart-cat-custom: #7e22ce;
+  --chart-grid: var(--gl-border-color-subtle);
+  --chart-success: var(--gl-green-500);
+  --chart-warning: var(--gl-orange-500);
+  --chart-danger: var(--gl-red-500);
+  --gl-diff-color-added: var(--gl-green-600);
+  --gl-diff-color-removed: var(--gl-red-600);
+  --gl-diff-added-bg: var(--gl-green-50);
+  --gl-diff-added-num-bg: var(--gl-green-100);
+  --gl-diff-removed-bg: var(--gl-red-50);
+  --gl-diff-removed-num-bg: var(--gl-red-100);
+  --gl-diff-hunk-bg: var(--gl-blue-50);
+  --gl-diff-hunk-num-bg: var(--gl-blue-100);
+  --gl-overlay-bg: var(--alpha-dark-24);
+  --gl-list-border: var(--gl-gray-100);
+  --gl-list-hover-bg: var(--gl-gray-50);
+
+  --gl-illustration-isometric-base-side-fill-color: #aea5d6;
+  --gl-illustration-isometric-base-top-fill-color: #e7e4f2;
+  --gl-illustration-isometric-stroke-color-default: #171321;
+  --gl-illustration-isometric-glyph-front-fill-color: #ffffff;
+  --gl-illustration-isometric-glyph-top-fill-color: #c5f4ec;
+  --gl-illustration-isometric-glyph-side-fill-color: #6fdac9;
+  --gl-illustration-isometric-glyph-shadow-fill-color: #10b1b1;
+  --gl-illustration-isometric-object-front-fill-color: #ffc2a8;
+  --gl-illustration-isometric-object-top-fill-color: #ff9d73;
+  --gl-illustration-isometric-object-side-fill-color: #ff7b42;
+  --gl-illustration-isometric-object-highlight-fill-color: #e7e4f2;
+  --login-logo-filter: none;
+
+  /* -- Premium Motion Tokens (Light Scheme Overrides) -- */
+  --shadow-card-hover: 0 12px 30px rgba(5, 5, 6, 0.08), 0 0 1px rgba(5, 5, 6, 0.12);
+
+  --status-green-pulse: rgba(47, 117, 73, 0.3);
+  --status-yellow-pulse: rgba(158, 84, 0, 0.3);
+  --status-red-pulse: rgba(221, 43, 14, 0.3);
+}
+
+/* ---------------------------------------------------------
+   PREFERENCES > THEME (accent colour)
+
+   One colour per accent; everything the accent touches is DERIVED from it
+   with color-mix, so the five themes cannot drift apart. `default` has no
+   rule on purpose: an untouched account keeps the blue tokens above, byte
+   for byte. A theme is the WHOLE theme, so the accent retints:
+     - the application chrome (the shell ground; the sidebar in sidebar.css);
+     - the selected highlight (--gl-action-selected-*): the active nav item,
+       the selected week, the current page;
+     - the checked checkbox / radio;
+     - the primary colour itself (--primary: the current-week pill, the tab
+       underline, progress) and the confirm button, filled and outlined;
+     - the focus ring.
+   Links, the tab indicator and the brand series in charts follow it too; a
+   link keeps its weight and hover underline, so under the Gray theme it is
+   still read as a link. The danger button stays red in every theme - under the Red theme the
+   confirm button is a deeper red than the danger one (the light fill is the
+   accent, the dark one the accent over the page) and every danger action
+   carries its icon, so Save and Delete do not read as one button.
+   The percentages are the alpha steps of the default blue tokens (25/32)
+   carried to the accent, plus one more for :active.
+   --------------------------------------------------------- */
+html[data-accent="indigo"] { --_accent: var(--gl-purple-500); }
+html[data-accent="blue"]   { --_accent: var(--gl-blue-500); }
+html[data-accent="green"]  { --_accent: var(--gl-green-500); }
+html[data-accent="red"]    { --_accent: var(--gl-red-500); }
+html[data-accent="gray"]   { --_accent: var(--gl-gray-500); }
+
+html[data-accent]:not([data-accent="default"]) {
+  /* The shell ground behind the top bar and around the content panel. Same
+     14% as the sidebar, so the chrome reads as one tinted surface. */
+  --app-shell-bg: color-mix(in srgb, var(--_accent) 14%, var(--gl-gray-50));
+  --gl-action-selected-bg-default: color-mix(in srgb, var(--_accent) 30%, transparent);
+  --gl-action-selected-bg-hover:   color-mix(in srgb, var(--_accent) 38%, transparent);
+  --gl-action-selected-bg-active:  color-mix(in srgb, var(--_accent) 46%, transparent);
+  --gl-action-selected-border:     var(--_accent);
+  --gl-action-selected-text:       color-mix(in srgb, var(--_accent) 30%, var(--gl-text-color-strong));
+  /* Checked checkbox / radio: the accent, with a white indicator. */
+  --gl-control-bg-selected:        var(--_accent);
+  --gl-control-bg-selected-hover:  color-mix(in srgb, var(--_accent) 85%, var(--gl-gray-1000));
+  --gl-control-border-selected:    var(--_accent);
+  --gl-control-indicator-selected: var(--gl-gray-0);
+  /* The primary colour and the confirm button (light values; dark below). */
+  --primary:        var(--_accent);
+  --primary-hover:  color-mix(in srgb, var(--_accent) 85%, var(--gl-gray-1000));
+  --primary-active: color-mix(in srgb, var(--_accent) 72%, var(--gl-gray-1000));
+  --primary-light:  color-mix(in srgb, var(--_accent) 10%, var(--gl-gray-0));
+  --primary-dark:   color-mix(in srgb, var(--_accent) 72%, var(--gl-gray-1000));
+  --gl-btn-confirm-text:      var(--gl-gray-0);
+  --gl-btn-confirm-bg:        var(--_accent);
+  --gl-btn-confirm-bg-hover:  color-mix(in srgb, var(--_accent) 85%, var(--gl-gray-1000));
+  --gl-btn-confirm-bg-active: color-mix(in srgb, var(--_accent) 72%, var(--gl-gray-1000));
+  --gl-btn-confirm-secondary-text:      color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-1000));
+  --gl-btn-confirm-secondary-bg:        var(--gl-gray-0);
+  --gl-btn-confirm-secondary-bg-hover:  color-mix(in srgb, var(--_accent) 8%, var(--gl-gray-0));
+  --gl-btn-confirm-secondary-bg-active: color-mix(in srgb, var(--_accent) 16%, var(--gl-gray-0));
+  --gl-btn-confirm-secondary-border:    var(--_accent);
+  --focus-ring:       0 0 0 1px var(--gl-gray-0), 0 0 0 3px var(--_accent);
+  --focus-ring-inset: inset 0 0 0 2px var(--_accent);
+  /* Links, breadcrumbs, the sidebar section headings, .btn-link. */
+  --gl-text-color-link: color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-1000));
+  /* The selected tab's underline, the brand series in charts. */
+  --gl-tab-selected-indicator: var(--_accent);
+  --chart-brand: var(--_accent);
+  /* The alpha tints the blue tokens carried (rings on the home stats). */
+  --gl-color-alpha-blue-25: color-mix(in srgb, var(--_accent) 16%, transparent);
+  --gl-color-alpha-blue-32: color-mix(in srgb, var(--_accent) 20%, transparent);
+  /* The selected item of a listbox. */
+  --gl-dropdown-item-selected-bg: color-mix(in srgb, var(--_accent) 10%, var(--gl-gray-0));
+  /* The preview card in Preferences draws its primary-button mark in this. */
+  --theme-preview-accent: var(--_accent);
+}
+html[data-theme="dark"][data-accent]:not([data-accent="default"]),
+html:not([data-theme])[data-accent]:not([data-accent="default"]) {
+  --app-shell-bg: color-mix(in srgb, var(--_accent) 14%, var(--gl-gray-900));
+  /* On dark the fill is the accent laid over the page (the step blue-600 is
+     to blue-500 for the default theme), hover is the accent itself - a hover
+     goes lighter on a dark page - and the outlined button is the accent tint. */
+  --primary:        color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-0));
+  --primary-hover:  color-mix(in srgb, var(--_accent) 65%, var(--gl-gray-0));
+  --primary-active: var(--_accent);
+  --primary-light:  color-mix(in srgb, var(--_accent) 25%, var(--gl-gray-900));
+  --primary-dark:   color-mix(in srgb, var(--_accent) 62%, var(--gl-gray-900));
+  --gl-btn-confirm-bg:        color-mix(in srgb, var(--_accent) 78%, var(--gl-gray-900));
+  --gl-btn-confirm-bg-hover:  var(--_accent);
+  --gl-btn-confirm-bg-active: color-mix(in srgb, var(--_accent) 62%, var(--gl-gray-900));
+  --gl-btn-confirm-secondary-text:      color-mix(in srgb, var(--_accent) 55%, var(--gl-gray-0));
+  --gl-btn-confirm-secondary-bg:        color-mix(in srgb, var(--_accent) 25%, transparent);
+  --gl-btn-confirm-secondary-bg-hover:  color-mix(in srgb, var(--_accent) 32%, transparent);
+  --gl-btn-confirm-secondary-bg-active: color-mix(in srgb, var(--_accent) 40%, transparent);
+  --focus-ring:       0 0 0 1px var(--gl-gray-950), 0 0 0 3px color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-0));
+  --focus-ring-inset: inset 0 0 0 2px color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-0));
+  --gl-text-color-link: color-mix(in srgb, var(--_accent) 55%, var(--gl-gray-0));
+  --gl-tab-selected-indicator: color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-0));
+  --chart-brand: color-mix(in srgb, var(--_accent) 80%, var(--gl-gray-0));
+  --gl-color-alpha-blue-25: color-mix(in srgb, var(--_accent) 25%, transparent);
+  --gl-color-alpha-blue-32: color-mix(in srgb, var(--_accent) 32%, transparent);
+  --gl-dropdown-item-selected-bg: color-mix(in srgb, var(--_accent) 20%, var(--gl-gray-900));
+}
+
+html[data-layout-width="fluid"] {
+  /* Uncap at EVERY breakpoint, not just the base one: the wide-screen rule in
+     responsive/30-misc.css caps .main-container at --content-width-xl from
+     1440px up, so leaving that token set kept "Fluid" bounded on exactly the
+     wide screens where full-width matters most.
+     Matches GitLab's specification: "Content will span 100% of the page width." */
+  --gl-layout-width: 100%;
+  --content-width-lg: none;
+  --content-width-xl: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gl-anim-highlight: 0.01s;
+  }
+}

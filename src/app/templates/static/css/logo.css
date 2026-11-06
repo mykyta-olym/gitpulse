@@ -1,0 +1,425 @@
+/* ============================================
+   GITPULSE LOGO
+   Component CSS for the GitLab-inspired tanuki + pulse mark.
+   ============================================ */
+
+:root {
+  --gp-logo-ecg-halo: #0076a3;
+  --gp-logo-ecg-halo-opacity: 0.38;
+  --gp-logo-ecg-guard: rgba(255, 255, 255, 0.95);
+  --gp-logo-ecg-guard-opacity: 0.9;
+  --gp-logo-ecg-core: #18171d;
+  --gp-logo-ecg-pulse: #0055aa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gp-logo-ecg-halo: #00f0ff;
+    --gp-logo-ecg-halo-opacity: 0.58;
+    --gp-logo-ecg-guard: rgba(24, 23, 29, 0.9);
+    --gp-logo-ecg-guard-opacity: 0.72;
+    --gp-logo-ecg-core: #ffffff;
+    --gp-logo-ecg-pulse: #ffffff;
+  }
+}
+
+html[data-theme="light"] {
+  --gp-logo-ecg-halo: #0076a3;
+  --gp-logo-ecg-halo-opacity: 0.38;
+  --gp-logo-ecg-guard: rgba(255, 255, 255, 0.95);
+  --gp-logo-ecg-guard-opacity: 0.9;
+  --gp-logo-ecg-core: #18171d;
+  --gp-logo-ecg-pulse: #0055aa;
+}
+html[data-theme="dark"] {
+  --gp-logo-ecg-halo: #00f0ff;
+  --gp-logo-ecg-halo-opacity: 0.58;
+  --gp-logo-ecg-guard: rgba(24, 23, 29, 0.9);
+  --gp-logo-ecg-guard-opacity: 0.72;
+  --gp-logo-ecg-core: #ffffff;
+  --gp-logo-ecg-pulse: #ffffff;
+}
+
+.gp-logo {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gp-part {
+  /* Geometry only. This rule must NOT declare `transition` - the hover section
+     below owns it, and the shorthand replaces rather than merges, so a second
+     declaration anywhere silently drops `--gp-amp` and the mouse-out jerk comes
+     straight back. That is exactly how it came back once already. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.gp-logo-body {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform var(--motion-duration-normal, 240ms) var(--motion-ease-emphasized, cubic-bezier(0.22, 0.61, 0.36, 1)),
+    filter var(--motion-duration-normal, 240ms) var(--motion-ease-standard, ease),
+    opacity var(--motion-duration-normal, 240ms) var(--motion-ease-standard, ease);
+}
+
+.gp-ecg-halo {
+  stroke: var(--gp-logo-ecg-halo);
+  opacity: var(--gp-logo-ecg-halo-opacity);
+}
+
+.gp-ecg-guard {
+  stroke: var(--gp-logo-ecg-guard);
+  opacity: var(--gp-logo-ecg-guard-opacity);
+}
+
+.gp-ecg-core {
+  stroke: var(--gp-logo-ecg-core);
+  opacity: 0.88;
+}
+
+/* -- Why the hover effect is built out of custom properties ------------------
+   You cannot transition OUT of a removed animation. Measured in a browser: with
+   the effect written straight into `filter`, mouse-out dropped brightness from
+   1.66 to 1 between two consecutive frames, no matter what transition was
+   declared - the spec does not treat animation output as a transition's
+   before-change style. That one-frame drop IS the jerk.
+
+   So the animation never goes away. It stays applied and PAUSED at rest, and
+   what actually turns the effect on and off is a separate AMPLITUDE property
+   that transitions. Hover eases the amplitude up, mouse-out eases it back to 0
+   while the wave quietly freezes behind it - nothing to snap, in either
+   direction, whenever the cursor leaves.
+
+   `--gp-wave` / `--gp-dash` are the animation's phase, `--gp-amp` its strength.
+   They are registered so they interpolate as numbers instead of swapping
+   discretely; browsers without @property still substitute the values, so this
+   degrades rather than breaking. */
+@property --gp-wave {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --gp-amp {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --gp-dash {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 100;
+}
+
+.gp-ecg-trace-pulse {
+  stroke: var(--gp-logo-ecg-pulse);
+  stroke-dasharray: 18 82;
+  stroke-dashoffset: var(--gp-dash);
+  /* Paused at rest, so a frozen bright segment costs nothing and - being at
+     opacity 0 - is not parked visibly anywhere on the trace either. The halo,
+     guard and core layers draw the ECG at rest; this layer is the wave only. */
+  animation: gp-pulse-sweep 0.9s linear infinite paused;
+  transition:
+    opacity 0.45s var(--motion-ease-standard, ease),
+    filter 0.45s var(--motion-ease-standard, ease);
+  /* Gentle opacity "heartbeat" glow instead of the old stroke-dashoffset SWEEP.
+     Animating stroke-dashoffset runs on the main thread (it cannot be
+     composited), and `will-change: stroke-dashoffset` forced a repaint layer, so
+     the pulse stuttered / froze whenever the page was busy - the "broken logo
+     animation". Opacity animates on the compositor, so it stays smooth. */
+  /* Static, like GitLab's. Measured on gitlab.com: the brand link reports
+     `animation: none` and NOTHING in its SVG subtree animates - a logo that
+     pulses forever is the loudest "not GitLab" signal on the page, and it was
+     running on every screen at all times. The hover states below stay: those
+     are a response to the user, not perpetual motion. */
+  opacity: 0;
+}
+
+.gp-center,
+.gp-left-ear,
+.gp-right-ear,
+.gp-left-cheek,
+.gp-right-cheek {
+  animation: none;
+}
+
+/* GitLab's tanuki is built from named parts (.tanuki, .left-cheek, .chin,
+   .right-cheek) and each one transitions its FILL - 0.8s at rest, 0.1s while
+   lit, so a piece flares fast under the cursor and fades back slowly. Measured
+   on gitlab.com: the main shape goes rgb(226,67,41) -> rgb(241,166,153) on
+   hover, and NOTHING moves - no scale, no lift, no shadow.
+   Our mark is built the same way, so it gets the same behaviour: each piece
+   lights on its own hover. `filter` reproduces the wash-to-light without
+   needing a second colour token per part. */
+/* Rest state. The brightness goes through a REGISTERED custom property rather
+   than being written straight into `filter`, so leaving the hover interpolates
+   `--gp-flare` back to 1 over 0.5s instead of dropping the animated value in a
+   single frame. That one-frame drop is the jerk on mouse-out. */
+.gp-part {
+  /* brightness = 1 + (wave phase x amplitude). The keyframes move the phase; the
+     hover moves the amplitude. At rest amp is 0, so the paused animation cannot
+     tint anything no matter which frame it froze on. */
+  filter: brightness(calc(1 + var(--gp-wave) * var(--gp-amp)));
+  animation: gp-pulse-flare 0.9s linear infinite paused;
+  transition: --gp-amp 0.45s var(--motion-ease-standard, ease);
+}
+
+/* The `transition: filter 0.8s` that used to sit here is deliberately gone. It
+   came later in the file than `.gp-part` and matched the same five shapes, so it
+   REPLACED the whole `transition` declaration - silently dropping `--gp-amp`
+   from it. That is why the amplitude still snapped 0.85 -> 0 in one frame after
+   the rest of the exit fix was in place. Measured: amp went to 0 at out+70ms
+   while the wave correctly froze at 0.28.
+   One element, one transition declaration - see the "one pattern per
+   interaction" rule. */
+
+/* GitLab's logo hover, measured part by part on gitlab.example.com:
+     .tanuki      rgb(226,67,41) -> rgb(241,166,153)   transition all 0.1s
+     .right-cheek rgb(252,109,38) -> UNCHANGED          transition all 0.8s
+     .chin        rgb(252,163,38) -> UNCHANGED          transition all 0.8s
+     .left-cheek  rgb(252,109,38) -> UNCHANGED          transition all 0.8s
+   So exactly ONE shape lights - the main body - and it travels 52% of the way to
+   white (15/29, 99/188, 112/214 per channel). Everything else holds its colour.
+   Lighting every part at once, which is what we did, is why it read as a flash
+   rather than GitLab's small lift.
+
+   Our shapes are gradient-filled (url(#gpGrad...)), so `fill` cannot be
+   transitioned to a mixed colour the way GitLab's flat fills are; `filter` is
+   the equivalent, tuned to land on the same ~52%-to-white lift. */
+/* -- Hover signature: the pulse crossing the mark ----------------------------
+   Ours, not GitLab's. Copying their fill swap never transferred - their tanuki is
+   one flat deep red, ours is five gradient-filled shapes, and matching their
+   "52% toward white" either flashed or bleached the mark.
+
+   So the mark gets an idea of its own, taken from what it IS: GitPulse, an ECG
+   trace laid across the tanuki. The hover plays that pulse. A bright segment
+   travels the full trace left to right in 0.9s, and each shape flares as the
+   wave reaches it - left ear, left cheek, centre, right cheek, right ear, 90ms
+   apart - then settles back on its own. One pass per hover, not a loop.
+
+   It LOOPS for as long as the cursor is there. A single pass had to end
+   somewhere, and `forwards` parked the bright segment at the right-hand end of
+   the trace - a lit stub sitting off to one side, which reads as the animation
+   having broken rather than finished. A heartbeat does not stop on a beat.
+
+   Sweep and flare share one 0.9s period so the per-shape delays stay in phase
+   with the wave forever, and the sweep is `linear` because an eased loop visibly
+   hitches at every wrap.
+
+   Constraints it respects: colour and stroke only, so nothing moves, nothing
+   reflows and no layout is touched; the flare returns to brightness(1) at 100%,
+   so both a wrap and a cursor leaving mid-pass have nothing to snap back from;
+   and it reads at 24px because the eye tracks one travelling highlight instead
+   of five simultaneous steps. It runs only under the cursor - this is a response
+   to the reader, not the perpetual idle motion that was removed earlier. */
+/* Both keyframes drive the REGISTERED properties, never `filter` /
+   `stroke-dashoffset` directly - that is what lets the rest-state transitions
+   above catch the value on the way out and ease it home. */
+/* Phase only. Neither keyframe touches `filter` or `stroke-dashoffset` directly:
+   the amplitude above decides how much of the phase actually reaches the pixel. */
+@keyframes gp-pulse-sweep {
+  from { --gp-dash: 100; }
+  to   { --gp-dash: 0; }
+}
+@keyframes gp-pulse-flare {
+  0%   { --gp-wave: 0; }
+  20%  { --gp-wave: 1; }
+  100% { --gp-wave: 0; }
+}
+
+:is(.gp-logo:hover, .gl-top-bar-logo:hover, .gl-sidebar-brand:hover) .gp-part {
+  /* 0.85 = a peak of brightness(1.85) as the wave passes. Heavier than the 1.5
+     it started at: at 24px the old lift was too quiet to notice. */
+  --gp-amp: 0.85;
+  animation-play-state: running;
+}
+:is(.gp-logo:hover, .gl-top-bar-logo:hover, .gl-sidebar-brand:hover) .gp-left-ear   { animation-delay: 0s; }
+:is(.gp-logo:hover, .gl-top-bar-logo:hover, .gl-sidebar-brand:hover) .gp-left-cheek { animation-delay: 0.09s; }
+:is(.gp-logo:hover, .gl-top-bar-logo:hover, .gl-sidebar-brand:hover) .gp-center     { animation-delay: 0.18s; }
+:is(.gp-logo:hover, .gl-top-bar-logo:hover, .gl-sidebar-brand:hover) .gp-right-cheek{ animation-delay: 0.27s; }
+:is(.gp-logo:hover, .gl-top-bar-logo:hover, .gl-sidebar-brand:hover) .gp-right-ear  { animation-delay: 0.36s; }
+
+:is(.gl-sidebar-brand:hover, .gl-sidebar-brand:focus-visible, .gl-top-bar-logo:hover, .gl-top-bar-logo:focus-visible, .gp-logo:hover) .gp-ecg-trace-pulse {
+  /* The wave itself: one beat every 0.9s, linear so the loop does not hitch.
+     A heavier glow than before - at 24px the sweep alone was too quiet to read,
+     which is the "on hover this is too little" note. */
+  opacity: 1;
+  filter: drop-shadow(0 0 5px var(--gp-logo-ecg-halo))
+          drop-shadow(0 0 2px var(--gp-logo-ecg-pulse));
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-part,
+  .gp-logo-body,
+  .gp-center,
+  .gp-left-ear,
+  .gp-right-ear,
+  .gp-left-cheek,
+  .gp-right-cheek,
+  .gp-ecg-trace-pulse {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ============================================================
+   In-flight navigation: the outgoing page stays put.
+   GitLab / YouTube behaviour - the page you are leaving remains readable, just
+   dimmed and inert, while the top progress bar reports the fetch. Only opacity
+   changes, so the transition is composited and cannot stutter while the incoming
+   page occupies the main thread. See _navigate() in core/42-spa-navigation.js.
+   ============================================================ */
+#main-content.is-navigating {
+  /* 0.75, not 0.6. The page you are leaving stays READABLE - it is the only
+     content on the screen until the next one lands, and at 0.6 with a veil over
+     it as well the app read as broken rather than busy. */
+  opacity: 0.75;
+  pointer-events: none;
+  transition: opacity var(--transition-fast, 100ms) linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  #main-content.is-navigating { transition: none; }
+}
+/* ...except a navigation that stays on this page (a filter, the period, a sort,
+   a page of the same list). Its controls already show the new choice, so they
+   keep full strength and only the rows - the part that is about to change -
+   step back. Stepping the whole page back made the filter just picked blink
+   out and in. Still inert and still the progress cursor: `is-navigating`. */
+#main-content.is-navigating.is-refining {
+  opacity: 1;
+}
+/* The incoming page between the swap and its scripts having run (see
+   _arrive in core/42-spa-navigation.js): laid out, so the scripts measure real
+   boxes, but not painted until it is the finished page. */
+#main-content.is-arriving {
+  visibility: hidden;
+}
+.gp-page-cover {
+  position: fixed;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--gl-background-color-default);
+  z-index: var(--z-sticky);
+}
+#main-content.is-refining tbody {
+  opacity: 0.75;
+  transition: opacity var(--transition-fast, 100ms) linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  #main-content.is-refining tbody { transition: none; }
+}
+
+/* ============================================================
+   Navigation feedback.
+   No page-level loader lives here any more. The signals are the top progress
+   bar (animations.css), the control the reader clicked - which turns the app's
+   own `.gp-spinner` in place, below - and a line in the breadcrumb bar if the
+   fetch really drags. See _navigateNow() in core/42-spa-navigation.js for why: a veil
+   over the page covered the thing it was reporting on, ignored the accent the
+   reader had chosen, moved its own mark by 13px when the slow note appeared,
+   and stood still under `prefers-reduced-motion`.
+   ============================================================ */
+/* The clicked control, while its page is on the way. Absolutely positioned so
+   the mark costs the control no width: a sidebar item, a tab and a card link
+   are all laid out to the pixel, and a spinner that pushed the label sideways
+   would be its own layout jump. */
+.is-nav-busy {
+  position: relative;
+}
+.nav-busy-spinner {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+/* `visibility`, not `display`: the icon keeps its box, so nothing reflows while
+   the mark stands in it. */
+.is-nav-busy-icon {
+  visibility: hidden;
+}
+
+/* The control that has NO icon slot: a table row, a link in a cell, a card. It
+   holds an accent wash for as long as the fetch runs - the same colour the row
+   highlight flashes, held rather than flashed, so a click in a table is
+   answered where it happened instead of only by the bar at the top.
+   `!important` on the cells is load-bearing: the zebra and the hover are painted
+   on each <td> by design (tables.css), at a specificity this cannot outrank
+   without it. Background only - a tint moves nothing. */
+.is-nav-busy-tint {
+  background-color: color-mix(in srgb, var(--gl-action-selected-border) 12%, transparent);
+  transition: background-color var(--transition-fast) linear;
+}
+/* The `progress` cursor over the content while the next page is fetched. This
+   is the signal every browser and desktop app uses for exactly this, and it is
+   the one that works for a click on a card, a table row or a bare link - none of
+   which has an icon slot for a mark, and none of which should get one put in an
+   arbitrary corner.
+   On the SCROLLER, not on #main-content: the content is `pointer-events: none`
+   while it is stale, so it is not hit-tested and its own cursor never applies.
+   The scroller still is, and it is the same region. */
+.gl-page-content:has(#main-content.is-navigating) {
+  cursor: progress;
+}
+
+.gp-spinner {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  --gp-spinner-size: 24px;
+  --gp-spinner-ring: 2px;
+  width: var(--gp-spinner-size);
+  height: var(--gp-spinner-size);
+}
+
+.gp-spinner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* A conic gradient masked into a ring, exactly as the navigation loader does
+     it: one composited rotation instead of a border whose colour is repainted
+     every frame. */
+  background: conic-gradient(from 0deg,
+    rgba(252, 109, 38, 0) 0 55%,
+    #fc6d26 90%,
+    #e24329 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--gp-spinner-ring)), #000 calc(100% - var(--gp-spinner-ring)));
+          mask: radial-gradient(farthest-side, transparent calc(100% - var(--gp-spinner-ring)), #000 calc(100% - var(--gp-spinner-ring)));
+  animation: spin var(--gl-anim-spin) linear infinite;
+  will-change: transform;
+}
+
+.gp-spinner-mark {
+  /* The mark sits still inside the turning ring. Spinning both reads as two
+     things moving at once and makes the tanuki unrecognisable. */
+  width: 56%;
+  height: 56%;
+  display: block;
+}
+
+.gp-spinner--xs { --gp-spinner-size: 16px; --gp-spinner-ring: 1.5px; }
+.gp-spinner--sm { --gp-spinner-size: 20px; --gp-spinner-ring: 2px; }
+.gp-spinner--md { --gp-spinner-size: 28px; --gp-spinner-ring: 2.5px; }
+.gp-spinner--lg { --gp-spinner-size: 44px; --gp-spinner-ring: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The ring keeps turning - slower. A frozen spinner reads as a hung request,
+     which is the opposite of what it is there to say.
+     `!important`, and the iteration count with it: animations.css carries the
+     blanket `*, *::before, *::after { animation-duration: 0.01ms !important;
+     animation-iteration-count: 1 !important }`, which this rule lost to - so
+     under reduced motion every loading mark in the app made one 0.00001s turn
+     and then stood still (measured `spin 1e-05s 1` on the navigation loader).
+     `.global-job-spinner` already states this same exception in the same words.
+     Reduced motion means slower, not stopped. */
+  .gp-spinner::before {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

@@ -1,0 +1,11 @@
+{{/*
+  Removes zeroes added to the given string for sorting
+
+  These allow us to compare semantic version numbers.
+  See also padZeroPrefix.html
+
+  Credit: https://somethingstrange.com/posts/natural-sorting-of-semver-strings-in-hugo/ 
+ 
+  @return string 
+*/}}
+{{- return replaceRE "0+(\\d+)" "$1" . }}

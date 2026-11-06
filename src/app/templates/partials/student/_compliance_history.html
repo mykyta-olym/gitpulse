@@ -1,0 +1,142 @@
+{% from "components/icons.html" import icon %}
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn_icon_only %}
+{% from "components/cards.html" import card %}
+{% from "components/tables.html" import data_table, sortable_header %}
+{% from "components/loaders.html" import sk_table_loading, block_loading %}
+{% from "components/layout.html" import json_island with context %}
+
+{# -- Compliance Progress -- #}
+{% if can_edit or is_own_profile %}
+{# Consume the embedded history before page arrival; subsequent refreshes fetch.
+   Chart drawing is deferred independently from the data and summary values. #}
+{% set _hist = history_first_json.history if history_first_json else [] %}
+{% set _hist_has_checks = _hist | selectattr('checks_detail') | list | length > 0 %}
+{% set ct_compliance %}{{ t('Compliance Progress') }}{% endset %}
+{% set ha_compliance %}
+{{ btn_icon_only('refresh-cw', variant='secondary', size='sm', id='btnRefreshHistory', data_attrs={'tippy-content': t('Reload')}) }}
+{% endset %}
+{% call card(title=ct_compliance, icon_name='trending-up', header_actions=ha_compliance, id='complianceHistoryPanel', data_attrs={'data-course-id': course.id, 'data-student-id': student.id, 'data-semester-weeks': semester_weeks|default(DEFAULT_SEMESTER_WEEKS), 'data-green-pct': green_pct|default(DEFAULT_GREEN_PCT), 'data-yellow-pct': yellow_pct|default(DEFAULT_YELLOW_PCT)}) %}
+    <p class="muted text-sm">{{ t('Score trend and practice tracking across the semester') }}</p>
+    <div class="student-charts-layout">
+      {# -- Score trend line chart -- #}
+      <div class="student-chart-primary">
+        <div class="chart-container--interactive">
+          <div class="chart-header">
+            <span class="chart-title-sm">{{ t('Score Trend') }}</span>
+          </div>
+          <div id="historyChart" class="chart-canvas-wrap chart-canvas-wrap--lg">
+            <canvas id="historyCanvas" role="img" aria-label="{{ t('Compliance score trend chart') }}"></canvas>
+            <div class="chart-empty-msg" id="historyEmpty">
+              {{ block_loading(height='auto', label=t('Loading compliance data...'), size='md') }}
+            </div>
+          </div>
+          <div class="threshold-pills mt-3">
+            {% set _g = green_pct|default(DEFAULT_GREEN_PCT) %}{% set _y = yellow_pct|default(DEFAULT_YELLOW_PCT) %}
+            {{ badge('≥ ' ~ _g ~ '% ' ~ t('Good'), variant='success') }}
+            {{ badge(_y ~ '-' ~ (_g - 1) ~ '% ' ~ t('Fair'), variant='warning') }}
+            {{ badge('< ' ~ _y ~ '% ' ~ t('Needs Work'), variant='danger') }}
+          </div>
+        </div>
+      </div>
+      {# -- Skill radar -- #}
+      <div class="student-chart-secondary">
+        <div class="chart-container--interactive">
+          <div class="chart-header">
+            <span class="chart-title-sm">{{ t('Skill Profile') }}</span>
+            <span class="muted text-xs" id="radarWeekLabel"></span>
+          </div>
+          <div class="chart-canvas-wrap chart-canvas-wrap--md">
+            <canvas id="skillRadarCanvas" role="img" aria-label="{{ t('Skill radar chart') }}"></canvas>
+            <div id="skillRadarEmpty" class="chart-empty-msg d-none"></div>
+          </div>
+        </div>
+        {# -- Week-over-week summary stats -- #}
+        <div id="weekSummaryStats" class="compliance-summary-stats{% if not _hist %} d-none{% endif %}">
+          <div class="summary-stat">
+            <span class="summary-stat-value" id="summaryCurrentScore">-</span>
+            <span class="summary-stat-label">{{ t('Current Score') }}</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-stat-value" id="summaryDelta">-</span>
+            <span class="summary-stat-label">{{ t('vs Last Week') }}</span>
+          </div>
+          <div class="summary-stat">
+            <span class="summary-stat-value" id="summaryWeakest">-</span>
+            <span class="summary-stat-label">{{ t('Weakest Area') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# -- Check progress heatmap -- #}
+    <div id="checkHeatmapPanel" class="mt-5{% if not _hist_has_checks %} d-none{% endif %}">
+      <div class="chart-header mb-3">
+        <span class="chart-title-sm">{{ t('Check Progress by Week') }}</span>
+        <div class="heatmap-legend">
+          <span class="hm-cell hm-cell--pass">{{ icon('check-circle', size='sm') }}</span> {{ t('Pass') }}
+          <span class="hm-cell hm-cell--fail">{{ icon('x-circle', size='sm') }}</span> {{ t('Fail') }}
+          <span class="hm-cell hm-cell--na">{{ icon('slash', size='sm') }}</span> {{ t('N/A') }}
+        </div>
+      </div>
+      {# Reserve the matrix while it mounts; actual rows release the reservation. #}
+      <div class="gl-chart-swap heatmap-swap">
+        <div id="checkHeatmapLoading"{% if history_first_json %} class="d-none"{% endif %}>{% if not history_first_json %}{{ block_loading(height=(((checks|length) + 1) * 28 + 3) ~ 'px', label=t('Loading check progress...')) }}{% endif %}</div>
+        <div class="heatmap-scroll{% if not history_first_json %} d-none{% endif %}" id="checkHeatmapBody-wrap"{% if history_first_json %} style="min-height: {{ ((checks|length) + 1) * 28 + 3 }}px"{% endif %}>
+          <table class="heatmap-table" id="checkHeatmapTable">
+            <thead id="checkHeatmapHead"></thead>
+            <tbody id="checkHeatmapBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="muted font-085em mt-3 mb-0">
+        {{ t('Cells reflect the cumulative weekly snapshot - a Pass mark means the check was passing at week end, not necessarily that new evidence was added during that week. See Week Analytics below for actual per-week activity.') }}
+      </p>
+    </div>
+
+    {# -- Weekly breakdown table --
+       Visible from the first frame, with a loading state in its body. It used
+       to be `d-none` until the fetch returned, so the card grew by the table's
+       full height the moment the data landed - measured 0 -> 1092px - and until
+       then there was nothing on screen to say a table was coming. #}
+    <div id="historyTable" class="mt-5">
+      <div class="chart-header mb-3">
+        <span class="chart-title-sm">{{ t('Weekly Breakdown') }}</span>
+      </div>
+      {% call data_table(headers=[], class='font-085em trends-table--enhanced table-scrollable', sortable=true, reserve_rows=_hist|length, reserve_row_px=48) %}
+          {# Columns declared so the browser does not size them from whichever rows
+                   happen to be visible - that set changes on every load, and the whole
+                   table slides sideways and back. Measured at 1440px. #}
+          <colgroup>
+            <col class="col-tr-week">
+            <col class="col-tr-date">
+            <col class="col-tr-overall">
+            <col class="col-tr-mrs">
+            <col class="col-tr-review">
+            <col class="col-tr-ci">
+            <col class="col-tr-issues">
+            <col class="col-tr-delta">
+          </colgroup>
+          <thead>
+            <tr>
+              {{ sortable_header(t('Week'), 'week', sort_type='number', default_sort='desc') }}
+              {{ sortable_header(t('Date'), 'date', sort_type='date') }}
+              {{ sortable_header(t('Overall'), 'overall', sort_type='number') }}
+              {{ sortable_header(t('MRs'), 'mrs', sort_type='number') }}
+              {{ sortable_header(t('Review'), 'review', sort_type='number') }}
+              {{ sortable_header(t('CI'), 'ci', sort_type='number') }}
+              {{ sortable_header(t('Issues'), 'issues', sort_type='number') }}
+              {{ sortable_header(t('Delta'), 'delta', sort_type='number') }}
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            {# Embedded data mounts synchronously; only a pending read needs a loader. #}
+            {% if not history_first_json %}
+            {{ sk_table_loading(cols=8, label=t('Loading history...')) }}
+            {% endif %}
+          </tbody>
+      {% endcall %}
+    </div>
+    {{ json_island(history_first_json, csp_nonce, id='gp-student-history') }}
+{% endcall %}
+{% endif %}

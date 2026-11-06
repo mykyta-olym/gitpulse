@@ -1,0 +1,51 @@
+{{/*
+  Recursively renders a list of side-nav items (and their submenus) as HTML.
+
+  Called by `sidebar-nav.html` and by itself for nested submenus. Mirrors the
+  markup and active-state classes of the Vue `MenuItem` component
+  (src/components/sidebar_menu_item.vue) so the server-rendered tree matches the
+  hydrated one. The interactive expand/collapse chevron is omitted: no-JS
+  clients see the section fully expanded, and Vue replaces this markup on load.
+
+  @param dict
+    $items      slice  — the nav items to render (each has title, url, submenu?)
+    $trailPaths slice  — paths on the active trail (drives active-trail styling)
+    $activePath string — the current page's path (drives active-item styling)
+    $lang       string — the current language code
+*/}}
+{{- $trailPaths := .trailPaths -}}
+{{- $activePath := .activePath -}}
+{{- $lang := .lang -}}
+{{- range .items -}}
+  {{- $url := .url -}}
+  {{- $isExternal := hasPrefix (lower $url) "http" -}}
+  {{- $href := $url -}}
+  {{- if not $isExternal -}}
+    {{- /* relLangURL applies the CURRENT language's prefix and honours
+           `defaultContentLanguageInSubdir`, so the default language gets no
+           prefix and every other one gets exactly one. Prefixing by hand
+           against a hardcoded "en-us" sent Slovak links through a redirect and
+           gave English links the prefix twice - `/docs/en/en/...`. */ -}}
+    {{- $href = relLangURL ($url | strings.TrimPrefix "/") -}}
+  {{- end -}}
+  {{- $isActive := eq $url $activePath -}}
+  {{- $inTrail := in $trailPaths $url -}}
+  {{- $activeClass := "" -}}
+  {{- if $inTrail -}}{{- $activeClass = " sidebar-link-active-trail" -}}{{- end -}}
+  {{- if $isActive -}}{{- $activeClass = printf "%s sidebar-link-active-item" $activeClass -}}{{- end -}}
+  <div>
+    <div class="menu-link-wrapper-outer">
+      <div class="menu-link-wrapper-inner gl-flex gl-items-center gl-rounded-base{{ $activeClass }}">
+        <a href="{{ $href }}" class="menu-link gl-grow gl-py-2 gl-px-4 gl-text-default gl-no-underline hover:gl-no-underline"{{ if $isActive }} aria-current="page"{{ end }}>{{ .title }}</a>
+      </div>
+    </div>
+    {{- /* Expand only the active trail, matching the Vue component's collapsed
+           default (submenus render when `isActiveTrail`). Keeps the HTML small
+           and consistent with the hydrated DOM. */ -}}
+    {{- if and .submenu $inTrail -}}
+      <div class="submenu">
+        {{- partial "sidebar-nav-items.html" (dict "items" .submenu "trailPaths" $trailPaths "activePath" $activePath "lang" $lang) -}}
+      </div>
+    {{- end -}}
+  </div>
+{{- end -}}

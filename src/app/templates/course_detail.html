@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_label with context %}
+{% block title %}{{ course.code }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/layout.html" import tab_content with context %}
+{% from "components/buttons.html" import btn_icon %}
+{% from "components/badges.html" import course_role_badge %}
+
+{% set nav_active = 'course' %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'label': course.code}] %}
+
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{# The course's own actions sit beside its title, the way GitLab puts "New
+   subgroup" and "New project" beside a group's name. They used to be a loose
+   row of four buttons between the tab strip and the Groups card, belonging to
+   neither: too far from the table they act on to read as its toolbar, and not
+   in the one place a reader looks for what a page can do.
+   Rendered by the SHELL rather than the cached content fragment, so `can_edit`
+   and `course_role` are handed to it in `page_ctx` (see course_detail in
+   api/dashboard/courses.py).
+   Write actions stay VISIBLE on an archived (read-only) course: the core guard
+   marks them and a click answers with the reason. Hiding them read as "half the
+   buttons randomly missing". #}
+{% set _is_archived = not course.is_active %}
+{% set _archived_reason = t('This course is archived and read-only. Reactivate it to make changes.') if _is_archived else '' %}
+{% set _badge = course_role_badge('owner') if course_role == 'owner' else (course_role_badge('teacher') if course_role == 'teacher' else '') %}
+{% call page_header(course.code ~ ' - ' ~ (course.name or ''), period_label(course.academic_year, course.semester), badge=_badge) %}
+  {% if can_edit %}
+  {% set _lock = {'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id} %}
+  {{ btn_icon(t('Add Group'), 'plus', variant='primary', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs=dict(_lock, **{'modal-open': 'addTeamModal', 'tippy-content': t('Create a new group in this course'), 'tour': 'add-group'})) }}
+  {{ btn_icon(t('Import from GitLab'), 'download', variant='secondary', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs=dict(_lock, **{'modal-open': 'importGitlabCourseModal', 'tippy-content': t('Import groups, students, and projects from a GitLab group into this course'), 'tour': 'import-gitlab'})) }}
+  {{ btn_icon(t('Sync All'), 'refresh-cw', variant='secondary', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs=dict(_lock, **{'action': 'triggerSyncAll', 'tippy-content': t('Re-sync all groups: members, projects, pipelines, MRs, issues, commits'), 'tour': 'sync-all'})) }}
+  {{ btn_icon(t('Run Checks (all groups)'), 'play-circle', variant='warning', id='btnOpenRunChecks', disabled=_is_archived, disabled_reason=_archived_reason, data_attrs=dict(_lock, **{'modal-open': 'runChecksModal', 'tour': 'run-checks', 'tippy-content': t('Recompute compliance checks for every active group in this course. Each group gets its own background job; results stream back into the dashboard as they finish.')})) }}
+  {% endif %}
+{% endcall %}
+
+{% if course.description %}
+<p class="course-description muted">{{ course.description }}</p>
+{% endif %}
+
+{% set active_tab = 'overview' %}
+{% include "partials/course/_course_nav.html" %}
+
+{% call tab_content(course) %}
+  {{ content_html|safe }}
+{% endcall %}
+{% endblock %}

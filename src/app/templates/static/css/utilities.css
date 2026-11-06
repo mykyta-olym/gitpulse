@@ -1,0 +1,450 @@
+/* ============================================
+   UTILITIES - GitLab Pajamas Design System
+   ============================================ */
+
+/* Summary/Details - hide native disclosure marker globally */
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::marker { display: none; }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
+.text-muted { color: var(--text-secondary); }
+
+.text-sm { font-size: var(--font-size-base); }
+.text-xs { font-size: var(--font-size-xs); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-bold { font-weight: var(--font-weight-semibold); }
+
+/* -- Spacing - aligned to GitLab 8px grid -- */
+.mt-2 { margin-top: var(--gl-spacing-2); }
+.mt-3 { margin-top: var(--gl-spacing-3); }
+.mt-4 { margin-top: var(--gl-spacing-4); }
+.mt-5 { margin-top: var(--gl-spacing-5); }
+.mt-6 { margin-top: var(--gl-spacing-6); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--gl-spacing-1); }
+.mb-2 { margin-bottom: var(--gl-spacing-2); }
+.mb-3 { margin-bottom: var(--gl-spacing-3); }
+.mb-4 { margin-bottom: var(--gl-spacing-4); }
+.mb-6 { margin-bottom: var(--gl-spacing-6); }
+
+.p-0 { padding: 0; }
+.p-1 { padding: var(--gl-spacing-1); }
+.p-2 { padding: var(--gl-spacing-2); }
+.p-3 { padding: var(--gl-spacing-3); }
+.p-4 { padding: var(--gl-spacing-4); }
+
+/* -- Display -- */
+.hidden { display: none; }
+.block { display: block; }
+.inline { display: inline; }
+.inline-block { display: inline-block; }
+.responsive-text-compact { display: none; }
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+
+/* -- Flex -- */
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: var(--gl-spacing-1); }
+.gap-2 { gap: var(--gl-spacing-2); }
+.gap-3 { gap: var(--gl-spacing-3); }
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+
+/* -- Overflow -- */
+.truncate,
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -- Cursor -- */
+.cursor-pointer { cursor: pointer; }
+[data-copy-text] { cursor: pointer; }
+
+/* -- Additional layout utilities -- */
+.ml-auto { margin-left: auto; }
+.border-top { border-top: 1px solid var(--border-color); }
+.btn-block { display: block; width: 100%; }
+
+/* -- Visibility -- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  /* Screen-reader-only text is present in the DOM but visually hidden - and it
+     was still SELECTABLE, so dragging a selection across a control that carries
+     an sr-only label (a pagination button, an icon-only button, the "Per page"
+     row) swept that invisible text into the selection and the clipboard: the
+     reader copied "Per page" and got hidden words with it. Take it out of
+     selection entirely - it is never something a person means to copy. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The same thing, below 768px only. Two rules had written these nine
+   declarations out by hand - the done-button's label and the member filter
+   chips' checkboxes - instead of using the utility three lines above, so the
+   app carried three copies of one idea. The label needs the responsive form
+   because it is only hidden on a phone, where the word does not fit. */
+/* Below 480px the theme switcher's button labels hide too. That selector lives
+   here rather than in theme.css because it is the SAME nine declarations: the
+   component cannot simply take the `.sr-only-xs` class, since the rule applies
+   only to the button variant (`:not(.theme-switcher--menu)`) and the template
+   renders one span for both. Carrying the selector here keeps the declarations
+   in one place, which is the point. */
+@media (max-width: 480px) {
+  .theme-switcher:not(.theme-switcher--segmented) .theme-switcher-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-text-full { display: none; }
+  .responsive-text-compact { display: inline; }
+  .sr-only-sm {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* -- Muted text -- */
+.muted {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* -- Code - GitLab mono -- */
+code {
+  font-size: 1em;   /* GitLab renders inline code at body size */
+  background: var(--surface-moderate);
+  /* On that tint the inherited body colour measures 4.47:1 - three hundredths
+     under the floor. neutral-700 on the same tint is 7.4:1. */
+  color: var(--text-primary);
+  padding: 0.2em 0.4em;
+  border-radius: var(--radius);
+  display: inline-block;
+  line-height: var(--gl-line-height-20);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.font-weight-500 { font-weight: var(--font-weight-medium); }
+.font-weight-normal { font-weight: normal; }
+.font-sm { font-size: var(--font-size-base); }
+.font-xs { font-size: var(--font-size-xs); }
+.font-085em { font-size: max(0.85em, var(--font-size-xs)); }
+.d-flex { display: flex; }
+.d-none { display: none !important; }
+.d-contents { display: contents; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-col-15 { display: flex; flex-direction: column; gap: var(--gl-spacing-5); }
+.m-0 { margin: 0; }
+.p-05 { padding: var(--gl-spacing-3); }
+.nowrap { white-space: nowrap; }
+.italic { font-style: italic; }
+.color-muted { color: var(--text-tertiary); }
+.color-gray-600 { color: var(--gl-text-color-subtle); }
+.color-green { color: var(--gl-text-color-success); }
+.color-red { color: var(--gl-text-color-danger); }
+.w-80 { width: 80px; }
+.w-100 { width: 100px; }
+
+/* -- Summary toggle (with animated chevron) -- */
+.summary-toggle {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+.summary-toggle:hover { background: var(--surface-moderate); color: var(--primary); }
+.summary-toggle::-webkit-details-marker { display: none; }
+.summary-toggle::marker { display: none; }
+.summary-toggle::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M10.707 7.293a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L8.586 8 6.293 5.707a1 1 0 0 1 1.414-1.414l3 3z'/%3E%3C/svg%3E") no-repeat center;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M10.707 7.293a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L8.586 8 6.293 5.707a1 1 0 0 1 1.414-1.414l3 3z'/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  opacity: 0.7;
+  transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+.summary-toggle:hover::before { opacity: 1; }
+details[open] > .summary-toggle::before { transform: rotate(90deg); }
+details[open] > .summary-toggle { border-radius: var(--radius) var(--radius) 0 0; }
+
+/* -- Diff stat colors --
+   The reader's own diff colours, with the stock greens and reds as the
+   fallback. `+12 -3` beside a file sat on hardcoded tokens while the code
+   rows underneath it (student.css) already honoured the preference, so
+   choosing a colour recoloured the diff but not the counts that describe it -
+   two shades of "added" on one page. */
+.diff-add {
+  color: var(--gl-diff-color-added);
+  font-weight: var(--font-weight-medium);
+}
+.diff-del {
+  color: var(--gl-diff-color-removed);
+  font-weight: var(--font-weight-medium);
+}
+
+/* -- Icon with right margin -- */
+.icon-mr { margin-right: var(--gl-spacing-3); }
+
+/* -- Code block dark -- */
+.code-block-dark { background: var(--gl-background-color-subtle); color: var(--gl-text-color-default); padding: var(--gl-spacing-6); border-radius: var(--radius); overflow-x: auto; font-size: var(--font-size-base); line-height: var(--line-height-loose); margin: 0; }
+
+/* -- Stat grid -- */
+
+/* -- Context menu -- */
+.ctx-item-start { justify-content: flex-start; margin-bottom: var(--gl-spacing-1); }
+.ctx-separator { margin: var(--gl-spacing-3) 0; border: none; border-top: 1px solid var(--border-color); }
+.ctx-item-danger { justify-content: flex-start; color: var(--danger); }
+
+/* Responsive: stack form fields on small screens */
+
+/* Analysis diagnostic details. */
+.llm-error-details summary {
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  user-select: none;
+}
+.llm-error-details-content {
+  margin-top: var(--gl-spacing-3);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  background: var(--surface-strong);
+  border-radius: var(--radius);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+.llm-error-detail-item {
+  margin-bottom: var(--gl-spacing-2);
+  padding-bottom: var(--gl-spacing-2);
+  border-bottom: 1px solid var(--border-color);
+}
+.llm-error-detail-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+/* -- Finding card severity borders (Pajamas) -- */
+.finding-severity-high { border-left-color: var(--gl-alert-danger-border); }
+.finding-severity-medium { border-left-color: var(--gl-alert-warning-border); }
+.finding-severity-low { border-left-color: var(--gl-feedback-neutral-icon); }
+.finding-severity-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+.finding-severity-label-high { color: var(--gl-feedback-danger-text); }
+.finding-severity-label-medium { color: var(--gl-feedback-warning-text); }
+.finding-severity-label-low { color: var(--gl-feedback-neutral-text); }
+
+/* The DevOps practice card is painted in pages/analysis.css, which loads after
+   this file and defines the same three state rules plus the status colour as a
+   descendant - so the copy here was fully shadowed. `-na` and the three
+   `-status-*` variants went with it: the template builds the class from
+   `practice_cls`, whose values are good / missing / needs-improvement /
+   not-applicable, so neither name was ever emitted. */
+
+/* Teamwork metric score colours live in pages/analysis.css, which paints the
+   chip (background + colour) for all four levels and loads after this file. The
+   colour-only copy that used to sit here was fully shadowed - and it collapsed
+   `good` into `excellent` by giving both the success green, where the live rule
+   distinguishes them. */
+
+/* -- Improvement priority badge -- */
+.priority-badge {
+  font-size: var(--font-size-xs);
+  padding: var(--gl-spacing-1) var(--gl-spacing-2);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
+}
+.priority-badge-high { background: var(--gl-feedback-danger-bg); color: var(--gl-feedback-danger-text); }
+.priority-badge-medium { background: var(--gl-feedback-warning-bg); color: var(--gl-feedback-warning-text); }
+.priority-badge-low { background: var(--surface-strong); color: var(--gl-feedback-neutral-text); }
+
+/* -- Flex helpers for layout -- */
+.flex-start-1 { display: flex; align-items: flex-start; gap: var(--gl-spacing-4); }
+.flex-center-0875 { display: flex; align-items: center; gap: var(--gl-spacing-4); }
+.flex-center-wrap-mb { display: flex; align-items: center; gap: var(--gl-spacing-2); margin-bottom: var(--gl-spacing-2); }
+.flex-wrap-mt-1 { display: flex; flex-wrap: wrap; gap: var(--gl-spacing-3); margin-top: var(--gl-spacing-4); }
+.flex-1-min-0 { flex: 1; min-width: 0; }
+
+/* -- Risk score badges (Pajamas-compliant accessibility) -- */
+
+/* -- Accessibility: focus-visible ring -- */
+/* The baseline ring, and the only ring: `--focus-ring` is what the 27 styled
+   controls already paint, so a control nobody styled must not get a different
+   one. `.btn`, `.card-header[role=button]` and the card summaries set the same
+   token themselves at higher specificity - they now agree rather than differ.
+   The radius is only for a control with none of its own, so it sits in a
+   `:where()`: as part of `button:focus-visible` it out-ranked `.btn`, and
+   every focused button in the app dropped from its 8px corners to 2px. */
+summary:focus-visible,
+details > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius);
+}
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+:where(button:focus-visible, a:focus-visible) {
+  border-radius: var(--radius-sm);
+}
+/* An `[aria-live] { position: relative }` rule used to sit here, labelled
+   "Accessibility: aria-live region". Position has no accessibility function on
+   a live region - a screen reader announces it wherever it sits - and as a bare
+   attribute selector it has the SAME specificity (0,1,0) as a class, so being
+   later in the bundle it quietly outranked components that position themselves.
+
+   The navigation loader was the visible casualty: it is
+   `<div class="gp-nav-loader" role="status" aria-live="polite">`, so this rule
+   beat its own `position: absolute; inset: 0` and dropped the overlay into
+   normal flow - a 203px panel at the BOTTOM of the page instead of a centred
+   veil over it. Confirmed with DevTools' matched-rules on the live element.
+
+   It reached further than that: `setButtonDone` puts `aria-live` on a button
+   while its done state shows, so every one of those became positioned too. A
+   live region that genuinely needs a positioning context should ask for it on
+   its own class. */
+
+/* -- Flex layout helpers -- */
+.flex-row-gap-025 {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+.max-w-300 { max-width: 300px; }
+.w-100pct { width: 100%; }
+
+/* -- Login page separator -- */
+.login-separator {
+  margin: 1.5rem 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+.d-inline { display: inline; }
+
+/* -- Additional utilities for inline style elimination -- */
+
+/* Min-width / Max-width helpers */
+.min-w-100 { min-width: 100px; }
+
+/* `.text-truncate-200` is gone with its one caller, the Jobs table's Result
+   column. It capped the cell at 200px and ellipsised - a SECOND truncation on
+   text 20-jobs.js had already shortened to 80 characters with the full value on
+   a tooltip. The JS cap is what stops a runaway error message blowing the
+   layout; the CSS one only cut ordinary content that fitted fine, so a course
+   name needing 275px was shown at 196 with no way to scroll to the rest. The
+   table already carries the app's scroll contract (`table-scrollable`), which
+   is what should decide when there is not enough room. */
+
+/* Vertical align helpers */
+.icon--inline {
+  vertical-align: -2px;
+  margin-right: var(--gl-spacing-1);
+}
+
+/* Section header collapsible */
+.section-header--collapsible { cursor: pointer; }
+
+/* Icon text inline layout */
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--icon-text-gap, var(--gl-spacing-2));
+}
+
+/* Container size modifiers */
+
+
+/* Localize-time: hide raw UTC text until localize-time.js converts it.
+   Layout is preserved (visibility, not display) so there's no shift. */
+time[data-localize-time]:not([data-localized="1"]) { visibility: hidden; }
+
+/* Layout & visibility helpers (Pajamas Aligned) */
+.ml-2 { margin-left: var(--gl-spacing-2); }
+.w-60 { width: 60px; }
+.py-2 { padding-top: var(--gl-spacing-2); padding-bottom: var(--gl-spacing-2); }
+
+/* ============================================
+   SHOW MORE / SHOW LESS disclosure
+   Driven by the [data-show-more] controller in core/39-tabs-and-toggles.js toggling
+   .is-expanded. Deliberately not Alpine: the production @alpinejs/csp build
+   evaluates neither `x-show` expressions nor click assignments, which left the
+   extra rows permanently hidden and the button inert. Generic on purpose -
+   lists, cards and table rows all use these class names.
+   ============================================ */
+[data-show-more]:not(.is-expanded) .gl-show-more-extra,
+[data-show-more]:not(.is-expanded) .gl-show-more--collapse,
+[data-show-more].is-expanded .gl-show-more--expand {
+  display: none;
+}
+.gl-show-more {
+  text-align: center;
+  padding: var(--gl-spacing-3) 0 var(--gl-spacing-1);
+  border-top: 1px solid var(--border-color);
+}
+.gl-show-more .btn { gap: var(--gl-spacing-2); }
+
+/* Windows High Contrast repaints backgrounds and drops box-shadows, so a ring
+   drawn as a shadow simply is not there - and every focus ring in this app is
+   drawn as a shadow. `LinkText` is a system colour the mode does honour, and
+   `outline` is a property it does draw, which is the pairing GitLab uses on
+   every focusable component. Applied to the focusable elements themselves so it
+   reaches a control however its own rule paints the ring. */
+@media (forced-colors: active) {
+  :is(a, button, summary, [role="button"], [tabindex]):focus-visible,
+  :is(input, select, textarea):focus-visible {
+    outline: 2px solid LinkText;
+    outline-offset: 2px;
+  }
+}

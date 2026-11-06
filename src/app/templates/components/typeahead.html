@@ -1,0 +1,56 @@
+{#
+  A search box that suggests people as you type, and a list you pick from.
+
+  The Teachers page had built this for itself (`invite-*`), and the support
+  ticket's assignee picker had a third copy (`gh-assignee-*`). It is the shared
+  pieces now: `search_input`, a `gl-dropdown-menu` of `gl-dropdown-item` rows -
+  the avatar, the name, the handle as the row's note and, with `role_expr`, the
+  account role as `GP.roleBadgeHtml` draws it - and `gl-dropdown-empty` for
+  "nothing matches" and "keep typing".
+
+  The rows are Alpine's, so the caller passes EXPRESSIONS, not values:
+
+      {{ person_typeahead(
+           input_id='teacher-search',
+           placeholder=t('Search for a user to add...'),
+           model='search',
+           open_when='showDropdown',
+           items='filteredUsers',
+           on_pick='add(user)',
+           empty_text=t('No matching users'),
+           more_text=t('more, keep typing to narrow'),
+           role_expr='user.role') }}
+#}
+{% from "components/forms.html" import search_input with context %}
+{% from "components/avatar.html" import avatar_alpine %}
+
+{% macro person_typeahead(input_id, placeholder='', model='search', open_when='showDropdown',
+                          items='filteredUsers', item='user', on_pick='', empty_text='',
+                          more_text='', role_expr='', limit=10, class='', disabled=false, x_bind_disabled='') %}
+<div class="typeahead {{ class }}" @click.outside="{{ open_when }} = false">
+  {{ search_input(name=input_id, id=input_id, placeholder=placeholder,
+                  x_model=model, x_on_input=open_when ~ ' = true',
+                  x_on_focus=open_when ~ ' = true',
+                  data_attrs={'readonly-ok': ''}, disabled=disabled, x_bind_disabled=x_bind_disabled) }}
+  <div class="gl-dropdown-menu" x-cloak
+       x-show="{{ open_when }} && {{ model }}.length >= 1"
+       x-transition.opacity.duration.150ms>
+    <template x-if="{{ items }}.length === 0">
+      <div class="gl-dropdown-empty">{{ empty_text }}</div>
+    </template>
+    <template x-for="{{ item }} in {{ items }}.slice(0, {{ limit }})" :key="{{ item }}.username">
+      <button type="button" class="gl-dropdown-item"{% if on_pick %} @click="{{ on_pick }}"{% endif %}>
+        {{ avatar_alpine(item ~ '.avatar_url', "(" ~ item ~ ".name || " ~ item ~ ".username || '?')", size=24) }}
+        <span class="gl-dropdown-item-content"><span class="gl-dropdown-item-title" x-text="{{ item }}.name || {{ item }}.username"></span></span>
+        <span class="gl-dropdown-item-note gl-dropdown-item-note--muted" x-text="'@' + {{ item }}.username"></span>
+        {%- if role_expr %}
+        <span class="badge badge-sm" :class="'badge-' + $roleBadge({{ role_expr }}).variant" x-text="$roleBadge({{ role_expr }}).label"></span>
+        {%- endif %}
+      </button>
+    </template>
+    <template x-if="{{ items }}.length > {{ limit }}">
+      <div class="gl-dropdown-empty" x-text="'+ ' + ({{ items }}.length - {{ limit }}) + ' {{ more_text }}'"></div>
+    </template>
+  </div>
+</div>
+{% endmacro %}

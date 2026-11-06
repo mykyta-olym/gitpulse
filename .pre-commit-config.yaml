@@ -1,0 +1,43 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  - repo: local
+    hooks:
+      - id: static-artifact-guard
+        name: Check stray generated static artifacts
+        language: system
+        entry: python scripts/check_static_artifacts.py
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+        always_run: true
+      - id: pre-push-tests
+        name: Run unit tests before push
+        language: system
+        entry: python scripts/run_unit_tests.py
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true

@@ -1,0 +1,28 @@
+# Keep the uv-generated lockfile LF-only on every platform.
+# uv always emits LF; if a Windows checkout (core.autocrlf=true) committed it
+# with CRLF, the CI `lockfile-check` byte comparison against a fresh `uv pip
+# compile` (LF) would fail. Pin it explicitly so the stored blob is always LF.
+requirements.lock text eol=lf
+
+# Shell scripts run in Linux containers; CRLF makes `sh` fail on the shebang
+# line with a message that does not mention line endings.
+*.sh text eol=lf
+
+# Code and configuration line endings
+*.py text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+
+# Collapse generated bundles and minified files in GitLab MR diffs
+*.bundle.js linguist-generated=true -diff
+*.bundle.css linguist-generated=true -diff
+*.bundle.js.gz binary
+*.bundle.css.gz binary
+*.min.js linguist-generated=true -diff
+*.min.css linguist-generated=true -diff

@@ -1,0 +1,47 @@
+{# -- Shared Config Import Modal Body --
+ # Renders the file upload area + preview container used by both
+ # dashboard "Import Course from JSON" and course-settings "Import Full Course Configuration".
+ #
+ # Parameters:
+ #   prefix        - element ID prefix (e.g. 'importConfig' or 'fullConfig')
+ #   upload_name   - base field name; the JSON editor is `<upload_name>_paste_input`
+ #   description   - muted description text above the upload area
+ #   apply_label   - text for the apply button
+ #   apply_id      - ID for the apply button
+ #   apply_attrs   - optional data attributes for the apply button
+ #   cancel_attrs  - dict of attributes for the cancel button (data_attrs or id)
+ #   cancel_id     - optional ID for the cancel button
+ #}
+{# This macro used to resolve `json_drop`, `btn`, `btn_icon` and `icon` from
+   the context of whoever imported it `with context`. That made it breakable
+   from a file it does not appear in: dropping `json_drop` from the dashboard
+   modals' import list - where nothing mentions it - took the whole dashboard
+   down with an UndefinedError raised inside THIS file. It imports its own
+   dependencies now. #}
+{% from "components/forms.html" import json_drop with context %}
+{% from "components/buttons.html" import btn, btn_icon %}
+{% from "components/icons.html" import icon %}
+
+{% macro config_import_body(prefix, upload_name, description, apply_label, apply_id, apply_attrs=none, cancel_attrs=none, cancel_id=none) %}
+  <p class="muted mb-2">{{ description }}</p>
+  {{ json_drop(upload_name ~ '_paste', id=upload_name ~ '_paste_input', rows=5, placeholder='{"$schema": "gitpulse/full-config/v2", "course": {"code": "ZSI", "name": "Základy softvérového inžinierstva", "academic_year": "2025/2026", "semester": "summer"}, "settings": {...}, "builtin_checks": [...], ...}') }}
+  <div id="{{ prefix }}Preview" class="d-none mt-2">
+    <h4 class="ce-panel-title">{{ icon('info', size='sm') }} {{ t('Configuration Preview') }}</h4>
+    <div id="{{ prefix }}Summary" class="mb-2"></div>
+    <div id="{{ prefix }}Sections" class="mb-2"></div>
+  </div>
+  <div class="modal-footer">
+    {% if cancel_id %}
+    {{ btn(t('Cancel'), variant='secondary', id=cancel_id) }}
+    {% elif cancel_attrs %}
+    {{ btn(t('Cancel'), variant='secondary', data_attrs=cancel_attrs) }}
+    {% else %}
+    {{ btn(t('Cancel'), variant='secondary') }}
+    {% endif %}
+    {% set _apply_attrs = {'tippy-content': t('Apply the uploaded configuration to this course'), 'disabled-reason': t('Load a configuration file first.')} %}
+    {% if apply_attrs %}
+      {% set _ = _apply_attrs.update(apply_attrs) %}
+    {% endif %}
+    {{ btn_icon(apply_label, 'upload', id=apply_id, disabled=true, data_attrs=_apply_attrs) }}
+  </div>
+{% endmacro %}

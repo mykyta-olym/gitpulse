@@ -1,0 +1,40 @@
+{#
+  Timestamp component - THE way this app prints a date or a time.
+
+  Usage:
+    from "components/time.html" import localized_time
+    localized_time(user.created_at)                       -> 2026-04-28 18:11
+    localized_time(job.finished_at, format='relative')    -> 3 days ago
+    localized_time(run.started_at, format='time')         -> 18:11
+    localized_time(x, format='monthday-time')             -> Apr 28, 18:11
+    localized_time(x, date_only=true)                     -> 2026-04-28
+
+  Preferences offers "Time format" (12h/24h) and "Use relative times", and
+  `static/js/localize-time.js` applies both - to `time[data-localize-time]`
+  and to nothing else. Every timestamp printed any other way silently ignored
+  the reader's choice, which is why those two settings looked decorative: only
+  ONE template in the whole app emitted the element they act on.
+
+  The server still prints a value inside the element, so the stamp is correct
+  before any JavaScript runs and stays correct if none does. The client then
+  rewrites it into the reader's timezone, clock and phrasing. The mirror of
+  this macro for JS-rendered markup is `GP.timeHtml()`.
+#}
+
+{#
+  `text` is what the element reads BEFORE localize-time.js rewrites it. It
+  defaults to the server's own stamp, which is right for a table cell; the
+  activity feed passes its already-translated "4 days ago" so the first frame
+  reads the way that feed reads, and the client then honours the reader's
+  choice of relative or absolute.
+#}
+{% macro localized_time(value, format='', date_only=false, class='', empty='-', text='') %}
+{%- if not value -%}
+{{ empty }}
+{%- else -%}
+{%- set iso = value.strftime('%Y-%m-%dT%H:%M:%SZ') -%}
+{%- set mode = format or ('date' if date_only else '') -%}
+{%- set shown = text or (value.strftime('%Y-%m-%d') if date_only else value.strftime('%Y-%m-%d %H:%M')) -%}
+<time datetime="{{ iso }}" data-localize-time{% if mode %} data-localize-format="{{ mode }}"{% endif %}{% if class %} class="{{ class }}"{% endif %}>{{ shown }}</time>
+{%- endif -%}
+{% endmacro %}

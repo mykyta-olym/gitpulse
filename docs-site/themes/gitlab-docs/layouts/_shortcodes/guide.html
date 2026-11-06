@@ -1,0 +1,82 @@
+{{- $content := .Inner | strings.TrimSpace -}}
+{{- $lines := split $content "\n" -}}
+{{- $items := slice -}}
+{{- $current := dict "title" "" "content" slice "hasContent" false -}}
+{{- $position := .Position -}}
+
+{{- range $index, $line := $lines -}}
+  {{/* Add 2 to index to account for index starting at new empty line AFTER start of guide template */}}
+  {{- $index = add $index 2 -}}
+  {{- $trimmedLine := strings.TrimSpace $line -}}
+  
+  {{/* Check if this is a new main item (starts with number, no leading whitespace) */}}
+  {{- if and $trimmedLine (findRE "^\\d+\\." $trimmedLine) (not (findRE "^\\s" $line)) -}}
+    {{/* Save previous item if it exists */}}
+    {{- if $current.title -}}
+      {{- $items = $items | append $current -}}
+    {{- end -}}
+    
+    {{/* Start new item */}}
+    {{- $title := $trimmedLine -}}
+    {{- $current = dict "title" $title "content" slice "hasContent" false -}}
+    
+  {{/* Handle content for existing item */}}
+  {{- else if $current.title -}}
+    {{/* First non-empty line after title that's not a continuation determines content start */}}
+    {{- if and (not $current.hasContent) $trimmedLine (findRE "^\\s" $line) -}}
+      {{- $current = merge $current (dict "hasContent" true) -}}
+    {{- end -}}
+    
+    {{/* If we haven't started content yet and line is not empty/indented, extend title */}}
+    {{- if and (not $current.hasContent) $trimmedLine (not (findRE "^\\s" $line)) -}}
+      {{- $newTitle := printf "%s %s" $current.title $trimmedLine -}}
+      {{- $current = merge $current (dict "title" $newTitle) -}}
+      
+    {{/* Add to content (including empty lines once content has started) */}}
+    {{- else if or $current.hasContent (not $trimmedLine) -}}
+      {{- if not $current.hasContent -}}
+        {{- $current = merge $current (dict "hasContent" true) -}}
+      {{- end -}}
+  
+      {{- $contentLine := $line -}}
+
+      {{/* Error if a nested shortcode is found in content */}}
+      {{- if and (findRE "^\\s{4,}" $line) $line (findRE "<div[^>]*class=\"[^\"]*\\b(?:alert|tabs?|tab-[a-z-]+)\\b[^\"]*\"" $line) -}}
+        {{- $errorLineNumber := add $position.LineNumber $index}}
+        {{- errorf "Unsupported nested shortcode detected inside Guide at %s:%d. Move this shortcode outside the Guide block or reduce its indentation to resolve the error." $position.Filename $errorLineNumber -}}
+      {{- end -}}
+
+      {{/* Preserve original indentation but remove the base indentation (3 spaces typical) */}}
+      {{- if findRE "^\\s{3,}" $line -}}
+        {{- $contentLine = replaceRE "^\\s{3}" "" $line -}}
+      {{- else if findRE "^\\s{1,2}" $line -}}
+        {{- $contentLine = replaceRE "^\\s+" "" $line -}}
+      {{- end -}}
+      
+      {{- $current = merge $current (dict "content" ($current.content | append $contentLine)) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* Add the last item */}}
+{{- if $current.title -}}
+  {{- $items = $items | append $current -}}
+{{- end -}}
+
+{{- if ne ($items | len) 0 -}}
+  <ol class="guide gl-list-none gl-ml-0 gl-pl-0">
+  {{- range $items -}}
+    <li class="!gl-pb-0 !gl-mb-0">
+      <div class="guide-item-title gl-font-bold gl-items-center">
+        {{- .title | markdownify | safeHTML -}}
+      </div>
+      {{- if .content -}}
+        <div class="guide-item-content gl-pl-5 gl-pt-3 gl-pb-3">
+          {{- $contentStr := delimit .content "\n" -}}
+          {{- $contentStr | markdownify | safeHTML -}}
+        </div>
+      {{- end -}}
+    </li>
+  {{- end -}}
+  </ol>
+{{- end -}}

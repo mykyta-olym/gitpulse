@@ -1,0 +1,22 @@
+{
+  "read-only-role": {
+    "cluster": [],
+    "indices": [
+      {
+        "names": [
+          "*"
+        ],
+        "privileges": [
+          "read"
+        ],
+        "allow_restricted_indices": false
+      }
+    ],
+    "applications": [],
+    "run_as": [],
+    "metadata": {},
+    "transient_metadata": {
+      "enabled": true
+    }
+  }
+}

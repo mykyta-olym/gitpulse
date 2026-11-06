@@ -1,0 +1,288 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gitlab-issue-event",
+  "title": "GitLab Issue Event Webhook",
+  "description": "Schema for GitLab issue event webhooks",
+  "type": "object",
+  "required": ["object_kind", "event_type", "user", "project", "object_attributes"],
+  "properties": {
+    "object_kind": {
+      "type": "string",
+      "const": "issue"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "issue"
+    },
+    "user": {
+      "$ref": "#/definitions/user"
+    },
+    "project": {
+      "$ref": "#/definitions/project"
+    },
+    "object_attributes": {
+      "$ref": "#/definitions/issue_attributes"
+    },
+    "repository": {
+      "$ref": "#/definitions/repository"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/label"
+      }
+    },
+    "changes": {
+      "type": "object",
+      "description": "Object containing changed attributes"
+    },
+    "assignees": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/user"
+      }
+    }
+  },
+  "definitions": {
+    "user": {
+      "type": "object",
+      "required": ["id", "username", "name"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "name", "path_with_namespace"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "web_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "avatar_url": {
+          "type": ["string", "null"]
+        },
+        "git_ssh_url": {
+          "type": "string"
+        },
+        "git_http_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "visibility_level": {
+          "type": "integer"
+        },
+        "path_with_namespace": {
+          "type": "string"
+        },
+        "default_branch": {
+          "type": "string"
+        },
+        "ci_config_path": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "ssh_url": {
+          "type": "string"
+        },
+        "http_url": {
+          "type": "string"
+        }
+      }
+    },
+    "issue_attributes": {
+      "type": "object",
+      "required": ["id", "iid", "title", "state", "project_id", "author_id", "created_at", "updated_at"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "iid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "state": {
+          "type": "string",
+          "enum": ["opened", "closed", "reopened"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["open", "close", "reopen", "update"]
+        },
+        "author_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "project_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "closed_at": {
+          "type": ["string", "null"]
+        },
+        "due_date": {
+          "type": ["string", "null"]
+        },
+        "milestone_id": {
+          "type": ["integer", "null"]
+        },
+        "state_id": {
+          "type": "integer"
+        },
+        "confidential": {
+          "type": "boolean"
+        },
+        "discussion_locked": {
+          "type": ["boolean", "null"]
+        },
+        "assignee_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "assignee_id": {
+          "type": ["integer", "null"]
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/label"
+          }
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "last_edited_at": {
+          "type": ["string", "null"]
+        },
+        "last_edited_by_id": {
+          "type": ["integer", "null"]
+        },
+        "weight": {
+          "type": ["integer", "null"]
+        },
+        "time_estimate": {
+          "type": "integer"
+        },
+        "total_time_spent": {
+          "type": "integer"
+        },
+        "human_time_estimate": {
+          "type": ["string", "null"]
+        },
+        "human_total_time_spent": {
+          "type": ["string", "null"]
+        },
+        "severity": {
+          "type": "string"
+        },
+        "escalation_status": {
+          "type": ["string", "null"]
+        },
+        "escalation_policy": {
+          "type": ["object", "null"]
+        }
+      }
+    },
+    "label": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": ["integer", "null"]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "template": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "type": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": ["integer", "null"]
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "homepage": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

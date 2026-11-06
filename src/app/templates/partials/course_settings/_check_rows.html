@@ -1,0 +1,34 @@
+{% from "components/badges.html" import badge %}
+{% from "components/buttons.html" import btn_icon_only %}
+{% from "components/forms.html" import checkbox with context %}
+{% set archived = not course.is_active %}
+{% set reason = t('This course is archived and read-only. Reactivate it to make changes.') %}
+{% set category_variants = {'issue': 'success', 'mr': 'primary', 'review': 'warning', 'ci': 'info', 'commit': 'purple', 'custom': 'gray'} %}
+{% set category_labels = {'issue': t('Issue'), 'mr': t('MR'), 'review': t('Review'), 'ci': t('CI/CD'), 'commit': t('Commit'), 'custom': t('Custom')} %}
+{% from "components/tables.html" import table_empty with context %}
+{% set visible = namespace(count=0) %}
+{% for check in checks_first_json.checks %}
+{% set active_filter = active_check_filter|default('all') %}
+{% set matches = active_filter == 'all' or (active_filter == 'builtin' and check.is_builtin) or (active_filter == 'custom' and not check.is_builtin) or (active_filter not in ['builtin', 'custom'] and active_filter == check.category) %}
+{% if matches %}{% set visible.count = visible.count + 1 %}{% endif %}
+<tr data-check-code="{{ check.check_code }}" {% if not matches %}hidden{% endif %}>
+  <td class="text-center">
+    {% set attrs = {'action': 'toggleCheck', 'check-code': check.check_code, 'process-lock-when': 'sync import run_checks', 'process-lock-scope': 'course:' ~ course.id} %}
+    {% if archived %}{% set _ = attrs.update({'archived-locked': '1', 'disabled-reason': reason}) %}{% endif %}
+    {{ checkbox(name='enabled_checks' if check.is_builtin else 'active_custom_checks', id='check-active-' ~ check.check_code, value=check.check_code, checked=check.is_active, disabled=archived, bare=true, class='check-active-toggle', aria_label=(t('Disable') if check.is_active else t('Enable')) ~ ' ' ~ check.check_code, data_attrs={'tippy-content': t('Disable') if check.is_active else t('Enable')}, input_data_attrs=attrs) }}
+    {% if not check.is_builtin %}
+    <input type="hidden" name="custom_check_codes" value="{{ check.check_code }}">
+    <input type="hidden" name="check_updated_at_{{ check.check_code }}" id="check-updated-at-{{ check.check_code }}" data-dirty-ignore value="{{ check.updated_at or '' }}">
+    {% endif %}
+  </td>
+  <td>{{ badge(check.check_code, 'primary' if check.is_builtin else 'info', size='sm') }}</td>
+  <td><span class="check-name">{{ t(check.name) }}</span><span class="check-desc" {% if not check.description %}hidden{% endif %}>{{ t(check.description) }}</span></td>
+  <td data-check-category="{{ check.category }}">{{ badge(category_labels.get(check.category, check.category), category_variants.get(check.category, 'gray'), size='sm') }}</td>
+  <td class="text-center"><span class="check-weight-value">{{ '%.2f'|format(check.weight) }}</span></td>
+  <td>{{ badge(t('Built-in'), 'secondary', size='sm') if check.is_builtin else (badge(t('LLM'), 'info', size='sm') if check.created_by == 'llm' else badge(t('Custom'), 'gray', size='sm')) }}</td>
+  {% set _ = attrs.update({'action': 'editCheck', 'tippy-content': t('Edit')}) %}
+  <td class="text-center">{{ btn_icon_only('edit', size='sm', aria_label=t('Edit') ~ ' ' ~ check.check_code, disabled=archived, disabled_reason=reason if archived else '', data_attrs=attrs) }}</td>
+</tr>
+{% endfor %}
+
+{% if not visible.count %}{{ table_empty(t('No checks match the current filter.'), colspan=7, illustration='search-sm') }}{% endif %}

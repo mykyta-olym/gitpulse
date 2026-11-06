@@ -1,0 +1,29 @@
+/* Edit menu */
+
+.edit-menu {
+  /* Same column, same reason as .copy-for-llm: at 80% of a 17rem rail this
+     button had 140px for "Upraviť túto stránku", which is exactly what the
+     string measures - one more character in any translation and it truncates. */
+  /* ...minus room for the focus ring. The block ended exactly at the right edge
+     of `.sidebar-right`, which scrolls, and the ring is a 3px outline painted
+     OUTSIDE the border box - so focusing either button drew three pixels the
+     rail immediately clipped. Four pixels of slack, measured against that ring. */
+  width: calc(100% - 2.5rem - 4px);
+
+  .gl-new-dropdown-toggle {
+    padding-left: var(--gl-spacing-scale-3);
+  }
+  /* Fill the block. Both blocks are already the same width; the control
+     inside was not, so each button ended where its own label ended and the two
+     right edges sat in different places - one reading as wider than the other
+     for no reason a reader can see. */
+  .gl-new-dropdown,
+  .gl-new-dropdown-toggle {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .gl-new-dropdown-panel {
+    min-width: 11rem;
+  }
+}

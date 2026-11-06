@@ -1,0 +1,85 @@
+{# -- The tickets table's controls, in the three places a table puts them --
+   `tickets_search` and `tickets_filters` go in `table_controls`, the band
+   between the card header and the rows that every table in the app has;
+   `tickets_actions` goes in the card header, where a table's ACTIONS go.
+
+   They were one macro rendered entirely into `header_actions`, which put a
+   search box, three dropdowns, a Reset, a bulk-delete and a purge menu in the
+   row that on every other page holds two buttons - so this page's header wrapped
+   to three lines and its search sat where the Users page keeps its buttons.
+
+   `disabled=true` renders the identical chrome inert. #}
+{% from "components/forms.html" import search_input, select_field with context %}
+{% from "components/buttons.html" import btn_icon %}
+{% from "components/dropdown.html" import dropdown_item, dropdown_divider %}
+{% from "components/bulk_actions.html" import bulk_action %}
+
+{% macro tickets_search(disabled=false) %}
+<div data-tour="ticket-search" class="w-100 flex-1">
+{{ search_input(id='ticketSearch' if not disabled else 'skTicketSearch', placeholder=t('Search tickets...'), disabled=disabled, data_attrs=({} if disabled else {
+  'filter': 'ticketsTable',
+  'filter-dropdowns': 'status:#statusFilter@data-status,priority:#priorityFilter@data-priority,category:#categoryFilter@data-category'
+})) }}
+</div>
+{% endmacro %}
+
+{% macro tickets_filters(disabled=false) %}
+<div class="d-flex gap-2 items-center flex-wrap" data-tour="ticket-filters">
+  {{ select_field('statusFilter' if not disabled else 'skStatusFilter', options=[
+      ('', t('All Statuses')),
+      ('open', t('Open')),
+      ('in_progress', t('In Progress')),
+      ('resolved', t('Resolved')),
+      ('closed', t('Closed'))
+    ], value=(filter_status | default('')) if not disabled else '', placeholder='', class='gl-form-dropdown-sm', disabled=disabled) }}
+  {{ select_field('priorityFilter' if not disabled else 'skPriorityFilter', options=[
+      ('', t('All Priorities')),
+      ('critical', t('Critical')),
+      ('high', t('High')),
+      ('medium', t('Medium')),
+      ('low', t('Low'))
+    ], value=(filter_priority | default('')) if not disabled else '', placeholder='', class='gl-form-dropdown-sm', disabled=disabled) }}
+  {{ select_field('categoryFilter' if not disabled else 'skCategoryFilter', options=[
+      ('', t('All Categories')),
+      ('bug', t('Bug')),
+      ('feature_request', t('Feature Request')),
+      ('question', t('Question')),
+      ('account', t('Account')),
+      ('grade', t('Grade')),
+      ('dashboard', t('Dashboard')),
+      ('cicd', t('CI/CD')),
+      ('code_review', t('Code Review')),
+      ('evaluation', t('Evaluation')),
+      ('repositories', t('Repositories')),
+      ('general', t('General'))
+    ], value=(filter_category | default('')) if not disabled else '', placeholder='', class='gl-form-dropdown-sm', disabled=disabled) }}
+  {{ btn_icon(t('Reset'), 'x', variant='ghost', size='sm', id=('resetFilters' if not disabled else 'skResetFilters'), disabled=disabled) }}
+</div>
+{% endmacro %}
+
+{% macro tickets_actions(is_admin=false, disabled=false) %}
+  {# Tickets were the last admin surface that could not clear itself: Job
+     History and the Event Pipeline both purge by age, while a resolved ticket
+     stayed in the table for good. Only FINISHED tickets are ever eligible -
+     an open one is somebody waiting for an answer. Not on the inert
+     (disabled) rendering. #}
+{% if is_admin and not disabled %}
+  {# "Clear the old ones" is the menu beside this; this is "clear THESE", the
+     same pair Job History and the Event Pipeline offer. Only finished tickets
+     are ever removed - the server decides that, not the selection. #}
+  {{ bulk_action(t('Delete selected'), 'trash', 'btnDeleteSelectedTickets',
+       count_id='ticketsSelectedCount', variant='danger',
+       tooltip=t('Delete the ticked tickets. Open ones are kept.')) }}
+  <div class="gl-dropdown" data-dropdown>
+    {{ btn_icon(t('Purge Old'), 'trash', variant='secondary', size='sm', id='btnPurgeTickets',
+         data_attrs={'dropdown-toggle': '', 'tippy-content': t('Remove the resolved and closed tickets of this course by age. Open tickets are never removed.')}) }}
+    <div class="gl-dropdown-menu gl-dropdown-right" data-dropdown-menu>
+      {{ dropdown_item(t('Resolved over 30 days ago'), data_attrs={'purge-tickets-hours': '720'}) }}
+      {{ dropdown_item(t('Resolved over 90 days ago'), data_attrs={'purge-tickets-hours': '2160'}) }}
+      {{ dropdown_item(t('Resolved over a year ago'), data_attrs={'purge-tickets-hours': '8760'}) }}
+      {{ dropdown_divider() }}
+      {{ dropdown_item(t('Every finished ticket'), danger=true, data_attrs={'purge-tickets-hours': '87600'}) }}
+    </div>
+  </div>
+{% endif %}
+{% endmacro %}

@@ -1,0 +1,32 @@
+{% from "components/icons.html" import icon %}
+{% if attention_items %}
+  {% for item in attention_items %}
+  {% if item.url %}
+  <a href="{{ item.url }}" class="gl-attention-item gl-attention-item--link">
+    <div class="gl-attention-icon gl-attention-icon--{{ item.severity }}">
+      {{ icon(item.icon, size='sm') }}
+    </div>
+    <div class="gl-attention-content">
+      <strong>{{ item.title }}</strong>
+      <span>{{ item.detail }}</span>
+    </div>
+    <div class="gl-attention-arrow">{{ icon('chevron-right', size='sm') }}</div>
+  </a>
+  {% else %}
+  <div class="gl-attention-item">
+    <div class="gl-attention-icon gl-attention-icon--{{ item.severity }}">
+      {{ icon(item.icon, size='sm') }}
+    </div>
+    <div class="gl-attention-content">
+      <strong>{{ item.title }}</strong>
+      <span>{{ item.detail }}</span>
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+{% else %}
+<div class="gl-attention-done">
+  <span aria-hidden="true">{% include 'components/illustrations/status-success-sm.svg' %}</span>
+  <span><strong>{{ t('Good job!') }}</strong> {{ t('All items are up to date.') }}</span>
+</div>
+{% endif %}

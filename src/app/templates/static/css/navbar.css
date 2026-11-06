@@ -1,0 +1,713 @@
+/* ============================================
+   NAVBAR & GLOBAL LAYOUT - GitLab Pajamas
+   ============================================ */
+
+/* Base reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+img, video, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Root typography hardening - keep text crisp in every scenario.
+   - text-size-adjust:100% stops iOS/Android from auto-inflating font sizes
+     on rotate/zoom, which otherwise breaks the carefully tuned 14px scale.
+   - 'GitLab Sans' is now self-hosted (see css/fonts.css), so the UI renders
+     in the real GitLab typeface on every OS; the system stack remains as the
+     swap/fallback while the woff2 loads. */
+html {
+  font-family: var(--font-family);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  background: var(--app-shell-bg);
+  color: var(--gl-text-color-default);
+  line-height: var(--line-height-normal);
+  min-height: 100vh;
+  overflow: hidden;
+  /* `overflow: hidden` here is propagated to the viewport, so the body itself
+     is NOT a block formatting context and .gl-page's 48px top margin collapsed
+     through it: the body started 48px down and the document was 48px taller
+     than the viewport. Desktop browsers honour the hidden overflow, phones
+     do not - the whole page slid under the top bar and the bottom 48px (the
+     save bar, the last row of a table) sat below the screen. flow-root
+     contains the margin, so the document is exactly one viewport tall. */
+  display: flow-root;
+  padding: 0 var(--gl-spacing-3) 0 0;
+  /* Keep text rendering stable across color modes and operating systems. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Never let the browser fake a missing weight/slant - synthetic bold &
+     italic are the usual culprits behind "blurry" / smeared headings. The
+     system fonts ship every weight we reference, so this is loss-free. */
+  font-synthesis: none;
+  /* Variable-font optical sizing when the OS font supports it (SF, Segoe UI
+     Variable); a no-op elsewhere. */
+  font-optical-sizing: auto;
+}
+
+/* Form controls do not inherit font by default - make sure inputs, buttons,
+   selects and textareas use the same crisp stack and smoothing as body
+   instead of the browser's blurry platform default. */
+input, button, select, textarea, optgroup {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  -webkit-font-smoothing: inherit;
+  -moz-osx-font-smoothing: inherit;
+}
+
+/* Tabular figures for code & monospace so digits line up and stay sharp. */
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Global Background Job Bar -- */
+.global-job-bar {
+  --gjb-hover-bg: rgba(255, 255, 255, 0.05);
+  --gjb-fill-done: rgba(255, 255, 255, 0.4);
+  --gjb-fill-error: rgba(255, 255, 255, 0.3);
+  background: var(--primary-dark);
+  color: var(--gl-gray-0);
+  padding: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  z-index: var(--z-sticky);
+  width: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
+  /* A disclosure's height IS the animation - GitLab's own collapse animates
+     height over .35s ease (`.collapsing`, @gitlab/ui 136.2.0, dist/index.css). */
+  /* impeccable-disable-next-line layout-transition */
+  transition: max-height var(--motion-duration-normal) var(--motion-ease-emphasized),
+              opacity var(--motion-duration-normal) var(--motion-ease-emphasized),
+              background-color var(--transition-slow),
+              box-shadow var(--transition-slow);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Smooth appearance (no layout jolt) WITHOUT a keyframe. The bar's deterministic
+   removal must not depend on CSS timing (enforced no-appearance-animation
+   contract in test_frontend_resilience). @starting-style gives the first
+   rendered frame (when the `hidden` attribute is removed) a collapsed
+   max-height/opacity, and the plain `transition` above eases it open so the
+   content below makes room smoothly instead of snapping down. This is a
+   transition, not a keyframe - no forbidden CSS animation, no exit-event
+   listener. Removal stays instant via `.gjb-leaving { display:none }`. */
+.global-job-bar:not([hidden]) {
+  /* Target close to the real single-row height so the 0 -> N growth spans most
+     of the transition (a much larger cap made the visible part finish in the
+     first ~40 ms and read as an instant snap). A rare taller bar clips only for
+     the transition's duration, then settles to its natural height. */
+  max-height: 72px;
+  opacity: 1;
+}
+@starting-style {
+  .global-job-bar:not([hidden]) {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .global-job-bar {
+    transition: background-color var(--transition-slow), box-shadow var(--transition-slow);
+  }
+  .global-job-bar:not([hidden]) { max-height: none; }
+}
+
+.global-job-bar.gjb-leaving {
+  display: none;
+  pointer-events: none;
+}
+
+/* Progress fill animates smoothly */
+.gjb-progress-fill {
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress) var(--motion-ease-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gjb-progress-fill { transition: none !important; }
+}
+
+.global-job-bar-inner {
+  max-width: var(--content-width-lg);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.global-job-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) var(--gl-spacing-5);
+}
+
+.global-job-item + .global-job-item {
+  border-top: 1px solid var(--gl-separator-on-filled);
+}
+
+.global-job-spinner {
+  flex-shrink: 0;
+}
+
+.global-job-msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-job-elapsed {
+  margin-left: auto;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+}
+
+/* The shared close button, `btn-on-filled` on the bar. */
+.global-job-dismiss {
+  margin-left: var(--gl-spacing-3);
+  flex-shrink: 0;
+}
+
+.global-job-cancel {
+  margin-left: var(--gl-spacing-2);
+  flex-shrink: 0;
+}
+
+/* -- Done state -- */
+.global-job-done {
+  background: var(--gl-green-600);
+  transition: background-color var(--transition-slow);
+  /* Item itself stays inside the max-width container; the ::before
+     below paints the same green across the full viewport so a
+     completed row looks like a continuous green strip instead of a
+     floating green block in the middle of a blue bar. */
+  position: relative;
+  z-index: 0;
+}
+.global-job-done::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50vw);
+  width: 100vw;
+  background: var(--gl-green-600);
+  z-index: -1;
+  pointer-events: none;
+}
+.global-job-done .global-job-spinner { display: none; }
+/* The outcome mark is a Pajamas glyph (check-circle / error), not a text
+   tick: masked so it takes the bar's text colour. */
+.global-job-done .global-job-msg::before,
+.global-job-error .global-job-msg::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: var(--gl-spacing-2);
+  vertical-align: text-bottom;
+  background-color: currentColor;
+}
+.global-job-done .global-job-msg::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M14.5 8a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0zM16 8A8 8 0 110 8a8 8 0 0116 0zm-4.22-1.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.53 7.97a.75.75 0 00-1.06 1.06l1.75 1.75a.75.75 0 001.06 0l4.5-4.5z'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M14.5 8a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0zM16 8A8 8 0 110 8a8 8 0 0116 0zm-4.22-1.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.53 7.97a.75.75 0 00-1.06 1.06l1.75 1.75a.75.75 0 001.06 0l4.5-4.5z'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* -- Error state -- */
+.global-job-error {
+  background: var(--gl-red-600);
+  transition: background-color var(--transition-slow);
+  position: relative;
+  z-index: 0;
+}
+.global-job-error::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50vw);
+  width: 100vw;
+  background: var(--gl-red-600);
+  z-index: -1;
+  pointer-events: none;
+}
+.global-job-error .global-job-spinner { display: none; }
+.global-job-error .global-job-msg::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M8 14.5a6.5 6.5 0 100-13 6.5 6.5 0 000 13zM8 16A8 8 0 108 0a8 8 0 000 16zm1-5a1 1 0 11-2 0 1 1 0 012 0zm-.25-6.25a.75.75 0 00-1.5 0v3.5a.75.75 0 001.5 0v-3.5z'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M8 14.5a6.5 6.5 0 100-13 6.5 6.5 0 000 13zM8 16A8 8 0 108 0a8 8 0 000 16zm1-5a1 1 0 11-2 0 1 1 0 012 0zm-.25-6.25a.75.75 0 00-1.5 0v3.5a.75.75 0 001.5 0v-3.5z'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* -- Overall bar states -- */
+.global-job-bar.bar-state-done {
+  background: var(--gl-green-600);
+}
+.global-job-bar.bar-state-error {
+  background: var(--gl-red-600);
+}
+.global-job-bar.bar-state-mixed {
+  background: var(--primary-dark);
+}
+
+/* -- Job-type icon -- */
+.gjb-icon-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+/* The glyph is the shared 16px .icon now, so only the dimming is left here. */
+.gjb-icon-wrap .icon { opacity: 0.85; }
+.global-job-done .gjb-icon-wrap .icon { opacity: 1; }
+.global-job-error .gjb-icon-wrap .icon { opacity: 1; }
+
+/* -- Determinate progress track -- */
+.gjb-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gl-separator-on-filled);
+  overflow: hidden;
+}
+.gjb-progress-fill {
+  height: 100%;
+  width: var(--gjb-fill, 0%);
+  background: var(--gl-text-on-filled-muted);
+  border-radius: 0 1px 1px 0;
+}
+.gjb-progress-fill.gjb-animated {
+  /* impeccable-disable-next-line layout-transition -- meter fill, same as above. */
+  transition: width var(--gl-anim-progress) var(--motion-ease-emphasized);
+}
+.global-job-done .gjb-progress-fill  { background: var(--gjb-fill-done); --gjb-fill: 100%; border-radius: 0; }
+.global-job-done .gjb-progress-track { background: transparent; }
+.global-job-error .gjb-progress-fill { background: var(--gjb-fill-error); }
+.global-job-error .gjb-progress-track { background: transparent; }
+
+/* -- Progress percentage display -- */
+.gjb-progress-pct {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  flex-shrink: 0;
+  min-width: 2.2em;
+  text-align: right;
+}
+.gjb-progress-pct:empty { display: none; }
+
+/* -- Multi-job count badge --
+ * Rendered as a slim header strip above the items so it can never
+ * overlap with the per-item dismiss button - the previous
+ * absolute-positioned variant collided with the close (×) at narrow
+ * viewports (e.g. Opera at default zoom).
+ */
+.gjb-count-badge {
+  display: block;
+  text-align: right;
+  padding: var(--gl-spacing-1) var(--gl-spacing-5) 0;
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.gjb-count-badge[hidden] { display: none; }
+
+@media (max-width: 600px) {
+  .gjb-count-badge {
+    opacity: 0.55;
+    font-size: var(--font-size-xs);
+  }
+  .global-job-item {
+    gap: var(--gl-spacing-2);
+  }
+  .global-job-msg {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* -- Position relative for child absolute elements -- */
+.global-job-item {
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+/* -- Hover highlight for items -- */
+.global-job-item:hover {
+  background: var(--gjb-hover-bg);
+}
+.global-job-done:hover  { background: var(--gl-hover-subtle); }
+.global-job-error:hover { background: var(--gl-hover-subtle); }
+
+/* -- Pagination Controls -- */
+.pagination-controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  font-size: var(--font-size-sm);
+  transition: opacity var(--transition-normal);
+  min-width: 0;
+  min-height: calc(32px + 2 * var(--gl-spacing-4) + 1px);
+  overflow: visible;
+}
+
+.pagination-controls > .gl-pagination-info {
+  grid-column: 1;
+  justify-self: start;
+}
+/* The bar is born empty (nothing is loading - the rows are already in the
+   page) and holds its height until the paginator fills it. */
+.pagination-controls > .gp-pagination-placeholder {
+  grid-column: 1 / -1;
+  min-height: 32px;
+}
+
+.pagination-controls > nav.pagination {
+  grid-column: 2;
+  justify-self: center;
+  margin: 0;
+}
+
+.pagination-controls > .gl-pagination-size {
+  grid-column: 3;
+  justify-self: end;
+  margin-left: 0;
+}
+
+.pagination-controls:empty {
+  display: none;
+}
+
+/* Pagination inside cards: a footer band flush with the card body's edges,
+   as far below the table as the body's top edge is above its controls. Both
+   from the body's own padding (--card-body-pad-*, cards.css), so the frame
+   round a table is the same on all four sides at every breakpoint.
+   On the body's own white, under a line - GitLab's CrudComponent puts its
+   pagination inside the body the same way. It was painted the card shell's
+   grey, where a disabled arrow (GitLab's near-white button) all but vanished. */
+.card-body:not(.p-0) > .pagination-controls {
+  margin: var(--card-body-pad-y, var(--gl-spacing-6)) calc(-1 * var(--card-body-pad-x, var(--gl-spacing-6))) calc(-1 * var(--card-body-pad-y, var(--gl-spacing-6)));
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* Details sections use the same pagination bar as every other card. */
+details .card-body:not(.p-0) > .pagination-controls,
+details.card .card-body:not(.p-0) > .pagination-controls {
+  margin: var(--card-body-pad-y, var(--gl-spacing-6)) calc(-1 * var(--card-body-pad-x, var(--gl-spacing-6))) calc(-1 * var(--card-body-pad-y, var(--gl-spacing-6)));
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border: 0;
+  border-top: 1px solid var(--border-color);
+}
+
+/* A pager arrow that leads nowhere is GitLab's disabled pagination item: no
+   border, no fill, the glyph in the disabled action colour - so it reads as
+   "not here" next to a live, framed arrow at a glance (pagination.scss). */
+.pagination .pagination-btn:disabled,
+.pagination .pagination-btn.disabled {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--gl-action-disabled-text) !important;
+}
+
+/* When the row gets tight the three parts (count, pager, per-page) stack into a
+   single tidy centred column instead of wrapping into a ragged, misaligned row.
+   The breakpoint is generous (<=900px) because the docked 240px sidebar squeezes
+   the content well below the viewport width - at ~800px the pager would
+   otherwise wrap with the per-page control stranded in a corner. */
+@media (max-width: 900px) {
+  .pagination-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--gl-spacing-3);
+  }
+  .pagination-controls > .gl-pagination-info {
+    order: 1;
+    width: auto;
+    text-align: left;
+    margin: 0;
+  }
+  .pagination-controls > .gl-pagination-size {
+    order: 2;
+    margin-left: auto;
+    width: auto;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .pagination-controls > nav.pagination {
+    order: 3;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .pagination-controls > .gp-pagination-placeholder {
+    order: 1;
+    width: 100%;
+  }
+}
+
+.gl-pagination-info {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+.gl-pagination-info strong {
+  font-weight: var(--font-weight-semibold);
+  color: var(--gl-text-color-strong);
+}
+
+.gl-pagination-size {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+.gl-pagination-size label {
+  white-space: nowrap;
+  font-weight: var(--font-weight-medium);
+}
+
+/* -- Per-page dropdown (uses unified .gl-dropdown with fixed positioning) -- */
+.gl-page-size-dropdown .gl-dropdown-menu {
+  /* Fixed positioning is set via JS to escape overflow clipping */
+  z-index: var(--z-dropdown);
+}
+/* -- Main container -- */
+.main-container {
+  max-width: var(--content-width-lg);
+  margin: 0 auto;
+  /* Separate the first content block from the breadcrumb band. */
+  padding: var(--gl-spacing-6) var(--gl-spacing-5) var(--gl-spacing-3);
+  width: 100%;
+  /* Natural height - do not stretch to fill the viewport, otherwise
+     short pages render a big empty gap below the last content block. */
+  flex: 0 0 auto;
+}
+
+/* -- Page footer -------------------------------------------------
+   GitLab closes its content panel with a centred "Leave feedback | Documentation"
+   pair: two link-blue labels separated by a subtle vertical bar, sitting clear of
+   the last content block. Rendered by base.html on every page except the
+   Dashboard, whose sidebar already carries "Support & suggestions". */
+.gl-page-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gl-spacing-3);
+  /* Matches the 32px a card carries below itself. This margin COLLAPSES with
+     the last block's own margin-bottom, and a collapse takes the larger of the
+     two - so at 24px the gap above the footer was 32px after a card (Users,
+     System, Events) and 24px after a block with no bottom margin (Courses,
+     Preferences). Setting it to the card rhythm makes it 32px on every page
+     regardless of what the page happens to end with. */
+  margin-top: var(--gl-spacing-7);
+  padding: var(--gl-spacing-5) 0 var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  line-height: var(--gl-line-height-20, 1.25rem);
+}
+.gl-page-footer-link {
+  color: var(--gl-text-color-link);
+  text-decoration: none;
+}
+.gl-page-footer-link:hover,
+.gl-page-footer-link:focus-visible {
+  text-decoration: underline;
+}
+.gl-page-footer-sep {
+  color: var(--gl-text-color-subtle);
+  user-select: none;
+}
+
+/* -- Details / Accordion - GitLab style --------------------------
+   Opt-in: add the `details-accordion` class on a <details> element to
+   get the full GitLab-style card (border, chevron, hover background).
+   Plain <details> gets only a neutral summary baseline so components
+   with their own custom chevron (mr-card, expandable-details, code-
+   details, issue-row__details, etc.) are never contaminated.
+----------------------------------------------------------------- */
+details.details-accordion {
+  background: transparent;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  margin-top: var(--gl-spacing-6);
+}
+
+/* Neutral summary baseline for ALL details (unopinionated - no chevron,
+   no border, no hover bg). Custom classes are free to override. */
+details > summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  color: var(--gl-text-color-default);
+  font-size: var(--font-size-base);
+  list-style: none;
+  transition: background var(--transition-normal),
+              color var(--transition-normal);
+}
+/* The marker is hidden in pages/course.css, which loads after this file. */
+details > summary::marker { display: none; }
+
+/* Accordion summary layout + chevron - scoped to .details-accordion */
+details.details-accordion > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  padding: var(--gl-spacing-4) var(--gl-spacing-5);
+}
+
+/* ::AFTER, and a chevron-DOWN that swings 180deg. Same mark, same side, same
+   angle as `.card-collapse-icon` - this used to be a right-pointing caret on
+   the LEADING edge rotating 90deg, so the two disclosures on the course
+   settings page were mirror images of each other. */
+details.details-accordion > summary::after {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M7.293 10.707a1 1 0 0 0 1.414 0l3-3a1 1 0 0 0-1.414-1.414L8 8.586 5.707 6.293a1 1 0 0 0-1.414 1.414l3 3z'/%3E%3C/svg%3E") no-repeat center;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M7.293 10.707a1 1 0 0 0 1.414 0l3-3a1 1 0 0 0-1.414-1.414L8 8.586 5.707 6.293a1 1 0 0 0-1.414 1.414l3 3z'/%3E%3C/svg%3E") no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  opacity: 0.7;
+  transition: transform var(--transition-normal);
+}
+
+details.details-accordion[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+details.details-accordion > summary:hover {
+  background: var(--surface-strong);
+}
+details.details-accordion > summary:hover::after {
+  opacity: 1;
+}
+
+details.details-accordion[open] > summary {
+  border-bottom: 1px solid var(--border-color);
+}
+
+details.details-accordion > :not(summary) {
+  padding: 0;
+}
+
+/* Details inside card-body - reset */
+.card-body details.details-accordion {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  margin-top: var(--gl-spacing-4);
+}
+
+.card-body details.details-accordion:first-child { margin-top: 0; }
+
+.card-body details.details-accordion > summary {
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  background: var(--surface-strong);
+  border-radius: var(--radius);
+  transition: background var(--transition-normal);
+}
+
+.card-body details.details-accordion > summary:hover {
+  background: var(--surface-moderate);
+}
+
+.card-body details.details-accordion[open] > summary {
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  margin-bottom: 0;
+}
+
+/* -- Health-down indicator on global job bar -- */
+.gjb-health-down .global-job-spinner {
+  animation-play-state: paused;
+  opacity: 0.4;
+}
+.gjb-health-down .gjb-progress-fill {
+  animation-play-state: paused;
+  opacity: 0.5;
+  background: var(--status-warning, var(--gl-orange-500));
+}
+.gjb-health-down .gjb-progress-track {
+  opacity: 0.5;
+}
+
+.card-body details > :not(summary) { padding: 0; }
+
+/* -- Action buttons -- */
+.action-buttons {
+  display: flex;
+  gap: var(--gl-spacing-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* -- Card spacing --
+   Single source of truth is `.card { margin-bottom }` in cards.css.
+   We deliberately do NOT add `.card + .card { margin-top }` here:
+   when the parent element breaks margin-collapsing (form, flex,
+   grid, overflow, ...) the two rules combine inconsistently and
+   produce different gaps on different pages. */
+h2 + .card,
+h2 + figure {
+  margin-top: var(--gl-spacing-4);
+}
+
+/* -- Analysis section headings -- */
+.analysis-heading {
+  margin: 0 0 var(--gl-spacing-4) 0;
+  font-size: var(--font-size-base);
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+}
+.analysis-heading-green { color: var(--gl-text-color-success); }
+.analysis-heading-red { color: var(--gl-text-color-danger); }
+.analysis-heading-blue { color: var(--gl-text-color-link); }
+.analysis-heading-yellow { color: var(--gl-text-color-warning); }
+.analysis-grid { display: grid; gap: var(--gl-spacing-5); }
+.analysis-section { margin-bottom: var(--gl-spacing-6); }
+.analysis-section:first-child { margin-top: 0; }
+
+/* Cookie banner styles moved to css/cookie-banner.css */
+
+/* -- Kbd element -- */
+kbd {
+  display: inline-block;
+  padding: 1px var(--gl-spacing-2);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  box-shadow: inset 0 -1px 0 var(--border-color);
+}

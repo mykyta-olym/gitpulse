@@ -1,0 +1,30 @@
+{{/*
+  Find the source project for a page
+
+  @return string
+    Name of the source project for this page.
+    This will be a key from the products.yaml data file.
+    Returns "gitlab" as the default for pages without a section or unrecognized sections.
+*/}}
+
+{{- if $.File -}}
+  {{- if $.File.Section -}}
+    {{- $section := $.File.Section -}}
+
+    {{- $productData := index $.Site.Data.products "products" -}}
+    {{- $sectionData := index $productData $section -}}
+
+    {{- if not $sectionData -}}
+      <!-- If the page Section does not match a key in products.yaml, it's a page from the "gitlab" project -->
+      {{- $section = "gitlab" -}}
+    {{- end -}}
+
+    {{- print $section -}}
+  {{- else -}}
+    <!-- If there's no Section (e.g., language variants), default to "gitlab" -->
+    {{- "gitlab" -}}
+  {{- end -}}
+{{- else -}}
+  <!-- If there's no File, default to "gitlab" -->
+  {{- "gitlab" -}}
+{{- end -}}

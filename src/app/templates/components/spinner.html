@@ -1,0 +1,29 @@
+{#
+  THE loading mark for the whole app.
+
+  It lives in its own file, with NO imports of its own, because both
+  `components/loaders.html` (which renders real buttons inside the teachers
+  placeholder) and `components/buttons.html` (whose loading state shows this
+  mark) need it - and a mutual import between those two is a Jinja cycle.
+
+  Usage:
+    from "components/spinner.html" import spinner
+    spinner(size='xs')
+#}
+
+{# THE spinner. Every caller of the old generic `spinner()` now gets the brand
+   tanuki inside its turning ring - one loading mark for the whole app, so a
+   stat card waiting for a number and a page waiting to arrive read as the same
+   event. `color` is accepted and ignored: the mark carries the brand colours,
+   which is the point of it. #}
+{% macro spinner(size='md', class='', color='primary', tag='span', id='') %}
+<{{ tag }} class="gp-spinner gp-spinner--{{ size }} {{ class }}" role="status" aria-label="{{ t('Loading') }}"{% if id %} id="{{ id }}"{% endif %}>
+  <svg viewBox="0 0 48 48" class="gp-spinner-mark" aria-hidden="true" focusable="false">
+    <path fill="#fca326" d="M6 27.4152L17.9932 18.9935L23.9627 42Z"/>
+    <path fill="#fca326" d="M42 27.4152L30.9661 18.9935L23.9627 42Z"/>
+    <path fill="#fc6d26" d="M11.0151 6L17.9932 18.9935L6 27.4152Z"/>
+    <path fill="#fc6d26" d="M36.9957 6L30.9661 18.9935L42 27.4152Z"/>
+    <path fill="#e24329" d="M17.9932 18.9935H30.9661L23.9627 42Z"/>
+  </svg>
+</{{ tag }}>
+{% endmacro %}

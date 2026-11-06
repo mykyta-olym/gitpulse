@@ -1,0 +1,72 @@
+{# Reusable Jinja2 SEO Metadata System #}
+
+{% macro seo_meta(
+  title,
+  description,
+  canonical_path=None,
+  robots="noindex, nofollow, noarchive",
+  og_type="website",
+  og_image="img/og-image.png",
+  og_image_alt="GitPulse - GitLab Assessment & DevOps Platform",
+  jsonld=None,
+  hreflang_paths=None
+) %}
+  {# -- Title & Basic Meta -- #}
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  
+  {# -- Robots Directives -- #}
+  <meta name="robots" content="{{ robots }}">
+  
+  {# -- Canonical URL -- #}
+  {% if canonical_path %}
+    {% set base_url = (app_base_url or "").rstrip("/") if app_base_url is defined else "https://gitpulse.kpi.fei.tuke.sk" %}
+    <link rel="canonical" href="{{ base_url }}{{ canonical_path }}">
+  {% endif %}
+
+  {# -- Language alternates (hreflang) -- #}
+  {% if hreflang_paths %}
+    {% set base_url = (app_base_url or "").rstrip("/") if app_base_url is defined else "https://gitpulse.kpi.fei.tuke.sk" %}
+    {% for lang, path in hreflang_paths.items() %}
+      <link rel="alternate" hreflang="{{ lang }}" href="{{ base_url }}{{ path }}">
+    {% endfor %}
+  {% endif %}
+
+  {# -- Open Graph -- #}
+  <meta property="og:type" content="{{ og_type }}">
+  <meta property="og:site_name" content="GitPulse">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description }}">
+  {% if canonical_path %}
+    {% set base_url = (app_base_url or "").rstrip("/") if app_base_url is defined else "https://gitpulse.kpi.fei.tuke.sk" %}
+    <meta property="og:url" content="{{ base_url }}{{ canonical_path }}">
+  {% endif %}
+  {% if og_image %}
+    <meta property="og:image" content="{{ absolute_static_url(og_image) if absolute_static_url is defined else '/static/' ~ og_image }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{{ og_image_alt }}">
+  {% endif %}
+  <meta property="og:locale" content="{{ current_locale|default('sk') }}">
+  {% if current_locale|default('sk') == 'sk' %}
+    <meta property="og:locale:alternate" content="en_US">
+  {% else %}
+    <meta property="og:locale:alternate" content="sk_SK">
+  {% endif %}
+
+  {# -- Twitter Card -- #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ title }}">
+  <meta name="twitter:description" content="{{ description }}">
+  {% if og_image %}
+    <meta name="twitter:image" content="{{ absolute_static_url(og_image) if absolute_static_url is defined else '/static/' ~ og_image }}">
+    <meta name="twitter:image:alt" content="{{ og_image_alt }}">
+  {% endif %}
+
+  {# -- JSON-LD Structured Data -- #}
+  {% if jsonld %}
+    <script type="application/ld+json" nonce="{{ csp_nonce|default('') }}">
+      {{ jsonld | tojson }}
+    </script>
+  {% endif %}
+{% endmacro %}

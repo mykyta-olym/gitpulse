@@ -1,0 +1,131 @@
+{#- Every error page. The context comes from app.middleware.error_pages
+    (error_context), which says what the status is called, what it says and
+    what the reader can still do - `offer`; see that module for the table.
+    It renders in the most minimal environment available too (a middleware
+    fallback, an app that is half up), hence the `is defined` guards. -#}
+{%- macro tr(text) -%}{{ t(text) if t is defined else text }}{%- endmacro -%}
+{%- set status = status_code|default(500) -%}
+{%- set offer = offer|default('back') -%}
+<!DOCTYPE html>
+{% from "components/preference_cookies.html" import preference_cookie_data %}
+<html lang="{{ current_locale|default('sk') }}" data-locale="{{ current_locale|default('sk') }}" {{ preference_cookie_data(request|default(none)) }}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>{{ status }} - {{ tr(title|default('Error')) }} - GitPulse</title>
+  <link rel="icon" type="image/svg+xml" href="{{ static_url('favicon.svg') if static_url is defined else '/static/favicon.svg' }}">
+  <link rel="manifest" href="{{ static_url('site.webmanifest') if static_url is defined else '/static/site.webmanifest' }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('img/icons/apple-touch-icon.png') if static_url is defined else '/static/img/icons/apple-touch-icon.png' }}">
+  {# The standard name, and Apple's for iOS before 16.4 - Chrome flags the
+     Apple one as deprecated only when the standard one is missing. #}
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="GitPulse">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="{{ theme_color|default('#7c3aed') }}">
+  <script nonce="{{ csp_nonce|default('') }}" src="{{ static_url('js/theme-bootstrap.js') if static_url is defined else '/static/js/theme-bootstrap.js' }}"></script>
+  <link rel="stylesheet" href="{{ static_url('css/tokens.css') if static_url is defined else '/static/css/tokens.css' }}">
+  <link rel="stylesheet" href="{{ static_url('css/theme.css') if static_url is defined else '/static/css/theme.css' }}">
+  <link rel="stylesheet" href="{{ static_url('css/error.css') if static_url is defined else '/static/css/error.css' }}">
+  {# For the one `spin` keyframe Retry's loading state uses - the app has exactly one. #}
+  <link rel="stylesheet" href="{{ static_url('css/animations.css') if static_url is defined else '/static/css/animations.css' }}">
+  <script defer nonce="{{ csp_nonce|default('') }}" src="{{ static_url('js/cookies.js') if static_url is defined else '/static/js/cookies.js' }}"></script>
+  <script defer nonce="{{ csp_nonce|default('') }}" src="{{ static_url('js/locale-sync.js') if static_url is defined else '/static/js/locale-sync.js' }}"></script>
+</head>
+<body>
+  {% from "components/icons.html" import icon %}
+  <main class="error-page">
+    <div class="error-illustration">
+      {% set picture = 'img/error-' ~ image|default(500) ~ '.svg' %}
+      <img src="{{ static_url(picture) if static_url is defined else '/static/' ~ picture }}" alt="" width="288" height="288">
+    </div>
+
+    <h1>{% if numbered|default(true) %}{{ status }}: {% endif %}{{ tr(title|default('Error')) }}</h1>
+    <p>{% if feature_name %}{#- One sentence with a slot, so a language can put the name where it goes. -#}{%- set sentence = t('The {feature} feature is currently disabled or under development.') if t is defined else 'The {feature} feature is currently disabled or under development.' -%}{%- set parts = sentence.split('{feature}') -%}{{ parts[0] }}<strong>{{ feature_name }}</strong>{{ parts[1] if parts|length > 1 else '' }}{% else %}{{ tr(message|default('')) }}{% endif %}</p>
+
+    {% if feature_flag or expected_availability %}
+    <dl class="error-feature-info">
+      {% if feature_flag %}<dt>{{ tr('Feature flag') }}</dt><dd><code>{{ feature_flag }}</code></dd>{% endif %}
+      {% if expected_availability %}<dt>{{ tr('Expected availability') }}</dt><dd>{{ expected_availability }}</dd>{% endif %}
+    </dl>
+    {% endif %}
+
+    {% if suggestions %}
+    <ul class="error-suggestions">
+      {% for s in suggestions %}<li>{{ tr(s) }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if offer == 'sign_in' %}
+    <div class="error-actions">
+      <a class="error-btn" href="/dashboard/login">{{ tr('Sign in again') }}</a>
+    </div>
+    <p class="error-note" data-redirect-after-seconds="5" data-redirect-url="/dashboard/login">{{ tr('Redirecting to login in 5 seconds...') }}</p>
+    {% elif offer == 'wait' %}
+    {% set wait = retry_after|default(60, true) %}
+    <p class="error-note" aria-live="polite" data-countdown-seconds="{{ wait }}" data-reload-when-done="true">
+      {{ tr('Retry in') }} <strong data-countdown-value>{{ wait }}</strong>&nbsp;{{ tr('s') }}
+    </p>
+    {% elif offer in ('retry', 'unavailable') %}
+    <div class="error-actions">
+      <button type="button" class="error-btn" data-action="reloadPage">{{ tr('Retry') }}</button>
+    </div>
+    {% if offer == 'unavailable' %}
+    {# While something the app needs is down, the page tries again by itself
+       every 5 s, as GitLab's 502/503 do (error-actions.js). #}
+    <p class="error-note" data-countdown-seconds="5" data-reload-when-done="true">
+      {{ tr('This page reloads automatically in') }} <span data-countdown-value>5</span>&nbsp;{{ tr('s') }}.
+    </p>
+    {% endif %}
+    {% elif offer == 'find' %}
+    <form class="error-search" action="/dashboard/" method="get" role="search">
+      <div class="search-box">
+        <span class="search-icon">{{ icon('search', size='sm') }}</span>
+        <input class="error-search-input" type="text" name="search"
+               placeholder="{{ tr('Search courses, projects, students...') }}"
+               aria-label="{{ tr('Search') }}" autocomplete="off">
+      </div>
+      <button class="error-btn" type="submit">{{ tr('Search') }}</button>
+    </form>
+    {% endif %}
+
+    {% if error_id %}
+    <p class="error-reference">{{ tr('Error Reference:') }} <code>{{ error_id }}</code></p>
+    {% endif %}
+
+    {#- The way back and around - only where the app is there to go to. -#}
+    {% set docs_href = '/docs/en/' if current_locale|default('sk') == 'en' else docs_url|default('/docs/') %}
+    {% set links = {
+      'find': ['back', 'home', 'support', 'docs', 'sign_out'],
+      'retry': ['back', 'home', 'support', 'docs'],
+      'back': ['back', 'home', 'support', 'docs'],
+      'wait': ['back'],
+      'sign_in': ['docs'],
+    }.get(offer, []) %}
+    {% if links %}
+    <hr class="error-divider">
+    <nav class="error-footer" aria-label="{{ tr('Links') }}">
+      {% for link in links %}
+      {% if not loop.first %}<span class="error-footer-sep" aria-hidden="true">&middot;</span>{% endif %}
+      {% if link == 'back' %}<a href="#" data-action="historyBack">{{ tr('Go back') }}</a>
+      {% elif link == 'home' %}<a href="/dashboard/">{{ tr('Home') }}</a>
+      {% elif link == 'support' %}<a href="/dashboard/support">{{ tr('Support') }}</a>
+      {% elif link == 'docs' %}<a href="{{ docs_href }}" target="_blank" rel="noopener noreferrer">{{ tr('Docs') }}</a>
+      {% elif link == 'sign_out' %}<a href="/dashboard/logout">{{ tr('Sign out') }}</a>
+      {% endif %}
+      {% endfor %}
+    </nav>
+    {% endif %}
+  </main>
+
+  {# Deliberately NOT layout.html's `json_island`: importing that macro pulls in
+     components/layout.html -> components/buttons.html, which needs the app's
+     custom `force_escape` filter - and a 503 is exactly when the app may be
+     too broken to have registered it. #}
+  <script id="gp-i18n-config" nonce="{{ csp_nonce|default('') }}" type="application/json">{{ i18n_client_config | default({}) | tojson }}</script>
+  {% if i18n_catalog_url %}<script defer nonce="{{ csp_nonce|default('') }}" src="{{ i18n_catalog_url }}"></script>{% endif %}
+  <script defer nonce="{{ csp_nonce|default('') }}" src="{{ static_url('js/i18n.js') if static_url is defined else '/static/js/i18n.js' }}"></script>
+  <script defer nonce="{{ csp_nonce|default('') }}" src="{{ static_url('js/error-actions.js') if static_url is defined else '/static/js/error-actions.js' }}"></script>
+</body>
+</html>

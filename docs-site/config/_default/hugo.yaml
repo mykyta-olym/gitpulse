@@ -1,0 +1,161 @@
+---
+baseURL: https://gitpulse.kpi.fei.tuke.sk/docs
+title: GitPulse Docs
+defaultContentLanguage: sk
+
+# Two languages over two content directories. The theme's language selector
+# renders only when Hugo has more than one, and .AllTranslations is what lets it
+# link to the same page rather than to a language home.
+defaultContentLanguageInSubdir: false
+languages:
+  sk:
+    languageName: Slovenčina
+    languageCode: sk
+    contentDir: content
+    weight: 1
+    # Reaches the reader as the browser tab, og:site_name and the JSON-LD
+    # publisher name - all three were English on a Slovak page.
+    title: Dokumentácia GitPulse
+  en:
+    languageName: English
+    languageCode: en
+    contentDir: content-en
+    weight: 2
+    title: GitPulse Docs
+theme: gitlab-docs
+enableRobotsTXT: true
+disableKinds: ["term", "taxonomy"]
+
+params:
+  # Written once. The footer alone repeated the repository URL four times.
+  repoURL: https://gitlab.example.com/kpi-zp/2027/dp.mykyta.olym/workspace/workspace
+  contactEmail: mykyta.olym.work@gmail.com
+  repoBranch: main
+  # Which directory each language's pages live in, mirroring the
+  # `contentDir` values above. The source links need the repo-relative path.
+  contentDirs:
+    sk: content
+    en: content-en
+  # Footer columns whose targets are pages of this site. Paths are relative
+  # to the site root with no language prefix - the footer adds the current
+  # language's with relLangURL.
+  footerLinks:
+    docs:
+    - {identifier: footer.linkIntro, path: 'uvod/'}
+    - {identifier: footer.linkTeachers, path: 'ucitelia/'}
+    - {identifier: footer.linkStudents, path: 'studenti/'}
+    - {identifier: footer.linkApi, path: 'api/'}
+    # The changelog is a top-level PAGE, not a section, so the header nav
+    # (which is built from sections) never showed it and nothing else linked
+    # to it either - the page existed and could only be reached by typing
+    # its URL.
+    - {identifier: footer.linkChangelog, path: 'changelog/'}
+    legal:
+    - {identifier: footer.privacyStmt, path: 'pravne/ochrana-udajov/'}
+    - {identifier: footer.termsOfUse, path: 'pravne/podmienky/'}
+  # Sections a crawler can never read, because the application asks for a
+  # session before Caddy serves them (api/docs_authz.py: ADMIN_ONLY +
+  # STAFF_ONLY). Googlebot gets 302 to the login page, so listing them in the
+  # sitemap only produced "Page with redirect" - 20 of 49 submitted URLs on
+  # 2026-09-08. They are excluded from the sitemap here and Disallowed in the
+  # application's robots.txt, which is the one a crawler reads (the host root).
+  gatedSections: [ucitelia, gitlab, operatori, bezpecnost]
+  # Generated listings with no prose of their own: crawl through, do not list.
+  noindexSections: [tags, search]
+  # The language that owns the un-prefixed URLs - `defaultContentLanguage`
+  # above, repeated here because Hugo does not expose it to templates. Layouts
+  # ask this rather than hardcoding a language code.
+  defaultLang: sk
+  # Theme configuration - can be overridden by HUGO_THEME environment variable
+  # Options: "dark" or "light",
+  theme: "dark"
+
+caches:
+  # Don't cache remote resources
+  # We always want the most up-to-date versions of these.
+  getresource:
+    dir: :cacheDir/:project
+    maxAge: 0
+
+markup:
+  goldmark:
+    renderer:
+      # Allows for HTML rendering
+      unsafe: true
+    extensions:
+      linkify: false
+    renderHooks:
+      link:
+        useEmbedded: fallback
+    parser:
+      attribute:
+        block: true
+  highlight:
+    noClasses: false
+
+outputFormats:
+  markdown:
+    mediaType: text/markdown
+    isPlainText: true
+    baseName: index
+outputs:
+  home:
+    - html
+    - markdown
+  page:
+    - html
+    - markdown
+  section:
+    - html
+    - markdown
+
+privacy:
+  # Disable built-in YouTube embeds
+  # We need to embed with regular HTML in order to support /help.
+  youtube:
+    disable: true
+  # Disable unused services
+  # See https://gohugo.io/methods/site/config/#privacy
+  vimeo:
+    disable: true
+  instagram:
+    disable: true
+  x:
+    disable: true
+  disqus:
+    disable: true
+
+security:
+  funcs:
+    # Specify allowed environment variables
+    # See https://gohugo.io/functions/os/getenv/#security
+    getenv:
+    - ^HUGO_
+    - ^CI_
+
+menus:
+  # External links only. Anything inside this site is in params.footerLinks,
+  # because Hugo's menu URLs are resolved against the baseURL and against ONE
+  # language - neither of which suits a per-language link.
+  project:
+  - identifier: footer.repository
+    url: https://gitlab.example.com/kpi-zp/2027/dp.mykyta.olym/workspace/workspace
+    weight: 1
+  - identifier: footer.reportIssue
+    url: https://gitlab.example.com/kpi-zp/2027/dp.mykyta.olym/workspace/workspace/-/issues/new
+    weight: 2
+  - identifier: footer.suggestUpdates
+    url: https://gitlab.example.com/kpi-zp/2027/dp.mykyta.olym/workspace/workspace/-/issues/new
+    weight: 3
+
+module:
+  mounts:
+  # One mount per language. `content-en` is a sibling of `content`, not a
+  # directory inside it: nested, Hugo would render the English pages twice -
+  # once as Slovak content and once as English.
+  - source: content
+    target: content
+    lang: sk
+  - source: content-en
+    target: content
+    lang: en

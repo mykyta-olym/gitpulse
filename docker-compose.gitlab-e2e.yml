@@ -1,0 +1,36 @@
+# A GitLab CE of the version the department runs, for the classroom
+# assistant's end-to-end run (scripts/assistant_e2e.py). Not for production.
+#
+#   docker compose -f docker-compose.gitlab-e2e.yml up -d    # ready in ~5 min
+#
+# GitLab generates the root password itself; the run never signs in with
+# it - it makes its own API token inside the container.
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:19.4.2-ce.0
+    container_name: gitpulse-e2e-gitlab
+    hostname: localhost
+    shm_size: 256m
+    ports:
+      - "127.0.0.1:8929:8929"
+    # GitLab sends its webhooks to GitPulse on the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8929'
+        puma['worker_processes'] = 0
+        sidekiq['concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        gitlab_rails['usage_ping_enabled'] = false
+        gitlab_kas['enable'] = false
+        registry['enable'] = false
+        gitlab_pages['enable'] = false
+        letsencrypt['enable'] = false
+    volumes:
+      - gitlab_e2e_config:/etc/gitlab
+      - gitlab_e2e_data:/var/opt/gitlab
+
+volumes:
+  gitlab_e2e_config:
+  gitlab_e2e_data:

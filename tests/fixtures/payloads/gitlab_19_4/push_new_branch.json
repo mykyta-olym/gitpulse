@@ -1,0 +1,66 @@
+{
+  "event": "Push Hook",
+  "payload": {
+    "ref": "refs/heads/dana-readme",
+    "after": "28cbe1e4d346df187da903618e26a2bedc207303",
+    "before": "0000000000000000000000000000000000000000",
+    "commits": [
+      {
+        "id": "28cbe1e4d346df187da903618e26a2bedc207303",
+        "url": "http://localhost:8929/zsi-e2e/tim-02/projekt/-/commit/28cbe1e4d346df187da903618e26a2bedc207303",
+        "added": [],
+        "title": "Zapísať sa medzi členov tímu",
+        "author": {
+          "name": "Dana Malá",
+          "email": "dana.mala@e2e.example.edu"
+        },
+        "message": "Zapísať sa medzi členov tímu\n",
+        "removed": [],
+        "modified": [
+          "README.md"
+        ],
+        "timestamp": "2026-10-19T14:53:44+02:00"
+      }
+    ],
+    "message": null,
+    "project": {
+      "id": 2,
+      "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "name": "projekt",
+      "ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "web_url": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "namespace": "TIM-02",
+      "avatar_url": null,
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "ci_config_path": null,
+      "default_branch": "main",
+      "visibility_level": 0,
+      "path_with_namespace": "zsi-e2e/tim-02/projekt"
+    },
+    "user_id": 6,
+    "user_name": "Dana Malá",
+    "event_name": "push",
+    "project_id": 2,
+    "repository": {
+      "url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "name": "projekt",
+      "homepage": "http://localhost:8929/zsi-e2e/tim-02/projekt",
+      "description": null,
+      "git_ssh_url": "git@localhost:zsi-e2e/tim-02/projekt.git",
+      "git_http_url": "http://localhost:8929/zsi-e2e/tim-02/projekt.git",
+      "visibility_level": 0
+    },
+    "user_email": "[REDACTED]",
+    "object_kind": "push",
+    "user_avatar": "https://www.gravatar.com/avatar/0340e64b463b0636b5aca3fad15e5cd860c6955cb44fece0ba06f5b0c38b1b29?s=80&d=identicon",
+    "checkout_sha": "28cbe1e4d346df187da903618e26a2bedc207303",
+    "push_options": {},
+    "ref_protected": false,
+    "user_username": "dana.mala",
+    "total_commits_count": 1
+  }
+}

@@ -1,0 +1,40 @@
+{{/*
+  Table render hook: wraps every markdown table in a scroll-capable container.
+
+  All tables receive `overflow-x: auto` by default (via .table-container CSS) so
+  wide tables scroll horizontally without any JavaScript measurement.
+
+  Markdown block attributes are forwarded as classes on the wrapper div.
+  Supported classes:
+
+    | col | ... |
+    {.condensed}    → limits table height to 32rem with vertical scroll
+
+  See: themes/gitlab-docs/assets/css/tables.css for the matching styles.
+*/}}
+{{- $wrapperClasses := "table-container" -}}
+{{- with .Attributes.class -}}
+  {{- $wrapperClasses = printf "table-container %s" . -}}
+{{- end -}}
+<div class="{{ $wrapperClasses }}">
+  <table class="docs-table">
+    <thead>
+      {{- range .THead }}
+      <tr>
+        {{- range . }}
+        <th>{{ .Text | safeHTML }}</th>
+        {{- end }}
+      </tr>
+      {{- end }}
+    </thead>
+    <tbody>
+      {{- range .TBody }}
+      <tr>
+        {{- range . }}
+        <td>{{ .Text | safeHTML }}</td>
+        {{- end }}
+      </tr>
+      {{- end }}
+    </tbody>
+  </table>
+</div>

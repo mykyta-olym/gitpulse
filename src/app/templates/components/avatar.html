@@ -1,0 +1,70 @@
+{#
+  Avatar - the ONE avatar: GitLab's GlAvatar, for a person and for a course,
+  group or project alike. Styles in css/avatars.css; `GP.avatarHtml` is the
+  same thing for markup a script builds.
+
+  Usage:
+    {% from "components/avatar.html" import avatar, avatar_alpine %}
+    {{ avatar(user.avatar_url, user.name, size=32) }}
+    {{ avatar('', course.name, size=24, entity=true) }}
+    {{ avatar_alpine('user.avatar_url', "(user.name || user.username || '?')") }}
+    {{ avatar_labeled(user.avatar_url, user.name, href=user.profile_url) }}
+
+  `size` is one of GlAvatar's 16, 24, 32, 48, 64 or 96. A person is a circle;
+  `entity=true` is GitLab's square for a course, group or project. The initial
+  is an identicon whose colour `identicon(key)` picks, the way GitLab picks it
+  from the entity's id; `key` defaults to the name.
+
+  The picture lies OVER the initial inside one box. The initial is on screen
+  from the first frame, the picture covers it once it paints, and the shared
+  handler (core/46-avatar-fallback) hides a picture that fails - so a 404, an
+  expired GitLab URL or a host that never answers leaves the initial, never an
+  empty disc or a grey one. The avatar is decorative: the name always stands
+  beside it, so the box is hidden from assistive technology.
+#}
+
+{#
+  Server-rendered. `url` may be empty - then the initial is all there is, which
+  is the correct resting state rather than a broken image. `priority='high'`
+  is for an avatar in the first frame of every page (the top bar, the home
+  greeting).
+#}
+{% macro avatar(url, name, size=24, class='', loading='lazy', key='', entity=false, priority='') %}
+{%- set label = (name or '?') | string -%}
+<span class="gl-avatar gl-avatar-s{{ size }}{{ ' gl-avatar-rect' if entity }} gl-avatar-identicon-bg{{ identicon(key or label) }}{{ ' ' ~ class if class }}" aria-hidden="true">
+  {{- label[0] | upper -}}
+  {%- if url %}<img src="{{ url }}" alt="" class="gl-avatar-img" width="{{ size }}" height="{{ size }}" loading="{{ loading }}"{% if priority %} fetchpriority="{{ priority }}"{% endif %} decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>{% endif -%}
+</span>
+{%- endmacro %}
+
+{#
+  Alpine-rendered. `url`, `name` and `key` are client-side expressions;
+  `$identicon` is the identicon colour, from core.
+#}
+{% macro avatar_alpine(url, name, size=24, class='', key='', entity=false) %}
+<span class="gl-avatar gl-avatar-s{{ size }}{{ ' gl-avatar-rect' if entity }}{{ ' ' ~ class if class }}" :class="$identicon({{ key or name }})" aria-hidden="true">
+  <span x-text="{{ name }}.charAt(0).toUpperCase()"></span>
+  <template x-if="{{ url }}">
+    <img :src="{{ url }}" alt="" class="gl-avatar-img" width="{{ size }}" height="{{ size }}" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
+  </template>
+</span>
+{%- endmacro %}
+
+{#
+  A person in a row of people: GitLab's GlAvatarLabeled at inline size - the
+  avatar, then the name; a link when there is a profile. Whatever the caller
+  block holds (an approval mark, a count) follows the name. GitLab never puts
+  an avatar inside a badge: a 16px disc in a 20px pill touches its edges.
+#}
+{% macro avatar_labeled(url, name, size=16, href='', class='', data_attrs={}) %}
+{%- set tag = 'a' if href else 'span' -%}
+<{{ tag }} class="gl-avatar-labeled{{ ' ' ~ class if class }}"{% if href %} href="{{ href }}"{% endif %}{% for k, v in data_attrs.items() %} data-{{ k }}="{{ v|force_escape }}"{% endfor %}>
+  {{- avatar(url, name, size=size) -}}
+  <span class="gl-avatar-labeled-labels inline-labels">
+    <span class="gl-avatar-labeled-meta">
+      <span class="gl-avatar-labeled-label">{{ name }}</span>
+      {%- if caller is defined %}{{ caller() }}{% endif -%}
+    </span>
+  </span>
+</{{ tag }}>
+{%- endmacro %}

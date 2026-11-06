@@ -1,0 +1,265 @@
+{% from "components/forms.html" import csrf_field, text_input, language_selector with context %}
+{% from "components/icons.html" import icon %}
+{% from "components/alerts.html" import alert %}
+{% from "components/badges.html" import badge %}
+{% from "components/layout.html" import json_island with context %}
+{% from "components/preference_cookies.html" import preference_cookie_data %}
+<!DOCTYPE html>
+<html lang="{{ current_locale|default('sk') }}" data-locale="{{ current_locale|default('sk') }}" data-color-scheme-lock="light" {{ preference_cookie_data(request|default(none)) }}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="{{ theme_color }}">
+
+  {# -- Google Search Console verification -- #}
+  <meta name="google-site-verification" content="mifdTXZP9fuj9e9chx_2f1S_hGfzMfyFsEd7oOY7iao">
+  <meta name="keywords" content="GitPulse, GitLab, course management, student assessment, DevOps, CI/CD, TUKE, KPI FEI, education, compliance">
+
+  {# -- SEO and Metadata -- #}
+  {% from "components/seo.html" import seo_meta with context %}
+  {% set base_url = (app_base_url or "").rstrip("/") if app_base_url is defined else "https://gitpulse.kpi.fei.tuke.sk" %}
+  {% set _kpi_org_id = "https://kpi.fei.tuke.sk/#organization" %}
+  {% set _gp_screenshot = absolute_static_url('img/og-image.png') if absolute_static_url is defined else base_url ~ "/static/img/og-image.png" %}
+  {#- A linked @graph: the product (WebApplication), the site (WebSite) and the
+      real publishing organisation (KPI / TUKE). Every claim is factual - the
+      tool genuinely is free for university use, so isAccessibleForFree + a 0 EUR
+      Offer are honest, not invented commercial metadata. -#}
+  {% set login_jsonld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": base_url ~ "/#webapp",
+        "name": "GitPulse",
+        "url": base_url,
+        "description": t("Course management and student competency evaluation platform integrated with GitLab. Automated CI/CD checks, grading workflows, and real-time assessment insights."),
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "publisher": {"@id": _kpi_org_id},
+        "creator": {"@id": _kpi_org_id},
+        "inLanguage": ["sk", "en"],
+        "screenshot": _gp_screenshot
+      },
+      {
+        "@type": "WebSite",
+        "@id": base_url ~ "/#website",
+        "url": base_url,
+        "name": "GitPulse",
+        "inLanguage": ["sk", "en"],
+        "publisher": {"@id": _kpi_org_id}
+      },
+      {
+        "@type": "EducationalOrganization",
+        "@id": _kpi_org_id,
+        "name": "Department of Computers and Informatics (KPI), FEI, Technical University of Košice",
+        "url": "https://kpi.fei.tuke.sk",
+        "parentOrganization": {
+          "@type": "CollegeOrUniversity",
+          "name": "Technical University of Košice",
+          "url": "https://www.tuke.sk"
+        }
+      }
+    ]
+  } %}
+  {# Two language versions, two canonical URLs - not three.
+
+     The bare `/dashboard/login` IS the Slovak page: Googlebot sends no
+     Accept-Language, so that is what it gets there, and it is the URL that
+     should rank for the brand. `?lang=sk` is the same page and says so with
+     its canonical; `?lang=en` is the English page and canonical for itself.
+     Three self-canonical URLs used to be offered (bare, ?lang=sk, ?lang=en),
+     and the bare one and ?lang=sk carried identical content, so Search
+     Console reported "Duplicate, Google chose a different canonical than
+     the user" - Google merging the pair on its own. The hreflang cluster
+     names the two canonical URLs only, with the bare one as sk and
+     x-default, which is the shape Google asks for: every alternate is
+     canonical for itself. A browser that asks for English on the bare URL
+     still gets it (Accept-Language negotiation is unchanged); the
+     annotations describe what a crawler sees. #}
+  {% set _lang_q = request.query_params.get('lang') if request is defined and request else none %}
+  {% set _canonical = '/dashboard/login?lang=en' if _lang_q == 'en' else '/dashboard/login' %}
+  {{ seo_meta(
+    title="GitPulse - GitLab Teamwork & Assessment Platform",
+    description=t("GitPulse - course management and student assessment platform integrated with GitLab. CI/CD checks, assessment insights, and grading workflows."),
+    canonical_path=_canonical,
+    robots="index, follow, max-image-preview:large",
+    hreflang_paths={
+      "sk": "/dashboard/login",
+      "en": "/dashboard/login?lang=en",
+      "x-default": "/dashboard/login"
+    },
+    jsonld=login_jsonld
+  ) }}
+
+  {# -- Favicons & PWA -- #}
+  {# Raster .ico first: it is the favicon Google Search's fetcher looks for and
+     the format it renders most reliably. SVG/PNG below are for modern browsers. #}
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="{{ static_url('favicon.svg') }}">
+  <link rel="icon" type="image/png" sizes="96x96" href="{{ static_url('img/icons/icon-96x96.png') }}">
+  <link rel="manifest" href="{{ static_url('site.webmanifest') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ static_url('img/icons/apple-touch-icon.png') }}">
+  {# Preconnect to GitLab: this page's primary CTA redirects there for OAuth, so
+     warming DNS/TCP/TLS now makes that redirect a round-trip faster. login.html
+     is standalone (does not extend base.html), so the hint is repeated here.
+     Resource hint only - cannot affect rendering; origin from gitlab_url setting. #}
+  {% if gitlab_url %}
+  <link rel="preconnect" href="{{ gitlab_url }}">
+  <link rel="dns-prefetch" href="{{ gitlab_url }}">
+  {% endif %}
+  {# Only preload the textured backdrop where it is actually painted: the mobile
+     sheet sets background-image:none (<768px), so an unconditional preload there
+     fetches an image the page never uses - the "preloaded but not used" warning. #}
+  {# The URL must match the stylesheet byte for byte: it requests the plain
+     path, so a versioned preload here is a second, unused download. #}
+  <link rel="preload" href="/static/img/keycloak-bg.png" as="image" fetchpriority="high" media="(min-width: 768px)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GitPulse">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileImage" content="{{ static_url('img/icons/icon-144x144.png') }}">
+  <meta name="msapplication-TileColor" content="#0f1117">
+
+  {# Resolve the saved mode before CSS; the branded background remains shared
+     across modes while the card and controls use semantic theme tokens. #}
+  <script nonce="{{ csp_nonce }}" src="{{ static_url('js/theme-bootstrap.js') }}"></script>
+
+  {# -- Assets -- #}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/alpine-csp-3.17.5.min.js') }}"></script>
+  <link rel="preload" href="{{ static_url('styles.bundle.css') }}" as="style" fetchpriority="high">
+  <link rel="stylesheet" href="{{ static_url('styles.bundle.css') }}" fetchpriority="high">
+  <link rel="stylesheet" href="{{ static_url('css/login.css') }}">
+  {# The auth pages do not load core.bundle.js, but they must animate the same
+     way as the rest of the app - the cookie banner, the health strip and the
+     auth alert all go through GP.motion. GSAP first: deferred scripts run in
+     document order, and motion.js falls back to a no-animation shim if it does
+     not find `window.gsap`. #}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('vendor/gsap-3.15.0.min.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/motion.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/dropdowns.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/cookies.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/locale-sync.js') }}"></script>
+</head>
+<body class="login-page">
+  <main>
+  <div class="login-shell-header">
+    <div class="login-brand-block">
+      <h1 class="login-brand-title">GitPulse</h1>
+    </div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      {% if error %}
+      <div class="login-alert-region" aria-live="polite">
+        {{ alert(error, variant='danger', dismissible=true, class='login-auth-alert', id='loginAuthError') }}
+      </div>
+      {% endif %}
+
+      {% if logged_out|default(false) %}
+      <div class="login-alert-region" aria-live="polite">
+        {{ alert(t('Your GitPulse session has ended.'), variant='success', title=t('You are logged out'), dismissible=false, class='login-auth-alert', id='loginLoggedOut') }}
+      </div>
+      {% endif %}
+
+      {# The alert login.js shows for an error found in the browser: the same
+         component as the server's, cloned, with its message filled in. #}
+      <template id="loginErrorTemplate">
+        {{ alert('', variant='danger', dismissible=true, class='login-auth-alert', id='loginInlineError') }}
+      </template>
+
+      <h2 class="login-heading">{{ t('Sign in to your account') }} <span id="loginServerStatus" class="login-server-dot" data-tippy-content="{{ t('Checking server...') }}"></span></h2>
+
+      {% if dev_mode %}
+      <div class="text-center mb-6">
+        {{ badge(t('Dev Mode'), variant='warning') }}
+      </div>
+      {% endif %}
+      
+      {% if oauth_enabled %}
+      <a href="{{ oauth_url }}" class="btn btn-confirm btn-block btn-gitlab">
+        {{ icon('gitlab') }}
+        {{ t('Sign in with GitLab') }}
+      </a>
+      <p class="login-gitlab-url">{{ gitlab_url }}</p>
+      {% endif %}
+
+      {% if dev_mode %}
+      {% if oauth_enabled %}
+      <div class="login-separator">
+        - {{ t('or sign in with dev account') }} -
+      </div>
+      {% endif %}
+      <form method="post" action="/dashboard/login" class="login-form" data-no-boundary="1">
+        {{ csrf_field() }}
+        
+        {{ text_input('username', label=t('Username'), value='teacher', required=true, autocomplete='username', placeholder=t('Enter username'), autofocus=true) }}
+        
+        {% if rbac_enabled %}
+        <fieldset class="form-group" role="radiogroup" aria-label="{{ t('Role') }}">
+          <legend class="form-label">{{ t('Role') }}</legend>
+          <div class="role-select">
+            <div class="role-option">
+              <input type="radio" name="role" value="admin" id="role-admin">
+              <label for="role-admin">
+                {{ icon('settings', class='role-icon') }}
+                <span class="role-name">{{ t('Admin') }}</span>
+              </label>
+            </div>
+            <div class="role-option">
+              <input type="radio" name="role" value="teacher" id="role-teacher" checked>
+              <label for="role-teacher">
+                {{ icon('users', class='role-icon') }}
+                <span class="role-name">{{ t('Teacher') }}</span>
+              </label>
+            </div>
+            <div class="role-option">
+              <input type="radio" name="role" value="student" id="role-student">
+              <label for="role-student">
+                {{ icon('graduation', class='role-icon') }}
+                <span class="role-name">{{ t('Student') }}</span>
+              </label>
+            </div>
+          </div>
+          <p class="form-help">{{ t('Each role gets its own default username. Change it if you need a custom one.') }}</p>
+        </fieldset>
+        {% else %}
+        <input type="hidden" name="role" value="admin">
+        {{ alert(t('RBAC is disabled. Logging in as Admin with full access.'), variant='info', title=t('Note:'), class='login-rbac-note') }}
+        {% endif %}
+        
+        <button type="submit" class="btn-signin">{{ t('Sign In') }}</button>
+      </form>
+      {% elif not oauth_enabled %}
+      <p class="login-unconfigured">{{ t('Login is not configured.') }}</p>
+      {% endif %}
+      
+      <div class="login-footer">
+        <div class="login-lang-switch">
+          {{ language_selector(supported_locales|default([]), current_locale|default('sk'), '/dashboard/login?lang=1', variant='auth') }}
+        </div>
+        <p><strong>GitPulse</strong> - {{ t('GitLab Assessment & DevOps') }}</p>
+        <p class="login-thesis-note">{{ t('Diplomová práca') }} · FEI TUKE · 2026</p>
+        <p class="login-thesis-note">{{ t('Vedúci práce') }}: Ing. Sergej Chodarev, PhD. · {{ t('Odborný asistent') }}</p>
+      </div>
+    </div>
+  </div>
+  </main>
+
+  {% include "components/cookie_banner.html" %}
+  {{ json_island(i18n_client_config, csp_nonce, id='gp-i18n-config') }}
+  {# The translation catalogue: a content-hashed file the browser keeps, rather than 205KB inlined into every page. Deferred and placed BEFORE its consumer, so document order guarantees it is set first. #}
+  {% if i18n_catalog_url %}<script defer nonce="{{ csp_nonce|default('') }}" src="{{ i18n_catalog_url }}"></script>{% endif %}
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/i18n.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/cookie-consent.js') }}"></script>
+  <script defer nonce="{{ csp_nonce }}" src="{{ static_url('js/pages/login.js') }}"></script>
+</body>
+</html>

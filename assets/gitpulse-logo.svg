@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 162 48" width="162" height="48" role="img" aria-label="GitPulse">
+  <style>
+    .gp-text { fill: #1f2937; }
+    @media (prefers-color-scheme: dark) {
+      .gp-text { fill: #f8fafc; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="gpGradCenter" x1="18" y1="19" x2="31" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff7a00"/>
+      <stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpGradLeftEar" x1="11" y1="6" x2="18" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fc6d26"/>
+      <stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpGradRightEar" x1="37" y1="6" x2="31" y2="27" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fc6d26"/>
+      <stop offset="100%" stop-color="#e24329"/>
+    </linearGradient>
+    <linearGradient id="gpGradLeftCheek" x1="6" y1="27" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fca326"/>
+      <stop offset="100%" stop-color="#fc6d26"/>
+    </linearGradient>
+    <linearGradient id="gpGradRightCheek" x1="42" y1="27" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fca326"/>
+      <stop offset="100%" stop-color="#fc6d26"/>
+    </linearGradient>
+  </defs>
+
+  <!-- GitLab Tanuki -->
+  <g class="gp-logo-body">
+    <path d="M6 27.4152L17.9932 18.9935L23.9627 42Z" fill="url(#gpGradLeftCheek)" />
+    <path d="M42 27.4152L30.9661 18.9935L23.9627 42Z" fill="url(#gpGradRightCheek)" />
+    <path d="M11.0151 6L17.9932 18.9935L6 27.4152Z" fill="url(#gpGradLeftEar)" />
+    <path d="M36.9957 6L30.9661 18.9935L42 27.4152Z" fill="url(#gpGradRightEar)" />
+    <path d="M17.9932 18.9935H30.9661L23.9627 42Z" fill="url(#gpGradCenter)" />
+  </g>
+
+  <!-- ECG Glowing Pulse Line -->
+  <path d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M2 24H16L18 27L21.5 10L24.5 38L27.5 21L30 24H46" fill="none" stroke="#18171d" stroke-opacity="0.85" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 27L21.5 10L24.5 38L27.5 21" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Brand Typography -->
+  <text x="56" y="33" textLength="105" lengthAdjust="spacingAndGlyphs" class="gp-text" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="700" letter-spacing="-0.5">Git<tspan fill="#fc6d26">Pulse</tspan></text>
+</svg>

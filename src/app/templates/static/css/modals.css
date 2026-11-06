@@ -1,0 +1,486 @@
+/* ============================================
+   MODALS - GitLab Pajamas Design System
+   Source: gitlab-ui/src/components/base/modal/modal.scss
+           gitlab/app/assets/stylesheets/framework/modal.scss
+   ============================================ */
+
+/* -- Backdrop -- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--gl-background-color-overlay);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gl-spacing-6);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  z-index: var(--z-modal-backdrop);
+}
+/* User Info modal: anchor to the top so the box never jumps vertically when the
+   loading state hands off to real content of a different height. Vertically
+   centred, that swap shifted the box top by ~50px -
+   the reported "jittery / torn on appear". Anchored, only the bottom edge moves
+   and the body (overflow-y:auto) scrolls if content outgrows the view. Desktop
+   only - the mobile bottom-sheet (align-items:flex-end below) stays untouched. */
+@media (min-width: 641px) {
+  #globalUserInfoModal.modal-backdrop { align-items: flex-start; }
+  #globalUserInfoModal > .modal { margin-top: 7vh; }
+}
+/* Open and close are GSAP timelines in core/45-gsap-motion.js. They have to be:
+   a CSS animation on `.active` only replays because the class is toggled, it
+   cannot report completion without an `animationend` listener that has to
+   filter bubbled events from the dialog, and the close path needed a second
+   timeout as a fallback - two mechanisms that could both fire.
+   The timings GSAP uses are GitLab's, measured on gitlab.example.com:
+   backdrop `opacity 0.15s linear` in, 0.2s standard out; dialog travels 50px
+   down over 0.3s ease-out and does NOT fade (nested opacity multiplies, which
+   double-exposed everything inside), and does not slide back out. */
+.modal-backdrop.active,
+.modal-backdrop.closing {
+  display: flex;
+}
+/* Those 50px carry the dialog under a pointer that has not moved - the one that
+   clicked the opener - and whatever slid beneath it lit up with its hover state
+   for a few frames: a select looked hovered the moment a modal opened. The
+   contents take the pointer once the dialog has landed (openModal drops the
+   class); a click in that window hits the dialog box, never the backdrop. */
+.modal-backdrop.modal-animating .modal * {
+  pointer-events: none;
+}
+
+/* -- Modal container -- */
+.modal {
+  background: var(--gl-background-color-overlap);
+  border: 0;                        /* gl-border-0 */
+  border-radius: var(--gl-modal-border-radius);  /* gl-modal-border-radius = gl-border-radius-2xl = 16px */
+  box-shadow: var(--shadow-lg);     /* gl-shadow-lg */
+  color: var(--text-primary);
+  width: 100%;
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+}
+/* GitLab widths: sm=512  md=768  lg=990 */
+.modal-sm   { max-width: 512px; }
+.modal-md   { max-width: 768px; }
+.modal-lg   { max-width: 990px; }
+.modal-xl   { max-width: 98%;   }
+.modal-full { max-width: calc(100% - 2rem); }
+
+/* -- Mobile: modals fill (almost) the whole screen as a bottom sheet -
+   matching GitLab's full-height mobile dialogs instead of a cramped centred
+   box. -- */
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding-bottom: env(safe-area-inset-bottom, var(--gl-spacing-2));
+    align-items: flex-end;
+  }
+  .modal,
+  .modal-sm,
+  .modal-md,
+  .modal-lg,
+  .modal-xl,
+  .modal-full {
+    max-width: 100%;
+    width: 100%;
+    max-height: calc(100dvh - var(--gl-spacing-4) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    border-radius: var(--gl-modal-border-radius);
+  }
+  /* Bottom-sheet drag indicator */
+  .modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: var(--gl-spacing-2) auto 0;
+    background: var(--border-color);
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+  }
+  /* Consistent insets on mobile: equal side padding AND a real top/bottom inset
+     on the body so the first field isn't flattened against the header while the
+     rest of the form breathes. */
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: var(--gl-spacing-4);
+    padding-right: var(--gl-spacing-4);
+  }
+  .modal-body {
+    padding-top: var(--gl-spacing-4);
+    padding-bottom: var(--gl-spacing-4);
+  }
+  .modal-footer {
+    padding-bottom: max(var(--gl-spacing-4), env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* -- Header -- */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gl-spacing-5) var(--gl-spacing-5) var(--gl-spacing-3); /* 16 16 8 */
+  border-bottom: none;              /* gl-border-none */
+  flex-shrink: 0;
+}
+.modal-title {
+  font-size: var(--font-size-lg);         /* 18px  heading-scale-500 */
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Inline-flex so leading icons (e.g. icon('edit') ~ ' ' ~ t('Edit Check')) sit on the optical centerline with the label.
+     Without this the SVG defaults to vertical-align:baseline and drops below the text. */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+}
+.modal-title .icon,
+.modal-title svg {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* -- Close button: the shared one (`close_button`), held at the header's end -- */
+.modal-close {
+  flex-shrink: 0;
+  margin-left: var(--gl-spacing-4);
+}
+
+/* -- Body -- */
+.modal-body {
+  padding: var(--gl-spacing-3) var(--gl-spacing-5); /* 8 16  gl-p-5 gl-py-3 */
+  flex: 1 1 auto;
+  min-height: 80px;                 /* $modal-body-height */
+  overflow-y: auto;
+  /* Reserve the scrollbar gutter so the modal never shifts/shrinks
+     horizontally when content height changes (e.g. a radio toggles a section
+     open, or a select dropdown renders) and the scrollbar appears/disappears.
+     Paired with the thin modal scrollbar (scrollbar.css) the reserved space is
+     minimal - a far smaller cost than the jitter the previous no-gutter
+     approach produced. */
+  scrollbar-gutter: stable;
+  line-height: 1.5;                 /* $modal-body-line-height */
+  position: relative;
+  text-align: left;
+  white-space: normal;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-body--scrollable {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Form groups inside modals */
+.modal-body .form-group {
+  margin-bottom: var(--gl-spacing-5);
+}
+.modal-body .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* -- Footer -- */
+.modal-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gl-spacing-3);                          /* 8px */
+  padding: var(--gl-spacing-3) var(--gl-spacing-5) var(--gl-spacing-5); /* 8 16 16 */
+  border-top: none;                                  /* gl-border-none */
+  background: transparent;
+  flex-shrink: 0;
+}
+.modal-footer .btn {
+  margin: 0;                                         /* gl-m-0 */
+}
+
+/* Footer rendered inside modal-body: pull flush to modal edges */
+.modal-body > .modal-footer,
+.modal-body > form > .modal-footer {
+  margin: var(--gl-spacing-5) calc(-1 * var(--gl-spacing-5)) calc(-1 * var(--gl-spacing-3));
+  padding: var(--gl-spacing-5);
+  border-radius: 0 0 var(--gl-modal-border-radius) var(--gl-modal-border-radius);
+  border-top: none;
+  position: sticky;
+  bottom: calc(-1 * var(--gl-spacing-3));
+  background: var(--gl-background-color-overlap);
+  z-index: 1;
+}
+
+/* Buttons and disabled-tooltip wrappers occupy the same footer tracks. */
+@media (max-width: 768px) {
+  .modal-footer {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+  .modal-footer .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* -- Responsive - mobile -- */
+@media (max-width: 575px) {
+  .modal-backdrop {
+    padding-bottom: env(safe-area-inset-bottom, var(--gl-spacing-3));
+  }
+  .modal-header {
+    padding: var(--gl-spacing-4) var(--gl-spacing-4) var(--gl-spacing-3);
+  }
+  .modal-footer {
+    grid-auto-flow: row;
+  }
+  .modal-body > .modal-footer,
+  .modal-body > form > .modal-footer {
+    padding-bottom: max(var(--gl-spacing-4), env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* -- Reduced motion -- */
+@media (prefers-reduced-motion: reduce) {
+.modal-backdrop,
+.modal-backdrop.closing,
+.modal-backdrop.closing .modal,
+.modal {
+    animation: none !important;
+  }
+}
+
+/* -- Modal dirty indicator -- */
+.modal-header--dirty .modal-title::after {
+  content: '*';
+  color: var(--warning);
+  margin-left: var(--gl-spacing-2);
+  font-size: var(--font-size-lg);
+}
+
+/* -- LLM suggestion cards -- */
+.llm-suggestion {
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  margin-bottom: var(--gl-spacing-3);
+  transition: border-color var(--transition-normal),
+              background var(--transition-normal);
+}
+.llm-suggestion:hover {
+  border-color: var(--info);
+}
+.llm-suggestion-duplicate {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.llm-suggestion-header {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+}
+.llm-suggestion-cb {
+  flex-shrink: 0;
+}
+.llm-suggestion-desc {
+  margin: var(--gl-spacing-2) 0 var(--gl-spacing-2) 1.5rem;
+  font-size: var(--font-size-sm);
+}
+.llm-suggestion-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-3);
+  margin-left: 1.5rem;
+  font-size: var(--font-size-xs);
+}
+.llm-selection-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--gl-spacing-1);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  background: var(--surface-subtle);
+  border-radius: var(--radius);
+  margin-top: var(--gl-spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+.llm-selection-summary strong {
+  color: var(--text-primary);
+}
+
+/* -- Mobile scale up for checkboxes inside modals --
+   Uses flexbox instead of absolute positioning to prevent
+   checkbox-text overlap on all screen sizes. -- */
+@media (max-width: 575px) {
+  .modal-body .form-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--gl-spacing-3);
+    padding-left: 0;
+    margin-bottom: var(--gl-spacing-3);
+  }
+  /* Size only - and never `position: static`, which hands the ::after checkmark
+     to `.modal-body` and paints it ~970px away from its box (a checked
+     checkbox with no checkmark on a phone). The tick centres itself in
+     forms.css, so nothing here has to re-derive where it goes. */
+  .modal-body .form-check-input {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .modal-body .form-check-label {
+    font-size: var(--font-size-base);
+    padding-left: 0;
+    display: block;
+    min-height: 20px;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* -- Shared confirmation dialog (#gpConfirmDialog, GP.confirmDialog) --
+   The one "are you sure?" surface in the app. Sized small and text-first: a
+   confirmation is a sentence and two buttons, not a form. `pre-line` keeps the
+   blank line these messages use to separate the action from its consequence
+   ("...delete X?\n\nThis cannot be undone."), which a browser dialog rendered
+   for free and a <p> would otherwise collapse. */
+
+/* It sits ABOVE the thing that asked the question. Every modal in the app is
+   `.modal-backdrop` at `--z-modal-backdrop` (1000), and a page modal is moved
+   to the end of <body> when it opens - so at equal z-index the LAST one in the
+   document won, and the modal that raised the question covered the question.
+   Measured on the course page: "Run selected checks" opened the confirmation,
+   the screenshot showed only the Run Checks modal, and elementFromPoint at the
+   Confirm button's centre returned `#runChecksGrid`. The dialog was there, on
+   top of nothing, unclickable - so the course-wide Run Checks could not be
+   confirmed at all.
+   1005 is above `--z-modal` (1001) and below `--z-popover` (1010), so a tooltip
+   or dropdown opened from inside the dialog still paints over it. */
+#gpConfirmDialog {
+  z-index: 1005;
+}
+.gp-confirm .gp-confirm-message {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.gp-confirm .gp-confirm-typing {
+  margin-top: var(--gl-spacing-5);
+}
+.gp-confirm .gp-confirm-typing .form-label {
+  display: block;
+  margin-bottom: var(--gl-spacing-2);
+}
+
+/* ============================================
+   Event Details Modal & Key-Value Lists
+   ============================================ */
+.event-detail-modal-dialog {
+  max-width: 680px;
+}
+.gl-kv-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--radius-md);
+  background: var(--gl-background-color-subtle);
+  overflow: hidden;
+}
+.gl-kv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gl-spacing-4);
+  padding: var(--gl-spacing-3) var(--gl-spacing-4);
+  border-bottom: 1px solid var(--gl-border-color-default);
+  font-size: var(--font-size-sm);
+  min-height: 40px;
+}
+.gl-kv-row:last-child {
+  border-bottom: none;
+}
+.gl-kv-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gl-spacing-2);
+  color: var(--gl-text-color-subtle);
+  font-weight: var(--font-weight-medium);
+  flex-shrink: 0;
+}
+.gl-kv-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gl-text-color-disabled);
+}
+.gl-kv-value {
+  color: var(--gl-text-color-default);
+  text-align: right;
+  word-break: break-all;
+  font-variant-numeric: tabular-nums;
+}
+.gl-kv-value code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  background: var(--gl-background-color-default);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--gl-border-color-default);
+}
+.event-payload-heading {
+  color: var(--gl-text-color-default);
+}
+.event-payload-wrapper {
+  position: relative;
+  border: 1px solid var(--gl-border-color-default);
+  border-radius: var(--radius-md);
+  background: var(--gl-background-color-strong);
+  overflow: hidden;
+  min-height: 120px;
+}
+.event-code-viewer {
+  margin: 0;
+  padding: var(--gl-spacing-4);
+  max-height: 360px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--gl-text-color-default);
+  background: transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* JSON Syntax Highlighting Tokens */
+.syntax-key {
+  color: var(--gl-text-color-link, #61afff);
+  font-weight: var(--font-weight-medium);
+}
+.syntax-string {
+  color: var(--gl-feedback-success-text, #3ec08d);
+}
+.syntax-number {
+  color: var(--gl-feedback-warning-text, #f0ad4e);
+}
+.syntax-bool {
+  color: var(--gl-purple-400, #c084fc);
+  font-weight: var(--font-weight-medium);
+}
+.syntax-null {
+  color: var(--gl-text-color-disabled, #8c8c8c);
+  font-style: italic;
+}

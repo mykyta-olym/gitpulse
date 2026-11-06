@@ -1,0 +1,200 @@
+{% from "components/icons.html" import icon %}
+{% from "components/cards.html" import block_empty %}
+{% from "components/layout.html" import filter_tabs with context %}
+{% from "components/avatar.html" import avatar %}
+
+  <!-- Right Sidebar -->
+  <div class="gl-home-sidebar">
+    {% if is_student and student_ctx %}
+    <!-- Student Progress Panel -->
+    <div class="gl-home-sidebar-panel">
+      <h3 class="gl-home-panel-title">{{ t('Your progress') }}</h3>
+      <div class="gl-student-progress">
+        {% if active_courses %}
+        <div class="gl-progress-item">
+          <span class="gl-progress-label">{{ t('Compliance') }}</span>
+          <span class="gl-progress-value gl-traffic-{{ student_ctx.traffic_light }}">{{ student_ctx.compliance_pct }}%</span>
+        </div>
+        {% if student_ctx.open_mrs > 0 %}
+        <div class="gl-progress-item">
+          <span class="gl-progress-label">{{ t('Open MRs') }}</span>
+          <span class="gl-progress-value">{{ student_ctx.open_mrs }}</span>
+        </div>
+        {% endif %}
+        {% if student_ctx.failed_pipelines > 0 %}
+        <div class="gl-progress-item">
+          <span class="gl-progress-label">{{ t('Failed pipelines') }}</span>
+          <span class="gl-progress-value gl-traffic-red">{{ student_ctx.failed_pipelines }}</span>
+        </div>
+        {% endif %}
+        {% if student_ctx.next_deadline %}
+        <div class="gl-progress-item">
+          <span class="gl-progress-label">{{ t('Next deadline') }}</span>
+          <span class="gl-progress-value">{{ student_ctx.next_deadline.title }} ({{ student_ctx.next_deadline.days_left }}d)</span>
+        </div>
+        {% endif %}
+        {% else %}
+        {{ block_empty(t('Progress will appear here once you are enrolled in a course and assigned to a group.')) }}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if is_teacher or is_admin %}
+    <!-- Quick access panel (GitLab-style) -->
+    {# Tabs use the declarative [data-tabs] controller (GP.initTabs) rather than
+   inline Alpine: the production @alpinejs/csp build cannot evaluate the old
+   ``@click="qaTab = 'x'"`` / ``:class="qaTab === 'x' && '..'"`` bindings, nor
+   ``<template x-if>`` - so the tabs never switched and NEITHER panel rendered,
+   leaving Quick access empty. #}
+    <div class="gl-home-sidebar-panel" data-tour="quick-access" data-tabs>
+      <div class="gl-qa-header">
+        <h3 class="gl-home-panel-title">{{ t('Quick access') }}</h3>
+      </div>
+      {# The app's one view switcher, as every other card that shows two views. #}
+      {{ filter_tabs([
+           {'value': 'groups', 'label': t('Groups')},
+           {'value': 'subgroups', 'label': t('Subgroups and Projects')}
+         ], active='groups', aria_label=t('Quick access'), panels=true) }}
+      <div class="gl-qa-list">
+        <div data-tab-panel="groups">
+          <div>
+            {% if qa_teams %}
+            {% for t_item in qa_teams[:5] %}
+            {% set _meta = qa_team_meta.get(t_item.id) if qa_team_meta is defined else none %}
+            <a href="/dashboard/teams/{{ t_item.id }}" class="gl-qa-item">
+              {{ avatar('', t_item.name, size=24, entity=true) }}
+              <span class="gl-qa-text">
+                <span class="gl-qa-name">{{ t_item.name | truncate(30) }}</span>
+                {# The row is one narrow line and truncates with an ellipsis by
+                   design, so the full value has to stay reachable. The projects
+                   list below always carried a tooltip; this one did not, and a
+                   Slovak "4 clenov" ran 23px past the box with no way to read
+                   it. #}
+                {%- set _qa_code = t_item.course.code if t_item.course else '' -%}
+                {%- set _qa_tip = _qa_code ~ (' - ' ~ _meta.score_pct ~ '% - ' ~ _meta.member_count ~ ' ' ~ t('members') if _meta else '') -%}
+                <span class="gl-qa-path muted" data-tippy-content="{{ _qa_tip }}">
+                  {{ _qa_code }}
+                  {% if _meta %}
+                    · <span class="gl-qa-dot gl-qa-dot--{{ _meta.traffic_light }}" aria-hidden="true"></span>{{ _meta.score_pct }}%
+                    · {{ _meta.member_count }} {{ t('members') }}
+                  {% endif %}
+                </span>
+              </span>
+            </a>
+            {% endfor %}
+            {% else %}
+            {{ block_empty(t('No groups yet.')) }}
+            {% endif %}
+          </div>
+        </div>
+        <div data-tab-panel="subgroups" hidden>
+          <div>
+            {% if qa_projects %}
+            {% for p in qa_projects[:5] %}
+            {% set p_slug = (p.gitlab_project_path or '').split('/')[-1] %}
+            {% set _meta = qa_team_meta.get(p.team_id) if qa_team_meta is defined else none %}
+            <a href="/dashboard/projects/{{ p.id }}" class="gl-qa-item">
+              {{ avatar('', p_slug or 'P', size=24, entity=true) }}
+              <span class="gl-qa-text">
+                <span class="gl-qa-name">{{ (p_slug or p.gitlab_project_name or t('Unnamed')) }}</span>
+                {%- set _qa_tip = (p.gitlab_project_path or '') ~ (' - ' ~ _meta.score_pct ~ '%' if _meta else '') -%}
+                <span class="gl-qa-path muted" data-tippy-content="{{ _qa_tip }}">
+                  {{ (p.gitlab_project_path or '') }}
+                  {% if _meta %}
+                    · <span class="gl-qa-dot gl-qa-dot--{{ _meta.traffic_light }}" aria-hidden="true"></span>{{ _meta.score_pct }}%
+                  {% endif %}
+                </span>
+              </span>
+            </a>
+            {% endfor %}
+            {% else %}
+            {{ block_empty(t('No additional subgroups - see Groups tab.')) }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if is_admin and admin_ctx %}
+    <!-- System Health Panel (admin only) -->
+    <div class="gl-home-sidebar-panel" data-tour="system-health">
+      <h3 class="gl-home-panel-title">{{ t('System health') }}</h3>
+      <div class="gl-admin-health">
+        <a href="/dashboard/admin/system" class="gl-health-item gl-health-item--link">
+          <span class="gl-health-label">{{ t('Jobs queued') }}</span>
+          <span class="gl-health-value">{{ admin_ctx.jobs_queued }}</span>
+        </a>
+        <a href="/dashboard/admin/system" class="gl-health-item gl-health-item--link">
+          <span class="gl-health-label">{{ t('Jobs running') }}</span>
+          <span class="gl-health-value">{{ admin_ctx.jobs_running }}</span>
+        </a>
+        <a href="/dashboard/admin/system" class="gl-health-item gl-health-item--link">
+          <span class="gl-health-label">{{ t('Completed (24 h)') }}</span>
+          <span class="gl-health-value gl-traffic-green">{{ admin_ctx.jobs_completed_24h }}</span>
+        </a>
+        <a href="/dashboard/admin/system" class="gl-health-item gl-health-item--link">
+          <span class="gl-health-label">{{ t('Failed (24 h)') }}</span>
+          <span class="gl-health-value{% if admin_ctx.jobs_failed_24h > 0 %} gl-traffic-red{% endif %}">{{ admin_ctx.jobs_failed_24h }}</span>
+        </a>
+        <a href="/dashboard/admin/system" class="gl-health-item gl-health-item--link">
+          <span class="gl-health-label">{{ t('Total jobs') }}</span>
+          <span class="gl-health-value">{{ admin_ctx.jobs_total }}</span>
+        </a>
+      </div>
+      {% if admin_ctx.webhooks_pending > 0 %}
+      <div class="gl-health-item">
+        <span class="gl-health-label">{{ t('Webhooks pending') }}</span>
+        <span class="gl-health-value gl-traffic-yellow">{{ admin_ctx.webhooks_pending }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if changelog_entries is defined and changelog_entries %}
+    <!-- Changelog -->
+    <div class="gl-home-sidebar-panel">
+      <h3 class="gl-home-panel-title">{{ t('Latest changes') }}</h3>
+      <div class="gl-changelog-timeline">
+        {% for entry in changelog_entries %}
+        <div class="gl-changelog-item">
+          <span class="gl-changelog-dot gl-changelog-dot--{{ entry.tag }}"></span>
+          <div class="gl-changelog-body">
+            <span class="gl-changelog-title">{{ entry.title }}</span>
+            <span class="gl-changelog-date">{{ entry.date }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <a href="/docs/changelog/" target="_blank" rel="noopener noreferrer" class="gl-home-panel-link gl-changelog-viewall">
+        {{ t('View changelog') }} {{ icon('arrow-right', size='xs') }}
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Support panel -->
+    <div class="gl-home-sidebar-panel">
+      <h3 class="gl-home-panel-title">{{ t('Support & suggestions') }}</h3>
+      <p class="gl-home-panel-desc">{{ t('Have a question or an idea? Send us a message.') }}</p>
+      <div class="flex-col gap-2">
+        {# An admin also teaches (is_teacher), so they get both surveys. #}
+        {% if is_student %}
+        <a href="{{ survey_urls.student }}" target="_blank" rel="noopener noreferrer" class="gl-home-panel-link">
+          {{ icon('external-link', size='sm') }} {{ t('Student survey') }}
+        </a>
+        {% endif %}
+        {% if is_teacher %}
+        <a href="{{ survey_urls.teacher }}" target="_blank" rel="noopener noreferrer" class="gl-home-panel-link">
+          {{ icon('external-link', size='sm') }} {{ t('Teacher survey') }}
+        </a>
+        {% endif %}
+        {% if is_admin %}
+        <a href="{{ survey_urls.admin }}" target="_blank" rel="noopener noreferrer" class="gl-home-panel-link">
+          {{ icon('external-link', size='sm') }} {{ t('Administrator survey') }}
+        </a>
+        {% endif %}
+        <a href="mailto:{{ contact_email }}" class="gl-home-panel-link">{{ icon('mail', size='sm') }} {{ contact_email }}</a>
+      </div>
+    </div>
+  </div><!-- /.gl-home-sidebar -->

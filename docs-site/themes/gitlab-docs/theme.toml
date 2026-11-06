@@ -1,0 +1,4 @@
+name = 'GitLab Docs'
+license = 'MIT'
+licenselink = 'https://gitlab.com/gitlab-org/technical-writing/docs-gitlab-com/-/blob/main/LICENSE'
+description = 'Hugo theme for GitLab Docs'

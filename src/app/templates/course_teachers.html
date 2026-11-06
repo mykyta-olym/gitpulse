@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "components/academic_period.html" import period_label with context %}
+{% block title %}{{ t('Teachers') }} - {{ course.code }}{% endblock %}
+
+{% from "components/layout.html" import page_header %}
+{% from "components/layout.html" import tab_content with context %}
+{% from "components/badges.html" import course_role_badge %}
+
+{% set nav_active = 'course' %}
+{% set page_footer = false %}
+{% set breadcrumb_items = [{'href': '/dashboard/', 'label': t('Dashboard')}, {'href': '/dashboard/courses/' ~ course.id, 'label': course.code}, {'label': t('Teachers')}] %}
+
+{# The archived-course strip goes straight into #globalBannerSlot (base.html)
+   rather than into the content, so it is in place on the first frame instead of
+   being portaled up after the page has painted. #}
+{% block top_banners %}{% include "partials/course/_archived_banner.html" %}{% endblock %}
+
+{% block content %}
+{% set _badge = course_role_badge('owner') if course_role == 'owner' else (course_role_badge('teacher') if course_role == 'teacher' else '') %}
+{{ page_header(course.code ~ ' - ' ~ (course.name or ''), period_label(course.academic_year, course.semester), badge=_badge) }}
+
+{% if course.description %}
+<p class="course-description muted">{{ course.description }}</p>
+{% endif %}
+
+{% set active_tab = 'teachers' %}
+{% include "partials/course/_course_nav.html" %}
+
+{% call tab_content(course) %}
+  {% include "partials/course/_teachers_content.html" %}
+{% endcall %}
+{% endblock %}
+
+{# In extra_scripts (the <head>), NOT the content block: as a top-level child of
+   #main-content the <script> was a top-level swapped node, and htmx's script
+   re-execution threw "insertBefore of null" on every SPA navigation here. In the
+   head it is a page bundle like every other page's, reconciled + re-run by the
+   SPA afterSwap head-script pass, and defined before Alpine starts on direct load
+   (Alpine start is deferred to DOMContentLoaded). #}
+{% block extra_scripts %}
+<script nonce="{{ csp_nonce }}" defer src="{{ static_url('js/pages/course-teachers.js') }}"></script>
+{% endblock %}

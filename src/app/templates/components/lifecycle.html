@@ -1,0 +1,97 @@
+{#
+  Lifecycle actions - the ONE "restore / permanently delete" pair for a
+  soft-deleted group or project.
+
+  Usage:
+    {% from "components/lifecycle.html" import restore_actions with context %}
+    {{ restore_actions('team', team.id, entity_name=team.name,
+                       lock_scope='course:' ~ course.id ~ ' team:' ~ team.id) }}
+    {{ restore_actions('project', proj.id, icon_only=true,
+                       lock_scope='course:' ~ c.id ~ ' team:' ~ t.id ~ ' project:' ~ proj.id) }}
+
+  This pair used to be hand-written at six call sites and no two agreed: the
+  restore button was captioned "Restore", "Restore group" or "Reactivate"; the
+  gap was `ml-1` (a class with no CSS rule at all), `ml-2` (a real margin on
+  top of the container's own `gap`) or nothing; two sites shipped no tooltip;
+  and in the group page's project table the restore button was full-width
+  while the delete button beside it was `btn-icon-only`, so one row held two
+  differently shaped buttons. Emitting both from here is what keeps them
+  identical - `icon_only` decides the shape for BOTH, never one of them.
+
+  Spacing is the container's job (`.team-row-actions` and `.gp-alert-actions`
+  both set `gap`), so this macro deliberately adds no margin utility.
+#}
+{% from "components/buttons.html" import btn_icon, btn_icon_only %}
+{% from "components/icons.html" import icon %}
+
+{#
+  The "Deleted" filter toggle that reveals soft-deleted rows, and the note that
+  explains why they are hidden. Both were written out twice - once for a
+  course's groups, once for a group's projects - so only the noun and the
+  `data-action` ever differed.
+#}
+{% macro deleted_toggle(action, count, tip) %}
+  <button type="button" class="gp-deleted-toggle" data-action="{{ action }}"
+          aria-pressed="false" data-tippy-content="{{ tip }}">
+    {{ icon('trash', size='sm') }}
+    <span>{{ t('Deleted') }}</span>
+    <span class="gp-deleted-toggle-count">{{ count }}</span>
+  </button>
+{% endmacro %}
+
+{% macro deleted_note(message) %}
+  <div class="gp-deleted-note">
+    <span class="gp-deleted-note-icon">{{ icon('info', size='sm') }}</span>
+    <span>{{ message }}</span>
+  </div>
+{% endmacro %}
+
+{% macro restore_actions(kind, entity_id, entity_name='', lock_scope='', icon_only=false, restore_label='') %}
+  {#- One table keyed by entity type: the two kinds differ only in which
+      action names the client dispatcher listens for, which id attribute
+      carries the row, and which processes must not be mid-flight. -#}
+  {%- set spec = {
+        'team': {
+          'restore_action': 'reactivateTeam',
+          'delete_action': 'deleteTeamPermanent',
+          'id_attr': 'team-id',
+          'name_attr': 'team-name',
+          'lock_when': 'sync import run_checks',
+          'restore_label': t('Restore group'),
+          'restore_tip': t('Restore this group and re-enable its members and projects'),
+        },
+        'project': {
+          'restore_action': 'reactivateProject',
+          'delete_action': 'deleteProjectPermanent',
+          'id_attr': 'project-id',
+          'name_attr': 'project-name',
+          'lock_when': 'sync run_checks',
+          'restore_label': t('Restore project'),
+          'restore_tip': t('Reactivate this project and sync from GitLab'),
+        },
+      }[kind] -%}
+  {%- set delete_label = t('Remove from deleted') -%}
+  {%- set delete_tip = t('Remove from deleted (permanently delete all records)') -%}
+  {%- set label = restore_label or spec.restore_label -%}
+  {%- set common = {
+        'process-lock-when': spec.lock_when,
+        'process-lock-scope': lock_scope,
+      } -%}
+  {%- set restore_data = dict(common, **{'action': spec.restore_action, spec.id_attr: entity_id}) -%}
+  {%- set delete_data = dict(common, **{'action': spec.delete_action, spec.id_attr: entity_id}) -%}
+  {%- if entity_name -%}
+    {%- set _ = restore_data.update({spec.name_attr: entity_name}) -%}
+    {%- set _ = delete_data.update({spec.name_attr: entity_name}) -%}
+  {%- endif -%}
+  {% if icon_only %}
+    {{ btn_icon_only('refresh-cw', variant='success', size='sm',
+                     aria_label=label, title=spec.restore_tip, data_attrs=restore_data) }}
+    {{ btn_icon_only('trash', variant='danger', size='sm',
+                     aria_label=delete_label, title=delete_tip, data_attrs=delete_data) }}
+  {% else %}
+    {{ btn_icon(label, 'refresh-cw', variant='success', size='sm',
+                title=spec.restore_tip, data_attrs=restore_data) }}
+    {{ btn_icon(delete_label, 'trash', variant='danger', size='sm',
+                title=delete_tip, data_attrs=delete_data) }}
+  {% endif %}
+{% endmacro %}

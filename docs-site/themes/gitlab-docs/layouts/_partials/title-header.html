@@ -1,0 +1,38 @@
+{{ $pageTitle := .Title | markdownify }}
+
+{{ if or (strings.Contains .RelPermalink "/development/") (strings.Contains .RelPermalink "/solutions/") }}
+  {{ $badgeData := slice }}
+  {{ $badgeData = $badgeData | append (dict
+    "type" (T "badges.contribute")
+    "hoverText" (T "badges.contributeHoverTxt")
+    "paths" (slice
+      "/development/"
+      "/omnibus/development/"
+      "/runner/development/"
+      "/charts/development/"
+    )) (dict
+    "type" (T "badges.solutions")
+    "hoverText" (T "badges.solutionsHoverTxt")
+    "paths" (slice "/solutions/")) }}
+
+  {{ $relPath := .RelPermalink}}
+
+  {{ range $badgeData }}
+    {{ $badgeType := . }}
+    {{ range .paths }}
+      {{ if in $relPath . }}
+        <div class="gl-flex gl-flex-wrap gl-items-center gl-gap-2 gl-mt-5 gl-mb-6">
+          <h1 id="skipTarget" class="gl-mt-0 gl-mb-0">
+            {{ $pageTitle }}
+          </h1>
+          <span data-component="docs-badges" data-nosnippet>
+            <span data-value="{{ $badgeType.type }}" data-hover-text="{{ $badgeType.hoverText }}"></span>
+          </span>
+        </div>
+        {{ break }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ else }}
+  <h1 id="skipTarget" class="gl-mb-6">{{ $pageTitle }}</h1>
+{{ end }}

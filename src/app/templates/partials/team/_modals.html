@@ -1,0 +1,24 @@
+{% from "components/modals.html" import modal %}
+{% from "components/forms.html" import text_input with context %}
+{% from "components/buttons.html" import btn %}
+{% from "components/badges.html" import badge %}
+
+{% if can_edit %}
+<!-- Link Project Modal -->
+{% call modal('linkProjectModal', t('Link GitLab Project to ') ~ team.name) %}
+<form id="linkProjectForm" data-submit-action="linkProject">
+  <div class="form-group">
+    <label class="form-label" for="projectGitLabUrl">{{ t('GitLab URL') }} {{ badge(t('Auto-fill'), variant='info', size='sm', class='ml-2') }}</label>
+    {{ text_input('gitlab_url', id='projectGitLabUrl', class='gitlab-url-input', placeholder=t('Paste GitLab project URL to auto-fill...'), help_text=t('Paste a GitLab project URL to automatically fill all fields')) }}
+  </div>
+  {{ text_input('gitlab_project_id', label=t('GitLab Project ID'), type='number', id='projectGitlabId', placeholder=t('e.g., 12345'), required=true) }}
+  {{ text_input('gitlab_project_path', label=t('Project Path'), id='projectPath', placeholder=t('e.g., group/project-name'), required=true) }}
+  {{ text_input('gitlab_project_name', label=t('Display Name'), id='projectDisplayName', placeholder=t('e.g., Group Project')) }}
+  <div class="modal-footer">
+    {{ btn(t('Cancel'), variant='secondary', data_attrs={'modal-close': 'linkProjectModal'}) }}
+    {{ btn(t('Link Project'), type='submit', id='linkProjectBtn', data_attrs={'process-lock-when': 'sync run_checks', 'process-lock-scope': 'course:' ~ team.course_id ~ ' team:' ~ team.id}) }}
+  </div>
+</form>
+{% endcall %}
+
+{% endif %}

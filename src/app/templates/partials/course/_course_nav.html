@@ -1,0 +1,83 @@
+{#
+  Shared course sub-navigation - GitLab Pajamas tab-bar style.
+
+  Required context variables:
+    course       - course object (needs .id)
+    active_tab   - string: 'overview' | 'settings' | 'activity' | 'analytics' | 'teachers'
+                   | 'assistant'
+
+  Optional context variables:
+    can_edit     - bool (default false): show Settings/Teachers tabs
+#}
+{% from "components/icons.html" import icon %}
+
+{# The archived strip is NOT here any more: it is rendered straight into
+   #globalBannerSlot by each page shell's `top_banners` block, so it never has to
+   be moved after the page has painted. #}
+
+<nav class="tabs-nav" role="tablist" aria-label="{{ t('Course navigation') }}" data-tour="course-tabs"
+     data-course-id="{{ course.id }}"{% if not course.is_active %} data-course-archived="1"{% endif %}>
+  <a href="/dashboard/courses/{{ course.id }}"
+     class="tab-btn{% if active_tab == 'overview' %} active{% endif %}"
+     role="tab"
+     aria-selected="{{ 'true' if active_tab == 'overview' else 'false' }}"
+     {% if active_tab == 'overview' %}aria-current="page"{% endif %}
+     {% if active_tab != 'overview' %}tabindex="-1"{% endif %}>
+    {{ icon('home', size='sm') }}
+    <span class="tab-label" data-label="{{ t('Overview') }}">{{ t('Overview') }}</span>
+  </a>
+  {% if can_edit %}
+  <a href="/dashboard/courses/{{ course.id }}/settings"
+     class="tab-btn{% if active_tab == 'settings' %} active{% endif %}"
+     role="tab"
+     aria-selected="{{ 'true' if active_tab == 'settings' else 'false' }}"
+     {% if active_tab == 'settings' %}aria-current="page"{% endif %}
+     {% if active_tab != 'settings' %}tabindex="-1"{% endif %}>
+    {{ icon('settings', size='sm') }}
+    <span class="tab-label" data-label="{{ t('Settings') }}">{{ t('Settings') }}</span>
+  </a>
+  {% endif %}
+  <a href="/dashboard/courses/{{ course.id }}/activity"
+     class="tab-btn{% if active_tab == 'activity' %} active{% endif %}"
+     role="tab"
+     aria-selected="{{ 'true' if active_tab == 'activity' else 'false' }}"
+     {% if active_tab == 'activity' %}aria-current="page"{% endif %}
+     {% if active_tab != 'activity' %}tabindex="-1"{% endif %}>
+    {{ icon('activity', size='sm') }}
+    <span class="tab-label" data-label="{{ t('Activity') }}">{{ t('Activity') }}</span>
+  </a>
+  {% if can_edit %}
+  <a href="/dashboard/courses/{{ course.id }}/analytics"
+     class="tab-btn{% if active_tab == 'analytics' %} active{% endif %}"
+     role="tab"
+     aria-selected="{{ 'true' if active_tab == 'analytics' else 'false' }}"
+     {% if active_tab == 'analytics' %}aria-current="page"{% endif %}
+     {% if active_tab != 'analytics' %}tabindex="-1"{% endif %}>
+    {{ icon('chart', size='sm') }}
+    <span class="tab-label" data-label="{{ t('Analytics') }}">{{ t('Analytics') }}</span>
+  </a>
+  <a href="/dashboard/courses/{{ course.id }}/teachers"
+     class="tab-btn{% if active_tab == 'teachers' %} active{% endif %}"
+     role="tab"
+     aria-selected="{{ 'true' if active_tab == 'teachers' else 'false' }}"
+     {% if active_tab == 'teachers' %}aria-current="page"{% endif %}
+     {% if active_tab != 'teachers' %}tabindex="-1"{% endif %}>
+    {{ icon('user-check', size='sm') }}
+    <span class="tab-label" data-label="{{ t('Teachers') }}">{{ t('Teachers') }}</span>
+  </a>
+  {#- The course's owner and teachers and admins - _access._runs_course, the
+      rule the Assistant page itself applies; a teacher who only sees the
+      course (a mentor in one of its teams) gets no tab to a page that refuses. -#}
+  {% if feature_classroom_assistant and (is_admin | default(false) or (course_role | default(none)) in ('owner', 'teacher')) %}
+  <a href="/dashboard/courses/{{ course.id }}/assistant"
+     class="tab-btn{% if active_tab == 'assistant' %} active{% endif %}"
+     role="tab"
+     aria-selected="{{ 'true' if active_tab == 'assistant' else 'false' }}"
+     {% if active_tab == 'assistant' %}aria-current="page"{% endif %}
+     {% if active_tab != 'assistant' %}tabindex="-1"{% endif %}>
+    {{ icon('bot', size='sm') }}
+    <span class="tab-label" data-label="{{ t('Assistant') }}">{{ t('Assistant') }}</span>
+  </a>
+  {% endif %}
+  {% endif %}
+</nav>

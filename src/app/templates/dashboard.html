@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "components/layout.html" import tab_content with context %}
+{% from "components/avatar.html" import avatar %}
+{% block title %}{{ t('Dashboard') }}{% endblock %}
+
+{% set nav_active = 'dashboard' %}
+{# The home sidebar already ends with the "Support & suggestions" panel, so the
+   shell's "Leave feedback | Documentation" footer would duplicate it here. #}
+{% set page_footer = false %}
+
+{% block content %}
+{# -- Greeting: server-rendered in the shell so it paints with the first byte
+   (no flash / pop-in) and carries no stats - those live in the KPI cards
+   below, so the old "N courses · N students" eyebrow that duplicated them is
+   gone. role_ctx already provides the name + avatar; greeting_word is derived
+   without any DB work. -- #}
+<div class="gl-home-greeting">
+  {{ avatar(avatar_url, full_name or username|default('?', true), size=64, loading='eager', priority='high') }}
+  <div class="gl-home-greeting-text">
+    {# Two lines, never three. With a phrase to show this is GitLab's own shape -
+       the name, and one line under it - and the phrase takes the place of the
+       greeting rather than being added to it. Without one (the source is down,
+       the cache is cold, the first load after a deploy) the heading is the
+       time-of-day greeting and the name, with the role and the date under it,
+       exactly as it was before any of this existed. That is the fallback, and it
+       is why the greeting machinery below is still here. #}
+    {% if greeting_phrase %}
+    <h1 class="gl-home-title">{{ full_name or username }}</h1>
+    {# The phrase carries its own size. It is a sentence somebody reads, not the
+       metadata line the fallback puts here (role, date), and at the metadata's
+       14px it sat too quietly under a 30px name. #}
+    <p class="gl-home-subtitle gl-home-phrase">{{ t(greeting_phrase) }}</p>
+    {% else %}
+    <h1 class="gl-home-title" data-greeting data-greeting-morning="{{ t('Good morning') }}" data-greeting-afternoon="{{ t('Good afternoon') }}" data-greeting-evening="{{ t('Good evening') }}"><span data-greeting-word>{{ greeting_word }}</span>, {{ full_name or username }}</h1>
+    <p class="gl-home-subtitle">
+      <span data-greeting-role>
+        {% if is_admin %}
+          {{ t('Administrator') }}
+        {% elif is_teacher %}
+          {{ t('Teacher') }}
+        {% elif is_student %}
+          {{ t('Student') }}
+        {% else %}
+          {{ user_role|capitalize }}
+        {% endif %}
+      </span>
+      &middot;
+      <span data-greeting-date></span>
+    </p>
+    {% endif %}
+  </div>
+  {# Pre-paint greeting correction: runs synchronously before the browser
+     paints so the viewer's *local* time-of-day word replaces the server (UTC)
+     fallback with no visible flash. #}
+  {# data-rerun: this writes the local-time greeting INTO the swapped markup, so it
+     has to run on every arrival. Without it the date is filled on the first
+     visit and blank on every one after, because the script is already in <head>
+     and gets skipped. #}
+  <script nonce="{{ csp_nonce }}" src="{{ static_url('js/greeting-sync.js') }}" data-rerun></script>
+</div>
+
+{# No course in scope here, so `tab_content` renders the plain well. #}
+{% call tab_content() %}
+  {% include "partials/dashboard/_content.html" %}
+{% endcall %}
+{% endblock %}
